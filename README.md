@@ -284,10 +284,57 @@ This framework is designed for the aeromedical community. Contributions are welc
 - Integration with aviation medical databases
 - Improvements to evidence synthesis capabilities
 
+## ⚠️ Important Disclaimers
+
+### 🧪 **Experimental Research Project**
+This framework is currently in the **research and development phase**. It is designed as an experimental tool for exploring the potential of AI-assisted evidence review in aeromedical contexts.
+
+### 🚫 **Not for Critical Decision Making**
+**This software should NOT be used for critical decision-making scenarios in aviation or medical practice.** The framework is intended for:
+- Research and development purposes
+- Educational and training scenarios
+- Preliminary literature review assistance
+- Hypothesis generation and exploration
+
+### 👨‍⚕️ **Expert Validation Required**
+**All outputs from this framework must be validated by qualified aerospace medicine experts before any application in real-world scenarios.** The system:
+- Requires expert review and interpretation of all results
+- Should be used as a supplementary tool, not a replacement for professional judgment
+- Must undergo thorough testing and validation in controlled environments
+- Should not be relied upon for clinical or aviation safety decisions without expert oversight
+
+### 🔬 **Research Phase Limitations**
+- The AI models and knowledge bases are continuously evolving
+- Results may contain inaccuracies or incomplete information
+- The system has not been validated for clinical or aviation safety applications
+- Performance may vary across different types of queries and contexts
+
 ## 📄 License
 
-[Add your license information here]
+MIT License
+
+Copyright (c) 2024 Aeromedical Evidence Review Framework
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ## 🆘 Support
 
-For support with aeromedical evidence reviews or technical issues, please refer to the documentation or contact the development team. 
+For support with aeromedical evidence reviews or technical issues, please refer to the documentation or contact the development team.
+
+**⚠️ For questions about the experimental nature of this project or its limitations, please consult with qualified aerospace medicine professionals.** 
