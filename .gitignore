@@ -110,6 +110,10 @@ venv.bak/
 # PyCharm
 .idea/
 
+# Cursor IDE
+.cursor/
+.cursorignore
+
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
