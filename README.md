@@ -1,42 +1,67 @@
-# Multi-Agent Prompt Enhancement System
+# Aeromedical Evidence Review Framework
 
-A sophisticated prompt enhancement system with **two specialized processing flows** and **comprehensive multiline input support** for granular control over AI model selection and processing.
+A sophisticated **multi-agent framework** designed specifically for **aeromedical staff** to conduct **rapid evidence reviews** based on scientific research. This CLI-based system integrates **deep research methods** using **OpenAI API** and **Flowise cloud services** to provide comprehensive, evidence-based analysis for aerospace medicine and aviation safety.
 
-## 🚀 Features
+## 🚁 Purpose
+
+This framework enables **flight surgeons**, **aeromedical professionals**, and **aviation safety specialists** to:
+- Conduct rapid literature reviews on aeromedical topics
+- Assess risk factors in aviation medicine
+- Analyze physiological effects of flight environments
+- Review NASA Human Research Program data
+- Access specialized medical knowledge bases
+- Generate evidence-based recommendations for aviation safety
+
+## 🔬 Core Capabilities
+
+### 🧠 **Multi-Agent Architecture**
+- **Intelligent Agent Orchestration**: Multiple specialized agents work together to analyze and enhance queries
+- **Context-Aware Processing**: Agents automatically select the most appropriate AI system based on query type
+- **Seamless Handoffs**: Smooth transitions between different processing flows for optimal results
+- **Specialized Knowledge Routing**: Directs queries to domain-specific knowledge bases
 
 ### 🔬 **O3 Deep Research Flow**
-- **o3-deep-research-2025-06-26**: Optimized for in-depth synthesis and research
-- **o3 with Web Search**: Enhanced with real-time information and high reasoning
-- **Intelligent Classification**: Automatically selects the best O3 model
-- **Perfect for**: Scientific research, technology analysis, complex reasoning
+- **o3-deep-research-2025-06-26**: Optimized for in-depth scientific synthesis and research analysis
+- **o3 with Web Search**: Enhanced with real-time information retrieval and high-level reasoning
+- **Intelligent Classification**: Automatically selects the best O3 model based on query complexity
+- **Perfect for**: Complex aeromedical research, technology analysis, multi-step reasoning tasks
 
-### 🌐 **Flowise API Flow**  
-- **Specialized Knowledge Bases**: Medical, NASA, PubMed, Clinical resources
+### 🌐 **Flowise Cloud Integration**
+- **Specialized Medical Knowledge Bases**: PubMed, clinical textbooks, physiology databases
+- **NASA Human Research Program**: Access to space medicine and aerospace physiology data
+- **Aeromedical Risk Assessment**: Specialized chatflow for aviation safety analysis
 - **RAG-Enhanced Processing**: Retrieval-Augmented Generation with domain expertise
-- **Multiple Chatflows**: physiology_rag, nasa_hrp, deep_research, agentic_rag, pubmed
-- **Perfect for**: Medical questions, research literature, specialized domain knowledge
+- **Multiple Specialized Chatflows**:
+  - `physiology_rag`: Human physiology and medical questions
+  - `nasa_hrp`: NASA Human Research Program and space medicine
+  - `deep_research`: Comprehensive research analysis
+  - `agentic_rag`: Multi-agent RAG processing
+  - `pubmed`: Medical literature search
+  - `aeromedical_risk`: Aviation medicine risk assessment
+  - `clinical_textbooks`: Clinical reference materials
+  - `flight_surgeon`: Aviation medicine specialist knowledge
 
 ### 📝 **Advanced Multiline Input Support**
-- **Paste Large Text Blocks**: Perfect for research papers, articles, and extensive context
-- **Smart Input Detection**: Automatically detects and handles pasted content
+- **Paste Large Research Papers**: Perfect for pasting entire abstracts, papers, or articles as context
+- **Smart Input Detection**: Automatically detects and handles pasted academic content
 - **Multiple Input Modes**: Type `>>>` for multiline mode or paste directly
 - **Progress Tracking**: Visual feedback for large inputs with line counts
-- **Intelligent Formatting**: Automatic handling of academic papers, code, and data
+- **Intelligent Formatting**: Automatic handling of academic papers, DOIs, PMIDs
 - **Context Preservation**: Maintains formatting and structure of pasted content
 
 ## 🎯 How It Works
 
-1. **Choose Your Processing Flow** from the main menu
-2. **Enter Your Question** - single line, multiline, or paste large context blocks
-3. **Get Comprehensive Results** from the most appropriate AI system
+1. **Choose Your Processing Flow** from the main menu based on your research needs
+2. **Enter Your Research Question** - single line, multiline, or paste large context blocks
+3. **Get Comprehensive Evidence-Based Results** from the most appropriate AI system
 
-**You now have granular control over which AI system processes your requests AND can easily provide extensive context!**
+**The system provides granular control over which AI system processes your requests AND can easily handle extensive research context!**
 
 ## 📋 Requirements
 
 - Python 3.8+
 - OpenAI API key (required for both flows)
-- Flowise API access (required for Flowise flow only)
+- Flowise API access (required for specialized medical knowledge bases)
 
 ## 🛠️ Installation
 
@@ -56,7 +81,7 @@ pip install -r requirements.txt
 # Required for both flows
 export OPENAI_API_KEY="your-openai-api-key"
 
-# Required only for Flowise flow
+# Required for Flowise cloud integration
 export FLOWISE_API_URL="https://cloud.flowiseai.com"
 export FLOWISE_API_KEY="your-flowise-api-key"
 ```
@@ -70,15 +95,17 @@ python -m src.main
 
 ### Main Menu Options
 
-1. **O3 Deep Research Flow** - For scientific research and complex analysis
-2. **Flowise API Flow** - For medical questions and domain expertise
-3. **Help & Info** - Learn more about each processing flow
-4. **Exit** - Quit the application
+1. **O3 Deep Research Flow** - For complex aeromedical research and analysis
+2. **Flowise API Flow** - For medical questions and specialized domain expertise
+3. **DeepResearch Flowise** - Comprehensive research with Flowise deep knowledge
+4. **Aeromedical Risk** - Aerospace medicine risk assessment and analysis
+5. **Help & Info** - Learn more about each processing flow
+6. **Exit** - Quit the application
 
 ### Commands
 
-- **Your question** - Enter any request for enhancement and processing
-- **>>>** - Enter multiline mode for large text blocks
+- **Your research question** - Enter any request for evidence review and analysis
+- **>>>** - Enter multiline mode for large text blocks (research papers, articles)
 - **/menu** - Return to the main processing flow selection menu
 - **/help** - Show help information
 - **/status** - Show current agent status
@@ -132,7 +159,7 @@ Enter your text (press Ctrl+D or type 'END' on a new line to finish):
 ## 🔬 O3 Deep Research Flow
 
 **When to use:**
-- Complex scientific or technical questions
+- Complex aeromedical or scientific questions
 - Multi-step reasoning and analysis
 - Current events (uses web search)
 - General knowledge with deep analysis
@@ -146,10 +173,10 @@ Enter your text (press Ctrl+D or type 'END' on a new line to finish):
    - `o3 with web search` for current information
 
 **Example questions:**
-- "Explain quantum computing and its applications in cryptography"
-- "What are the latest developments in artificial intelligence?"
-- "How does photosynthesis work at the molecular level?"
-- **[Paste research paper] + "Summarize the key findings and methodology"**
+- "What are the cardiovascular effects of microgravity on long-duration spaceflight?"
+- "Analyze the latest developments in aviation medicine and their safety implications"
+- "How does hypoxia affect pilot performance at high altitudes?"
+- **[Paste research paper] + "Summarize the key findings and clinical implications for aviation medicine"**
 
 ## 🌐 Flowise API Flow
 
@@ -169,12 +196,22 @@ Enter your text (press Ctrl+D or type 'END' on a new line to finish):
    - `pubmed` - Medical literature search
    - `deep_research` - Comprehensive research analysis
    - `agentic_rag` - Multi-agent RAG processing
+   - `aeromedical_risk` - Aviation medicine risk assessment
+   - `flight_surgeon` - Aviation medicine specialist knowledge
 
 **Example questions:**
 - "What are the cardiovascular effects of microgravity?"
-- "Find recent research on diabetes treatment protocols"
+- "Find recent research on diabetes treatment protocols in aviation"
 - "Explain the physiological changes during space flight"
-- **[Paste medical study] + "Analyze the clinical implications"**
+- **[Paste medical study] + "Analyze the clinical implications for flight safety"**
+
+## 🚁 Aeromedical Risk Assessment
+
+**Specialized capability for aviation medicine:**
+- **Risk Factor Analysis**: Comprehensive assessment of medical conditions for flight
+- **Regulatory Compliance**: Integration with aviation medical standards
+- **Evidence-Based Recommendations**: Data-driven safety assessments
+- **Multi-System Evaluation**: Cardiovascular, neurological, psychological factors
 
 ## 🏗️ Architecture
 
@@ -199,132 +236,58 @@ textappv2/
 
 ### Agent Flow Architecture
 
-#### O3 Flow:
-```
-User Input (Multiline) → O3 Prompt Enhancer → O3 Processor → OpenAI o3 Models
-```
+The system uses a sophisticated multi-agent architecture:
 
-#### Flowise Flow:
-```
-User Input (Multiline) → Flowise Prompt Enhancer → Flowise Processor → Flowise Chatflows
-```
+1. **Agent Orchestrator**: Manages the overall flow and agent handoffs
+2. **Prompt Enhancers**: Analyze and enhance user queries for optimal processing
+3. **Specialized Processors**: Route queries to appropriate AI systems
+4. **Knowledge Base Integrators**: Connect to specialized medical and research databases
 
-#### Multiline Input Flow:
-```
-User Types >>> → Multiline Mode → Paste/Type Content → END → Process with Selected Flow
-```
+### Key Features
 
-## ⚙️ Configuration
+- **Intelligent Routing**: Automatically selects the best AI system based on query type
+- **Context Preservation**: Maintains conversation history and context across sessions
+- **Error Handling**: Robust error handling with retry logic and graceful degradation
+- **Streaming Support**: Real-time response streaming for better user experience
+- **Logging**: Comprehensive logging for debugging and audit trails
 
-### Environment Variables
+## 🔧 Configuration
 
-```bash
-# OpenAI Configuration (required for both flows)
-OPENAI_API_KEY="your-openai-api-key"
-OPENAI_MODEL="gpt-4o-mini"  # Default model for enhancement
+The system supports extensive configuration through environment variables:
 
-# Flowise Configuration (required for Flowise flow)
-FLOWISE_API_URL="https://cloud.flowiseai.com"
-FLOWISE_API_KEY="your-flowise-api-key"
+- **OpenAI API**: Model selection, temperature, token limits
+- **Flowise Integration**: Chatflow IDs, session management, streaming options
+- **Application Settings**: Timeouts, retry logic, logging levels
 
-# Chatflow IDs (optional - defaults provided)
-CHATFLOW_PHYSIOLOGY_RAG="your-physiology-rag-id"
-CHATFLOW_NASA_HRP="your-nasa-hrp-id"
-CHATFLOW_DEEP_RESEARCH="your-deep-research-id"
-# ... other chatflow IDs
-```
+## 📊 Use Cases
 
-### Logging Configuration
+### For Flight Surgeons:
+- Rapid review of medical literature for flight clearance decisions
+- Assessment of new medications and their effects on flight safety
+- Analysis of medical conditions in relation to aviation regulations
 
-```bash
-LOG_LEVEL="INFO"  # DEBUG, INFO, WARNING, ERROR
-```
+### For Aeromedical Researchers:
+- Comprehensive literature reviews on aerospace physiology
+- Analysis of NASA Human Research Program data
+- Evidence synthesis for aviation safety recommendations
 
-## 🧪 Testing
-
-Test the system components:
-
-```bash
-# Test system functionality (including multiline input)
-python test_system.py
-
-# Test O3 agents
-python -c "from src.o3_agents import create_o3_enhancement_system; print('O3 agents:', list(create_o3_enhancement_system().keys()))"
-
-# Test Flowise agents  
-python -c "from src.flowise_agents import create_flowise_enhancement_system; print('Flowise agents:', list(create_flowise_enhancement_system().keys()))"
-
-# Test multiline input
-python -c "from src.multiline_input import detect_paste_input; print('Paste detection works:', detect_paste_input('Very long text...' * 100))"
-```
-
-## 📚 Multiline Input Use Cases
-
-### 1. **Research Paper Analysis**
-```
->>> >>>
->>> Abstract: This study investigates the effects of...
->>> Introduction: Recent advances in machine learning...
->>> [paste entire paper]
->>> END
-
-Question: "Summarize the methodology and key findings"
-```
-
-### 2. **Code Analysis**
-```
->>> >>>
->>> def complex_function():
->>>     # Large code block
->>>     return result
->>> END
-
-Question: "Optimize this code and explain the improvements"
-```
-
-### 3. **Data Analysis**
-```
->>> >>>
->>> Name,Age,Score
->>> John,25,85
->>> Jane,30,92
->>> [large CSV data]
->>> END
-
-Question: "Analyze trends in this dataset"
-```
-
-### 4. **Medical Literature Review**
-```
->>> >>>
->>> PMID: 12345678
->>> Title: Effects of Drug X on Condition Y
->>> [paste medical study]
->>> END
-
-Question: "What are the clinical implications for treatment?"
-```
+### For Aviation Safety Specialists:
+- Risk assessment of medical conditions for different flight environments
+- Analysis of incident reports and safety data
+- Development of evidence-based safety protocols
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable (especially for multiline functionality)
-5. Submit a pull request
+This framework is designed for the aeromedical community. Contributions are welcome, especially:
+- Additional specialized knowledge bases
+- Enhanced aeromedical risk assessment algorithms
+- Integration with aviation medical databases
+- Improvements to evidence synthesis capabilities
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[Add your license information here]
 
 ## 🆘 Support
 
-For issues and questions:
-1. Check the existing issues
-2. Create a new issue with detailed information
-3. Include logs and error messages when applicable
-4. For multiline input issues, include the type and size of content being processed
-
----
-
-**Enjoy having granular control over your AI processing flows with comprehensive multiline input support!** 🚀 
+For support with aeromedical evidence reviews or technical issues, please refer to the documentation or contact the development team. 
