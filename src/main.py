@@ -158,10 +158,10 @@ class PromptEnhancerApp:
             "deep_research chatflow"
         )
         table.add_row(
-            "4", 
-            "Aeromedical Risk", 
-            "Aerospace medicine risk assessment and analysis", 
-            "aeromedical_risk chatflow"
+                    "4", 
+        "Aeromedical Risk", 
+        "Aerospace medicine risk assessment and analysis", 
+        "aeromedical_risk chatflow (requires CHATFLOW_AEROMEDICAL_RISK env var)"
         )
         table.add_row(
             "5", 
@@ -272,7 +272,7 @@ class PromptEnhancerApp:
         
         **How it works:**
         - **Direct Aeromedical Risk Agent** - Bypasses routing and directly queries the 
-          `aeromedical_risk` chatflow (ID: c7a56c4b-a8a2-423d-ad6c-e49a7003e8cb)
+          `aeromedical_risk` chatflow (requires CHATFLOW_AEROMEDICAL_RISK environment variable)
         - **Specialized Aerospace Medicine Knowledge** - Accesses aviation medical databases
         - **Conservative Risk Assessment** - Safety-first approach to risk evaluation
         - **Flight Safety Focus** - Prioritizes aviation safety and medical standards
@@ -616,11 +616,18 @@ class PromptEnhancerApp:
 def main() -> None:
     """Main entry point for the application."""
     try:
-        # Validate configuration
-        if not AppConfig.OPENAI_API_KEY:
-            print("❌ Error: OPENAI_API_KEY environment variable is required.")
-            print("Please set your OpenAI API key in the environment or .env file.")
+        # Validate environment variables
+        if not AppConfig.validate_environment():
             sys.exit(1)
+        
+        # Check chatflow availability
+        chatflow_status = AppConfig.validate_chatflow_ids()
+        available_chatflows = [name for name, available in chatflow_status.items() if available]
+        
+        if not available_chatflows:
+            print("⚠️  Warning: No Flowise chatflow IDs configured.")
+            print("   Some features may not be available.")
+            print("   Configure CHATFLOW_* environment variables for full functionality.")
         
         # Create and run the application
         app = PromptEnhancerApp()

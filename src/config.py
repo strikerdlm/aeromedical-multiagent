@@ -73,18 +73,18 @@ class FlowiseConfig:
     
     # Chatflow IDs mapping
     CHATFLOW_IDS: Dict[str, str] = {
-        "physiology_rag": os.getenv("CHATFLOW_PHYSIOLOGY_RAG", "d0bf0d84-1343-4f3b-a887-780d20f9e3c6"),
-        "nasa_hrp": os.getenv("CHATFLOW_NASA_HRP", "a7549a33-2326-4cab-b4db-bd39365e2c7d"),
-        "flight_surgeon": os.getenv("CHATFLOW_FLIGHT_SURGEON", "dcdb1c81-a027-4876-81bb-5535d22a5bc0"),
-        "drone_pilot": os.getenv("CHATFLOW_DRONE_PILOT", "43cfb238-4864-4599-866e-d8ec24235203"),
-        "pubmed": os.getenv("CHATFLOW_PUBMED", "a497e478-4670-4d43-82d6-1ccbfb842ee2"),
-        "arxiv": os.getenv("CHATFLOW_ARXIV", "4bcf45ee-a442-4e14-a584-97468c234d9c"),
-        "crossref": os.getenv("CHATFLOW_CROSSREF", "db428808-722e-4189-8ade-0740e035219d"),
-        "clinical_textbooks": os.getenv("CHATFLOW_CLINICAL_TEXTBOOKS", "ad449a15-f9a1-4c53-9317-36d995474fe1"),
-        "five_minute_consult": os.getenv("CHATFLOW_FIVE_MINUTE_CONSULT", "3e400cbb-9c0f-4925-9b4e-d1d51f55d369"),
-        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", "43677137-d307-4ff4-96c9-5019b6e10879"),
-        "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", "c7a56c4b-a8a2-423d-ad6c-e49a7003e8cb"),
-        "agentic_rag": os.getenv("CHATFLOW_AGENTIC_RAG", "23a968e1-5185-43df-b5d1-1cbe8e3f2522"),
+        "physiology_rag": os.getenv("CHATFLOW_PHYSIOLOGY_RAG", ""),
+        "nasa_hrp": os.getenv("CHATFLOW_NASA_HRP", ""),
+        "flight_surgeon": os.getenv("CHATFLOW_FLIGHT_SURGEON", ""),
+        "drone_pilot": os.getenv("CHATFLOW_DRONE_PILOT", ""),
+        "pubmed": os.getenv("CHATFLOW_PUBMED", ""),
+        "arxiv": os.getenv("CHATFLOW_ARXIV", ""),
+        "crossref": os.getenv("CHATFLOW_CROSSREF", ""),
+        "clinical_textbooks": os.getenv("CHATFLOW_CLINICAL_TEXTBOOKS", ""),
+        "five_minute_consult": os.getenv("CHATFLOW_FIVE_MINUTE_CONSULT", ""),
+        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", ""),
+        "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", ""),
+        "agentic_rag": os.getenv("CHATFLOW_AGENTIC_RAG", ""),
     }
     
     # Chatflow configurations
@@ -162,4 +162,46 @@ class AppConfig:
         "computer", "AI", "machine learning", "quantum", "molecular",
         "genetic", "medical", "clinical", "pharmaceutical", "biomedical",
         "space", "astronomy", "aerospace", "environmental", "climate"
-    ] 
+    ]
+    
+    @classmethod
+    def validate_environment(cls) -> bool:
+        """
+        Validate that required environment variables are set.
+        
+        Returns:
+            True if all required variables are set, False otherwise
+        """
+        missing_vars = []
+        
+        # Check required variables
+        if not cls.OPENAI_API_KEY:
+            missing_vars.append("OPENAI_API_KEY")
+        
+        if not FlowiseConfig.API_KEY:
+            missing_vars.append("FLOWISE_API_KEY")
+        
+        if missing_vars:
+            print("❌ Error: Missing required environment variables:")
+            for var in missing_vars:
+                print(f"   - {var}")
+            print("\n📝 Please create a .env file with the required variables.")
+            print("   See the README.md for setup instructions.")
+            return False
+        
+        return True
+    
+    @classmethod
+    def validate_chatflow_ids(cls) -> Dict[str, bool]:
+        """
+        Validate that chatflow IDs are configured for available features.
+        
+        Returns:
+            Dictionary mapping chatflow names to availability status
+        """
+        chatflow_status = {}
+        
+        for name, chatflow_id in FlowiseConfig.CHATFLOW_IDS.items():
+            chatflow_status[name] = bool(chatflow_id)
+        
+        return chatflow_status 

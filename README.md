@@ -77,14 +77,30 @@ pip install -r requirements.txt
 ```
 
 3. Set up environment variables:
-```bash
-# Required for both flows
-export OPENAI_API_KEY="your-openai-api-key"
-
-# Required for Flowise cloud integration
-export FLOWISE_API_URL="https://cloud.flowiseai.com"
-export FLOWISE_API_KEY="your-flowise-api-key"
-```
+   
+   Create a `.env` file in the project root with the following variables:
+   
+   ```bash
+   # Required: OpenAI API Configuration
+   OPENAI_API_KEY=your_openai_api_key_here
+   
+   # Required: Flowise Cloud Configuration
+   FLOWISE_API_URL=https://cloud.flowiseai.com
+   FLOWISE_API_KEY=your_flowise_api_key_here
+   
+   # Optional: Flowise Chatflow IDs (configure with your actual IDs)
+   CHATFLOW_PHYSIOLOGY_RAG=your_physiology_rag_chatflow_id_here
+   CHATFLOW_NASA_HRP=your_nasa_hrp_chatflow_id_here
+   CHATFLOW_DEEP_RESEARCH=your_deep_research_chatflow_id_here
+   CHATFLOW_AEROMEDICAL_RISK=your_aeromedical_risk_chatflow_id_here
+   CHATFLOW_AGENTIC_RAG=your_agentic_rag_chatflow_id_here
+   
+   # Optional: Web Search Configuration (for o3 + web search)
+   SEARCH_API_KEY=your_google_search_api_key_here
+   SEARCH_ENGINE_ID=your_search_engine_id_here
+   ```
+   
+   **⚠️ Security Note**: Never commit your `.env` file to version control. The `.gitignore` file is already configured to exclude it.
 
 ## 🚀 Usage
 

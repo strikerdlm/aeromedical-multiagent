@@ -569,7 +569,7 @@ class FlowiseAgentSystem:
         You directly access specialized knowledge bases for aerospace medicine and risk assessment.
 
         CORE CAPABILITIES:
-        - Direct access to Flowise aeromedical_risk chatflow (ID: c7a56c4b-a8a2-423d-ad6c-e49a7003e8cb)
+        - Direct access to Flowise aeromedical_risk chatflow (requires CHATFLOW_AEROMEDICAL_RISK environment variable)
         - Aerospace medicine risk assessment and analysis
         - Aviation physiology and medical risk evaluation
         - Flight safety and medical certification guidance

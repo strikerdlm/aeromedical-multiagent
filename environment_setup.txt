@@ -44,11 +44,11 @@ RETRY_DELAY=1.0
 TIMEOUT=30
 LOG_LEVEL=INFO
 
-# Flowise Chatflow IDs (pre-configured)
-CHATFLOW_DEEP_RESEARCH=43677137-d307-4ff4-96c9-5019b6e10879
-CHATFLOW_AGENTIC_RAG=23a968e1-5185-43df-b5d1-1cbe8e3f2522
-CHATFLOW_PHYSIOLOGY_RAG=d0bf0d84-1343-4f3b-a887-780d20f9e3c6
-CHATFLOW_NASA_HRP=a7549a33-2326-4cab-b4db-bd39365e2c7d
+# Flowise Chatflow IDs (configure these with your actual chatflow IDs)
+CHATFLOW_DEEP_RESEARCH=your_deep_research_chatflow_id_here
+CHATFLOW_AGENTIC_RAG=your_agentic_rag_chatflow_id_here
+CHATFLOW_PHYSIOLOGY_RAG=your_physiology_rag_chatflow_id_here
+CHATFLOW_NASA_HRP=your_nasa_hrp_chatflow_id_here
 
 ---END ENV FILE CONTENT---
 
