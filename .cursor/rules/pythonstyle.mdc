@@ -1,0 +1,175 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Python Code Style & Quality Standards
+
+## File Organization
+- Maximum file length: 300 lines
+- Split functionality into logical modules
+- One class per file when possible
+- Group related functions together
+- Use meaningful file names that reflect content
+- Organize imports: standard library, third-party, local imports
+- Use `__init__.py` files to control package exports
+
+## Code Structure
+- Follow PEP 8 style guide strictly
+- Use 4 spaces for indentation (never tabs)
+- Maximum line length: 88 characters (Black formatter standard)
+- Use type hints for all functions, methods, and class attributes
+- Add comprehensive docstrings (Google or NumPy style)
+- Prefer composition over inheritance
+- Use dataclasses for simple data containers
+- Implement `__str__` and `__repr__` for custom classes
+
+## Naming Conventions
+- Classes: PascalCase (e.g., `UserManager`, `DataProcessor`)
+- Functions/Methods: snake_case (e.g., `get_user_data`, `process_items`)
+- Variables: snake_case (e.g., `user_count`, `file_path`)
+- Constants: UPPER_SNAKE_CASE (e.g., `MAX_CONNECTIONS`, `DEFAULT_TIMEOUT`)
+- Private attributes: _leading_underscore (e.g., `_internal_state`)
+- Protected attributes: single underscore (e.g., `_protected_method`)
+- Name mangling: __double_underscore for true privacy
+- Use descriptive names over abbreviations
+
+## Import Standards
+- Group imports in this order: standard library, third-party, local
+- Use absolute imports over relative imports
+- Import modules, not individual functions (unless commonly used)
+- Use `from __future__ import annotations` for forward references
+- Avoid `import *` except in `__init__.py` files
+- Use aliases for long module names: `import numpy as np`
+
+## Documentation
+- Module-level docstring explaining purpose and usage
+- Class docstrings with attributes, methods, and examples
+- Function docstrings with Args, Returns, Raises, Examples
+- Inline comments for complex logic only
+- Use type hints as primary documentation
+- Include usage examples in module docstrings
+- Document public APIs comprehensively
+
+## Error Handling & Logging
+- Use specific exception types, not bare `except:`
+- Create custom exceptions for domain-specific errors
+- Always include meaningful error messages
+- Log exceptions with context and stack traces
+- Use context managers (`with` statements) for resource management
+- Implement proper cleanup in finally blocks
+- Use `logging` module instead of `print()` for debugging
+- Set appropriate logging levels (DEBUG, INFO, WARNING, ERROR)
+
+## Performance & Memory
+- Use generators for large datasets
+- Prefer list/dict comprehensions over loops when readable
+- Use `slots` for classes with many instances
+- Profile code before optimizing
+- Use appropriate data structures (sets for membership, deque for queues)
+- Avoid premature optimization
+- Use `functools.lru_cache` for expensive computations
+- Consider `asyncio` for I/O-bound operations
+
+## Security Best Practices
+- Never use `eval()` or `exec()` with untrusted input
+- Use `secrets` module for cryptographically secure randomness
+- Validate and sanitize all user inputs
+- Use parameterized queries for database operations
+- Store sensitive data in environment variables
+- Use `pathlib` instead of `os.path` for path operations
+- Be cautious with pickle/unpickle operations
+
+## Testing Standards
+- Write tests for all public functions and methods
+- Use descriptive test names that explain the scenario
+- Follow Arrange-Act-Assert pattern
+- Use pytest fixtures for setup and teardown
+- Achieve >90% code coverage
+- Write integration tests for critical paths
+- Use mocking for external dependencies
+- Test edge cases and error conditions
+
+## Modern Python Features (3.8+)
+- Use f-strings for string formatting
+- Use walrus operator (:=) judiciously
+- Prefer `pathlib.Path` over `os.path`
+- Use `typing.Protocol` for structural subtyping
+- Use `dataclasses` and `attrs` for data containers
+- Use `enum.Enum` for constants with meaning
+- Use `contextlib` for custom context managers
+- Consider `pydantic` for data validation
+
+## Code Quality & Tools
+- Use Black for code formatting
+- Use isort for import sorting
+- Use mypy for static type checking
+- Use pylint or flake8 for linting
+- Use pre-commit hooks for automated checks
+- Maintain complexity scores < 10 (cyclomatic complexity)
+- Use bandit for security linting
+- Regular dependency updates with safety checks
+
+## Patterns to Follow
+- Use factory pattern for object creation
+- Implement singleton pattern with `__new__` method
+- Use dependency injection for testability
+- Prefer functional programming patterns when appropriate
+- Use decorators for cross-cutting concerns
+- Implement iterator protocol for custom containers
+- Use property decorators for computed attributes
+
+## Anti-Patterns to Avoid
+- Don't use mutable default arguments
+- Avoid deep nesting (max 4 levels)
+- Don't modify lists while iterating
+- Avoid catching and ignoring exceptions
+- Don't use global variables (use dependency injection)
+- Avoid monkey patching in production code
+- Don't use `isinstance()` for type checking (prefer duck typing)
+- Avoid premature abstraction
+
+## Documentation Examples
+```python
+def process_user_data(
+    user_id: int, 
+    data: Dict[str, Any], 
+    validate: bool = True
+) -> UserProfile:
+    """Process user data and return a UserProfile.
+    
+    Args:
+        user_id: Unique identifier for the user
+        data: Dictionary containing user information
+        validate: Whether to validate data before processing
+        
+    Returns:
+        UserProfile: Processed user profile object
+        
+    Raises:
+        ValidationError: If data validation fails
+        UserNotFoundError: If user_id doesn't exist
+        
+    Example:
+        >>> data = {"name": "John", "email": "john@example.com"}
+        >>> profile = process_user_data(123, data)
+        >>> print(profile.name)
+        John
+    """
+```
+
+## Project Structure Example
+
+project/
+├── src/
+│ ├── init.py
+│ ├── models/
+│ ├── services/
+│ ├── utils/
+│ └── main.py
+├── tests/
+├── docs/
+├── requirements.txt
+├── pyproject.toml
+
+└── README.md

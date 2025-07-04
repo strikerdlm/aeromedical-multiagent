@@ -1,0 +1,81 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+
+# =============================================================================
+# SECURITY: Ignore sensitive files and credentials
+# =============================================================================
+
+# Environment files (contains API keys and secrets)
+.env
+.env.*
+*.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# API Keys and credentials
+**/secrets/**
+**/credentials/**
+**/*secret*
+**/*credential*
+**/*key*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Configuration files that might contain secrets
+config.json
+settings.json
+secrets.json
+credentials.json
+
+# =============================================================================
+# BUILD AND DEPENDENCY FILES
+# =============================================================================
+
+# Node modules and Python packages
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# =============================================================================
+# IDE AND EDITOR FILES
+# =============================================================================
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# LOG FILES AND TEMPORARY FILES
+# =============================================================================
+
+# Log files
+*.log
+logs/
+temp/
+tmp/
+*.tmp

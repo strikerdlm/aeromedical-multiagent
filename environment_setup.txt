@@ -1,0 +1,285 @@
+=============================================================================
+MULTI-AGENT PROMPT ENHANCEMENT SYSTEM - ENVIRONMENT SETUP INSTRUCTIONS
+=============================================================================
+
+CONGRATULATIONS! 🎉 
+Cursor is actively protecting you from accidentally exposing secrets!
+This is exactly the behavior you want for security.
+
+=============================================================================
+SECURITY STATUS: ✅ PROTECTED
+=============================================================================
+
+✅ .gitignore created - prevents secrets from being committed to git
+✅ .cursorignore updated - prevents Cursor from indexing sensitive files  
+✅ Global protection active - Cursor is blocking .env file editing
+
+=============================================================================
+HOW TO CREATE YOUR .env FILE (MANUAL STEPS)
+=============================================================================
+
+STEP 1: Create the .env file manually
+- Open your file explorer or terminal
+- Navigate to your textappv2 directory
+- Create a new file called ".env" (without quotes)
+
+STEP 2: Copy this content into your .env file:
+
+---BEGIN ENV FILE CONTENT---
+
+# Multi-Agent Prompt Enhancement System - Environment Variables
+# SECURITY WARNING: Never commit this file to git!
+
+# REQUIRED: OpenAI API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+
+# OPTIONAL: Flowise API Configuration
+FLOWISE_API_URL=https://cloud.flowiseai.com
+FLOWISE_API_KEY=your_flowise_api_key_here
+
+# Application Settings
+MAX_RETRIES=3
+RETRY_DELAY=1.0
+TIMEOUT=30
+LOG_LEVEL=INFO
+
+# Flowise Chatflow IDs (pre-configured)
+CHATFLOW_DEEP_RESEARCH=43677137-d307-4ff4-96c9-5019b6e10879
+CHATFLOW_AGENTIC_RAG=23a968e1-5185-43df-b5d1-1cbe8e3f2522
+CHATFLOW_PHYSIOLOGY_RAG=d0bf0d84-1343-4f3b-a887-780d20f9e3c6
+CHATFLOW_NASA_HRP=a7549a33-2326-4cab-b4db-bd39365e2c7d
+
+---END ENV FILE CONTENT---
+
+STEP 3: Replace the placeholder values
+- Get your OpenAI API key from: https://platform.openai.com/api-keys
+- Replace "your_openai_api_key_here" with your actual key
+- If you have Flowise, replace "your_flowise_api_key_here" with your Flowise key
+
+STEP 4: Save the file and test
+- Save the .env file
+- Run: python run_app.py
+
+=============================================================================
+SECURITY BEST PRACTICES FOR CURSOR
+=============================================================================
+
+✅ ALREADY DONE:
+- .env files are in .gitignore (won't be committed to git)
+- .env files are in .cursorignore (won't be indexed by Cursor)
+- Cursor's global protection is active
+
+🔧 ADDITIONAL RECOMMENDATIONS:
+
+1. Enable Privacy Mode in Cursor:
+   - Go to Cursor Settings
+   - Enable "Privacy Mode" 
+   - This prevents prompts from being stored
+
+2. Never ask Cursor to read your .env file:
+   - Don't say "look at my .env file"
+   - Don't include .env in context manually
+
+3. Use System Environment Variables (Advanced):
+   - Instead of .env files, you can set environment variables in Windows
+   - This is more secure but less convenient for development
+
+=============================================================================
+WHAT HAPPENED WITH THE $500 TWEET? (FROM WEB SEARCH)
+=============================================================================
+
+A developer named Leo accidentally committed his API keys to a public GitHub
+repository. Attackers found the keys and ran up $500+ in charges within hours.
+
+This happens because:
+- GitHub repos are public by default
+- Bots scan for exposed API keys 24/7
+- API keys = credit card access for cloud services
+- Once exposed, keys are permanently compromised
+
+OUR PROTECTION PREVENTS THIS:
+✅ .gitignore prevents git commits
+✅ .cursorignore prevents AI indexing  
+✅ Cursor's global protection blocks editing
+✅ You'll get warnings if you try to expose secrets
+
+=============================================================================
+TESTING YOUR SETUP
+=============================================================================
+
+1. Create your .env file with your OpenAI API key
+2. Run: python test_system.py (to test without API calls)
+3. Run: python run_app.py (to start the full application)
+
+If you see "OPENAI_API_KEY environment variable is required", your .env file
+isn't being loaded properly.
+
+=============================================================================
+ALTERNATIVE: Use Cursor Rules for Even Better Protection
+=============================================================================
+
+Based on the web search results, you can also set up pre-commit hooks and
+other tools that make it IMPOSSIBLE to leak secrets. This is mentioned in
+the "Vibe Coding" guide from the search results.
+
+The key is having multiple layers of protection:
+1. .gitignore (prevents git commits)
+2. .cursorignore (prevents AI indexing)
+3. Global IDE protection (what Cursor is doing)
+4. Pre-commit hooks (advanced - prevents commits even if .gitignore fails)
+
+============================================================================= 
+
+# Environment Setup for Advanced Multi-Agent Prompt Enhancement System
+
+## Required Environment Variables
+
+### OpenAI Configuration (Required)
+```bash
+# Your OpenAI API key (required for all functionality)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Default model for prompt enhancement (optional)
+OPENAI_MODEL=gpt-4o-mini
+```
+
+### Web Search Configuration (Optional - for o3 + web search)
+```bash
+# Google Custom Search API key (optional - enables web search for o3 model)
+SEARCH_API_KEY=your_google_search_api_key_here
+
+# Google Custom Search Engine ID (optional - required if using web search)
+SEARCH_ENGINE_ID=your_search_engine_id_here
+```
+
+### Application Configuration (Optional)
+```bash
+# Logging level (optional)
+LOG_LEVEL=INFO
+
+# API timeout in seconds (optional)
+TIMEOUT=60
+
+# Maximum retries for API calls (optional)
+MAX_RETRIES=3
+
+# Retry delay in seconds (optional)
+RETRY_DELAY=1.0
+```
+
+## Setup Instructions
+
+### 1. OpenAI API Key (Required)
+1. Go to https://platform.openai.com/api-keys
+2. Create a new API key
+3. Add it to your environment variables or .env file
+
+### 2. Web Search Setup (Optional but Recommended)
+To enable web search functionality for the o3 model:
+
+1. Go to Google Cloud Console (https://console.cloud.google.com/)
+2. Enable the Custom Search JSON API
+3. Create an API key for the Custom Search API
+4. Set up a Custom Search Engine at https://cse.google.com/
+5. Get your Search Engine ID from the setup page
+6. Add both to your environment variables
+
+### 3. Create .env file
+Create a `.env` file in the project root with your configuration:
+
+```bash
+# Required
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional - enables web search for o3 model
+SEARCH_API_KEY=your_google_search_api_key_here
+SEARCH_ENGINE_ID=your_search_engine_id_here
+
+# Optional application settings
+LOG_LEVEL=INFO
+TIMEOUT=60
+```
+
+## Advanced AI Models Used
+
+### o3-deep-research-2025-06-26
+- **Used for**: Science, technology, research, and complex analytical questions
+- **Features**: In-depth synthesis, comprehensive analysis, high-quality research output
+- **Automatically selected when**: Questions contain science/tech keywords or require deep analysis
+
+### o3 with Web Search + High Reasoning
+- **Used for**: General questions, current events, practical advice
+- **Features**: Real-time web information, high reasoning capabilities, current data
+- **Automatically selected when**: Questions are general knowledge or need current information
+
+### GPT-4o-mini
+- **Used for**: Prompt analysis and enhancement
+- **Features**: Fast, efficient, cost-effective for processing tasks
+- **Role**: Enhances user prompts before routing to advanced models
+
+## System Features
+
+### Intelligent Routing
+The system automatically classifies your questions and routes them to the most appropriate model:
+
+- **Science/Technology Questions** → o3-deep-research-2025-06-26
+- **General/Current Events** → o3 with web search
+- **Complex Multi-part Questions** → o3-deep-research-2025-06-26
+
+### Prompt Enhancement
+Every user input goes through enhancement to:
+- Add relevant context and background
+- Clarify intent and expected outcomes
+- Include domain-specific details
+- Structure the request for optimal AI response
+
+### Web Search Integration
+When using o3 model, the system can:
+- Extract relevant search queries from your prompt
+- Perform web searches for current information
+- Integrate search results into the AI prompt
+- Provide responses based on up-to-date information
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Error: OPENAI_API_KEY environment variable is required"**
+   - Make sure you've set your OpenAI API key in the environment or .env file
+
+2. **Web search shows "Web Search Not Configured"**
+   - This is normal if you haven't set up Google Custom Search
+   - The system will work without web search, just won't have current information for o3 model
+
+3. **Model access errors**
+   - Ensure your OpenAI account has access to the o3 models
+   - Check your API key permissions and usage limits
+
+4. **Timeout errors**
+   - The advanced models can take longer to respond
+   - Try increasing the TIMEOUT value in your environment
+
+### Getting Help
+
+If you encounter issues:
+1. Check the log file `prompt_enhancer.log` for detailed error information
+2. Ensure all required environment variables are set
+3. Verify your OpenAI API key has the necessary permissions
+4. Check your internet connection for web search functionality
+
+## Example Usage
+
+Once configured, you can ask questions like:
+
+**Science/Tech (→ o3-deep-research):**
+- "Explain quantum entanglement and its applications in quantum computing"
+- "How do CRISPR gene editing techniques work at the molecular level?"
+- "Compare the efficiency of different solar cell technologies"
+
+**General/Current (→ o3 + web search):**
+- "What are the latest developments in electric vehicle technology?"
+- "What's the current status of climate change legislation?"
+- "How do I set up a home network for remote work?"
+
+The system will automatically enhance your prompt and route it to the best AI model for comprehensive, high-quality responses. 
