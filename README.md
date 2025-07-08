@@ -104,30 +104,57 @@ pip install -r requirements.txt
 
 ## 🚀 Usage
 
-Run the application:
+Run the enhanced application:
 ```bash
-python -m src.main
+python run_app.py
 ```
 
-### Main Menu Options
+### 🎯 Smart Mode (Recommended)
 
-1. **O3 Deep Research Flow** - For complex aeromedical research and analysis
-2. **Flowise API Flow** - For medical questions and specialized domain expertise
-3. **DeepResearch Flowise** - Comprehensive research with Flowise deep knowledge
-4. **Aeromedical Risk** - Aerospace medicine risk assessment and analysis
-5. **Help & Info** - Learn more about each processing flow
-6. **Exit** - Quit the application
+**Just ask your question!** The enhanced CLI now features intelligent auto-detection:
 
-### Commands
+```bash
+🎯 Ask your question (auto-detection enabled)
+>>> What are the cardiovascular effects of microgravity on pilots?
+
+🎯 Auto-detected optimal mode: 🌐 Flowise Medical RAG (confidence: 87%)
+🌐 Processing your request with Flowise Medical Agent...
+```
+
+### 🛠️ Processing Modes
+
+The system automatically selects the best AI, but you can override with quick commands:
+
+- **🎯 Smart Auto-Detection** (`/smart`) - Let the system choose (Default)
+- **🔬 O3 Deep Research** (`/o3`) - Complex analysis and latest research  
+- **🌐 Flowise Medical RAG** (`/flowise`) - Medical questions and clinical knowledge
+- **🔬 DeepResearch RAG** (`/deep`) - Comprehensive research synthesis
+- **🚁 Aeromedical Risk** (`/aero`) - Aviation medicine risk assessment
+
+### 💡 Quick Commands
 
 - **Your research question** - Enter any request for evidence review and analysis
-- **>>>** - Enter multiline mode for large text blocks (research papers, articles)
-- **/menu** - Return to the main processing flow selection menu
-- **/help** - Show help information
-- **/status** - Show current agent status
-- **/history** - Show conversation history
-- **/clear** - Clear conversation history
-- **/quit** or **/exit** - Exit the application
+- **`?`** - Quick contextual help (shows help relevant to current mode)
+- **`>>>`** - Enter multiline mode for large text blocks (research papers, articles)
+- **`/smart`** - Switch to smart auto-detection mode
+- **`/o3`** - Switch to O3 deep research mode  
+- **`/flowise`** - Switch to Flowise medical RAG mode
+- **`/aero`** - Switch to aeromedical risk assessment mode
+- **`/modes`** - View all available processing modes
+- **`/status`** - Show current system status
+- **`/history`** - Show conversation history
+- **`/clear`** - Clear conversation history
+- **`/quit`** or **`/exit`** - Exit the application
+
+### 🚀 Key Improvements
+
+#### ✨ **What's New in the Enhanced CLI:**
+
+1. **Smart Auto-Detection**: No more menu navigation - just ask your question!
+2. **Quick Mode Switching**: Use `/o3`, `/flowise`, `/aero` for instant mode changes
+3. **Contextual Help**: Type `?` for help relevant to your current mode
+4. **Better Error Handling**: Clear error messages with actionable suggestions
+5. **Streamlined Experience**: Immediate question asking with intelligent routing
 
 ### 📝 Multiline Input Features
 
