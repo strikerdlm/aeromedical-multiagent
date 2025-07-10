@@ -27,6 +27,7 @@ from .o3_agents import create_o3_enhancement_system
 from .flowise_agents import create_flowise_enhancement_system
 from .flowise_client import FlowiseAPIError
 from .multiline_input import MultilineInputHandler, detect_paste_input, format_large_text_preview
+from .markdown_exporter import MarkdownExporter
 
 
 # Set up logging with proper Unicode support
@@ -78,6 +79,7 @@ class EnhancedPromptEnhancerApp:
         self.console = Console()
         self.multiline_handler = MultilineInputHandler(self.console)
         self.orchestrator = AgentOrchestrator()
+        self.markdown_exporter = MarkdownExporter()
         
         # Create both agent systems
         self.o3_agents = create_o3_enhancement_system()
@@ -275,6 +277,10 @@ class EnhancedPromptEnhancerApp:
             ("**`/modes`**", "Switch processing modes"),
             ("**`/status`**", "Show current system status"),
             ("**`/history`**", "View conversation history"),
+            ("**`/export`**", "Export latest response to markdown"),
+            ("**`/save`**", "Export full conversation to markdown"),
+            ("**`/report`**", "Export structured research report"),
+            ("**`/exports`**", "List all exported files"),
             ("**`/clear`**", "Clear conversation history"),
             ("**`/quit`**", "Exit the application")
         ]
@@ -525,6 +531,20 @@ class EnhancedPromptEnhancerApp:
                 self.display_settings()
                 return True
             
+            # Export commands
+            elif command in ['export', 'save-response']:
+                self.export_latest_response()
+                return True
+            elif command in ['save', 'save-conversation']:
+                self.export_full_conversation()
+                return True
+            elif command in ['report', 'save-report']:
+                self.export_structured_report()
+                return True
+            elif command in ['exports', 'list-exports']:
+                self.list_exported_files()
+                return True
+            
             else:
                 self.console.print(f"[red]❌ Unknown command: /{command}[/red]")
                 self.console.print("[yellow]💡 Type ? for help or /modes to see available modes[/yellow]")
@@ -620,6 +640,9 @@ class EnhancedPromptEnhancerApp:
             # Show success message with helpful next steps
             self.console.print(f"\n[green]✅ Response generated successfully![/green]")
             
+            # Show export options
+            self.show_export_options()
+            
             if self.current_mode == "smart":
                 self.console.print("[dim]💡 Ask another question or type /modes to explore different processing options[/dim]")
             else:
@@ -706,6 +729,161 @@ class EnhancedPromptEnhancerApp:
         
         self.console.print(settings_table)
         self.console.print("\n[dim]Settings modification coming in future update. Type /help for available commands.[/dim]")
+    
+    def export_latest_response(self) -> None:
+        """Export the latest response to a markdown file."""
+        try:
+            if not self.messages:
+                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                return
+            
+            # Check if there's at least one assistant response
+            has_response = any(msg.get("role") == "assistant" for msg in self.messages)
+            if not has_response:
+                self.console.print("[yellow]⚠️  No AI response found to export.[/yellow]")
+                return
+            
+            agent_name = self.current_agent.name if self.current_agent else "Unknown"
+            
+            file_path = self.markdown_exporter.export_latest_response(
+                self.messages, self.current_mode, agent_name
+            )
+            
+            self.console.print(Panel(
+                f"[green]✅ Latest response exported successfully![/green]\n\n"
+                f"**File:** `{file_path}`\n"
+                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
+                f"[dim]💡 You can now share this markdown file or import it into your documentation.[/dim]",
+                title="📄 Export Complete",
+                border_style="green"
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error exporting latest response: {e}")
+            self.console.print(f"[red]❌ Export failed: {e}[/red]")
+    
+    def export_full_conversation(self) -> None:
+        """Export the complete conversation to a markdown file."""
+        try:
+            if not self.messages:
+                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                return
+            
+            agent_name = self.current_agent.name if self.current_agent else "Unknown"
+            
+            file_path = self.markdown_exporter.export_full_conversation(
+                self.messages, self.current_mode, agent_name
+            )
+            
+            self.console.print(Panel(
+                f"[green]✅ Full conversation exported successfully![/green]\n\n"
+                f"**File:** `{file_path}`\n"
+                f"**Messages:** {len(self.messages)}\n"
+                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
+                f"[dim]💡 This includes all questions and responses from your current session.[/dim]",
+                title="📚 Conversation Export Complete",
+                border_style="green"
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error exporting conversation: {e}")
+            self.console.print(f"[red]❌ Export failed: {e}[/red]")
+    
+    def export_structured_report(self) -> None:
+        """Export a structured research report."""
+        try:
+            if not self.messages:
+                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                return
+            
+            # Ask for optional title
+            title = Prompt.ask(
+                "\n[cyan]📝 Report title (optional)[/cyan]",
+                default="",
+                show_default=False
+            )
+            
+            agent_name = self.current_agent.name if self.current_agent else "Unknown"
+            
+            file_path = self.markdown_exporter.export_structured_report(
+                self.messages, self.current_mode, agent_name, 
+                title if title.strip() else None
+            )
+            
+            self.console.print(Panel(
+                f"[green]✅ Research report exported successfully![/green]\n\n"
+                f"**File:** `{file_path}`\n"
+                f"**Format:** Structured research report with metadata\n"
+                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
+                f"[dim]💡 This report includes executive summary, questions, and detailed analysis.[/dim]",
+                title="📊 Research Report Export Complete",
+                border_style="green"
+            ))
+            
+        except Exception as e:
+            logger.error(f"Error exporting report: {e}")
+            self.console.print(f"[red]❌ Export failed: {e}[/red]")
+    
+    def list_exported_files(self) -> None:
+        """List all exported markdown files."""
+        try:
+            exports = self.markdown_exporter.list_exports()
+            
+            if not exports:
+                self.console.print(Panel(
+                    "[yellow]No exported files found.[/yellow]\n\n"
+                    "Use `/export`, `/save`, or `/report` to create markdown exports.",
+                    title="📁 Exported Files",
+                    border_style="yellow"
+                ))
+                return
+            
+            # Create table of exports
+            table = Table(title=f"📁 Exported Files ({len(exports)} total)")
+            table.add_column("File", style="cyan", width=30)
+            table.add_column("Type", style="green", width=15)
+            table.add_column("Modified", style="yellow", width=20)
+            table.add_column("Path", style="dim", width=50)
+            
+            for filename, filepath, modified_time in exports:
+                # Determine type based on filename
+                if filename.startswith("response_"):
+                    file_type = "Response"
+                elif filename.startswith("conversation_"):
+                    file_type = "Conversation"
+                elif filename.startswith("report_"):
+                    file_type = "Report"
+                else:
+                    file_type = "Export"
+                
+                modified_str = modified_time.strftime("%Y-%m-%d %H:%M")
+                
+                table.add_row(filename, file_type, modified_str, filepath)
+            
+            self.console.print(table)
+            
+            self.console.print(f"\n[dim]💡 Export directory: `{self.markdown_exporter.get_export_directory()}`[/dim]")
+            
+        except Exception as e:
+            logger.error(f"Error listing exports: {e}")
+            self.console.print(f"[red]❌ Failed to list exports: {e}[/red]")
+    
+    def show_export_options(self) -> None:
+        """Show export options after a response is generated."""
+        export_table = Table.grid(padding=1)
+        export_table.add_column(style="dim cyan", justify="right")
+        export_table.add_column(style="dim white")
+        
+        export_table.add_row("📄", "/export - Save this response to markdown")
+        export_table.add_row("📚", "/save - Save full conversation to markdown") 
+        export_table.add_row("📊", "/report - Create structured research report")
+        
+        self.console.print(Panel(
+            export_table,
+            title="💾 Export Options",
+            border_style="dim blue",
+            padding=(0, 1)
+        ))
     
     def run_enhanced(self) -> None:
         """Run the enhanced application with improved user experience."""
