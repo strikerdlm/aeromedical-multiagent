@@ -282,4 +282,4 @@ Once configured, you can ask questions like:
 - "What's the current status of climate change legislation?"
 - "How do I set up a home network for remote work?"
 
-The system will automatically enhance your prompt and route it to the best AI model for comprehensive, high-quality responses. 
+The system will automatically enhance your prompt and route it to the best AI model for comprehensive, high-quality responses.
