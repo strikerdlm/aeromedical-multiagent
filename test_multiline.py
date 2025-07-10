@@ -1,47 +1,63 @@
-#!/usr/bin/env python3
-"""
-Test script to verify multiline input functionality for all modes.
-"""
+import pytest
 
-import sys
-import os
+from src.multiline_input import (
+    detect_paste_input,
+    format_large_text_preview,
+    get_multiline_input_simple,
+)
 
-# Add the src directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.multiline_input import MultilineInputHandler
-from rich.console import Console
+def test_detect_paste_short_text():
+    assert not detect_paste_input("Hello world")
 
-def test_multiline_input():
-    """Test multiline input functionality."""
-    console = Console()
-    handler = MultilineInputHandler(console)
-    
-    print("🧪 Testing Multiline Input Functionality")
-    print("=" * 50)
-    
-    # Test 1: Single line input
-    print("\n1️⃣ Testing single line input:")
-    print("Expected: Should accept regular text")
-    
-    # Test 2: Multiline input with >>> trigger
-    print("\n2️⃣ Testing multiline input with '>>>' trigger:")
-    print("Expected: Should enter multiline mode")
-    
-    # Test 3: Multiline input with MULTILINE trigger
-    print("\n3️⃣ Testing multiline input with 'MULTILINE' trigger:")
-    print("Expected: Should enter multiline mode with instructions")
-    
-    # Test 4: Empty input handling
-    print("\n4️⃣ Testing empty input handling:")
-    print("Expected: Should prompt for single/multi/cancel choice")
-    
-    print("\n✅ All test scenarios defined. The actual input testing would require user interaction.")
-    print("To test manually, run the main application and try:")
-    print("  - Regular text input")
-    print("  - Type '>>>' then multiline text ending with '/send'")
-    print("  - Type 'MULTILINE' then multiline text ending with '/send'")
-    print("  - Press Enter on empty input")
 
-if __name__ == "__main__":
-    test_multiline_input() 
+def test_detect_paste_many_lines():
+    text = "\n".join("line" for _ in range(6))
+    assert detect_paste_input(text)
+
+
+def test_detect_paste_formal_indicators():
+    text = "Abstract: ...\nIntroduction: ...\nResults: ...\nDOI: 12345"
+    assert detect_paste_input(text)
+
+
+def test_detect_paste_long_line():
+    text = "a" * 501
+    assert detect_paste_input(text)
+
+
+def test_format_large_text_preview_lines():
+    text = "\n".join(f"line{i}" for i in range(6))
+    preview = format_large_text_preview(text, max_lines=3, max_chars=1000)
+    assert preview.startswith("line0\nline1\nline2")
+    assert "... (3 more lines)" in preview
+
+
+def test_format_large_text_preview_chars():
+    text = "a" * 600
+    preview = format_large_text_preview(text, max_lines=10, max_chars=100)
+    assert preview.endswith("...")
+    assert len(preview) <= 103
+
+
+def test_get_multiline_input_simple(monkeypatch):
+    inputs = iter(["hello", "world", "/send"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
+    result = get_multiline_input_simple()
+    assert result == "hello\nworld"
+
+
+def test_get_multiline_input_simple_end(monkeypatch):
+    inputs = iter(["hello", "END"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
+    result = get_multiline_input_simple()
+    assert result == "hello"
+
+
+def test_get_multiline_input_simple_interrupt(monkeypatch):
+    def raise_interrupt(prompt=""):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("builtins.input", raise_interrupt)
+    result = get_multiline_input_simple()
+    assert result == ""
