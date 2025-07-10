@@ -109,6 +109,83 @@ Run the enhanced application:
 python run_app.py
 ```
 
+## 📄 Markdown Export Feature
+
+The application now includes comprehensive markdown export functionality, allowing you to save AI responses, conversations, and structured reports without needing to copy-paste content.
+
+### 🎯 Export Options
+
+After any AI response is generated, you'll see export options:
+
+```
+💾 Export Options
+📄  /export - Save this response to markdown
+📚  /save - Save full conversation to markdown  
+📊  /report - Create structured research report
+```
+
+### 📝 Export Commands
+
+- **`/export`** - Export the latest AI response with your question and the answer
+- **`/save`** - Export the complete conversation history from your current session
+- **`/report`** - Create a structured research report with executive summary, questions, and detailed analysis
+- **`/exports`** - List all your exported markdown files with timestamps
+
+### 📁 Export Features
+
+- **Well-Formatted Markdown**: Clean, professional formatting suitable for documentation
+- **Metadata Tracking**: Includes processing mode, agent used, timestamps, and system information
+- **Automatic File Management**: Files are saved in the `exports/` directory with descriptive names
+- **Multiple Export Formats**: 
+  - Single response exports for quick sharing
+  - Full conversation exports for comprehensive documentation
+  - Structured research reports for formal documentation
+- **Easy Sharing**: Generated markdown files can be easily shared, imported into documentation systems, or converted to other formats
+
+### 📋 Example Export Structure
+
+**Single Response Export:**
+```
+# Aeromedical Evidence Review - Response Export
+
+## Export Metadata
+- Export Date: 2024-01-15 14:30:25
+- Processing Mode: 🌐 Flowise Medical RAG - Medical and scientific knowledge
+- Agent: Flowise Medical Agent
+- System: Aeromedical Evidence Review Framework
+
+**Question/Request:**
+What are the cardiovascular effects of microgravity on pilots?
+
+**Response:**
+[AI response content with full formatting preserved]
+```
+
+**Structured Research Report:**
+```
+# Research Report Title
+
+## Executive Summary
+[Summary of key findings]
+
+## Research Questions
+1. Question 1
+2. Question 2
+
+## Detailed Analysis
+### 1. Analysis
+**Research Question:** [Question]
+**Analysis Results:** [Response]
+```
+
+### 💡 Use Cases
+
+- **Research Documentation**: Save comprehensive analysis for later reference
+- **Report Generation**: Create formal reports from AI interactions
+- **Knowledge Sharing**: Share findings with colleagues in markdown format
+- **Documentation**: Build knowledge bases from your research sessions
+- **Audit Trail**: Maintain records of research queries and responses
+
 ### 🎯 Smart Mode (Recommended)
 
 **Just ask your question!** The enhanced CLI now features intelligent auto-detection:
@@ -143,6 +220,10 @@ The system automatically selects the best AI, but you can override with quick co
 - **`/modes`** - View all available processing modes
 - **`/status`** - Show current system status
 - **`/history`** - Show conversation history
+- **`/export`** - Export latest response to markdown file
+- **`/save`** - Export full conversation to markdown file
+- **`/report`** - Create structured research report in markdown
+- **`/exports`** - List all exported markdown files
 - **`/clear`** - Clear conversation history
 - **`/quit`** or **`/exit`** - Exit the application
 
