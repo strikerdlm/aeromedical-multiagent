@@ -68,7 +68,7 @@ This framework enables **flight surgeons**, **aeromedical professionals**, and *
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd textappv2
+cd aeromedical-multiagent
 ```
 
 2. Install dependencies:
