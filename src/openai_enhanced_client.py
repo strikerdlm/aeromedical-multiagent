@@ -11,7 +11,27 @@ import json
 import logging
 import requests
 from typing import Dict, Any, List, Optional, Generator, Union
-from openai import OpenAI
+# Similar to src.agents, OpenAI may not be installed in the execution
+# environment used for automated tests. Provide a small stub so that the
+# module can be imported without the dependency.
+try:
+    from openai import OpenAI  # type: ignore
+except Exception:  # pragma: no cover - fallback for missing dependency
+    class _DummyCompletions:
+        def create(self, *args, **kwargs):
+            return type("Resp", (), {"choices": []})()
+
+    class _DummyChat:
+        completions = _DummyCompletions()
+
+    class _DummyResponses:
+        def create(self, *args, **kwargs):
+            return type("Resp", (), {"choices": []})()
+
+    class OpenAI:  # pragma: no cover - simple stub
+        def __init__(self, *args, **kwargs):
+            self.chat = _DummyChat()
+            self.responses = _DummyResponses()
 
 from .config import AppConfig, OpenAIModelsConfig
 

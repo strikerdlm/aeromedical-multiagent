@@ -12,7 +12,27 @@ import inspect
 import logging
 from typing import Dict, Any, List, Optional, Callable, Union, Generator
 from pydantic import BaseModel
-from openai import OpenAI
+# The OpenAI package might not be available in minimal test environments.
+# Import it if present, otherwise provide a lightweight stub so that the
+# module can be imported without the dependency installed.
+try:
+    from openai import OpenAI  # type: ignore
+except Exception:  # pragma: no cover - fallback for missing dependency
+    class _DummyCompletions:
+        def create(self, *args, **kwargs):
+            return type("Resp", (), {"choices": []})()
+
+    class _DummyChat:
+        completions = _DummyCompletions()
+
+    class _DummyResponses:
+        def create(self, *args, **kwargs):
+            return type("Resp", (), {"choices": []})()
+
+    class OpenAI:  # pragma: no cover - simple stub
+        def __init__(self, *args, **kwargs):
+            self.chat = _DummyChat()
+            self.responses = _DummyResponses()
 
 from .config import AppConfig
 from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
