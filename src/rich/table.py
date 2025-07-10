@@ -8,10 +8,13 @@ class Table:
         self.is_grid = kwargs.get('grid', False)
         self.padding = kwargs.get('padding', 0)
     
-    def add_column(self, header, style=None, width=None, justify="left", *args, **kwargs):
+    def add_column(self, header=None, style=None, width=None, justify="left", *args, **kwargs):
         """Add a column to the table."""
         # Strip Rich markup from header
-        clean_header = re.sub(r'\[/?[^\]]*\]', '', header) if isinstance(header, str) else str(header)
+        if header is not None:
+            clean_header = re.sub(r'\[/?[^\]]*\]', '', header) if isinstance(header, str) else str(header)
+        else:
+            clean_header = ""
         self.columns.append({
             'header': clean_header,
             'style': style,
