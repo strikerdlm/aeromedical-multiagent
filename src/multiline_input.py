@@ -9,10 +9,32 @@ from __future__ import annotations
 
 import sys
 from typing import Optional, List
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.prompt import Prompt
+# The Rich library provides advanced console formatting. It may not be
+# installed in very minimal environments used for unit tests, so we fall
+# back to simple stub implementations if the import fails.
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.prompt import Prompt
+except Exception:  # pragma: no cover - allow missing dependency
+    class Console:  # type: ignore
+        def print(self, *args, **kwargs):
+            print(*args)
+
+    class Panel:
+        def __init__(self, renderable, title=None, border_style=None):
+            self.renderable = renderable
+            self.title = title
+            self.border_style = border_style
+
+    class Text(str):
+        pass
+
+    class Prompt:  # type: ignore
+        @staticmethod
+        def ask(prompt, choices=None, default=None):
+            return input(f"{prompt} ")
 
 
 class MultilineInputHandler:

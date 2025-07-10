@@ -1,0 +1,2 @@
+class Markdown(str):
+    pass

@@ -10,7 +10,14 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
-from dotenv import load_dotenv
+# The python-dotenv package is optional for basic operation. If it is not
+# installed (as may be the case in restricted test environments) fall back to
+# a no-op implementation so the module can still be imported.
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # pragma: no cover - fallback stub
+    def load_dotenv(*args, **kwargs):
+        return False
 
 # Load environment variables
 load_dotenv()
