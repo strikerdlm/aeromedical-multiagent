@@ -297,13 +297,21 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise aeromedical risk chatflow")
-            response = self.flowise_client.consult_aeromedical_risk(enhanced_prompt)
-            
-            if isinstance(response, dict):
-                return response.get("text", str(response))
-            else:
-                return str(response)
-            
+            response_generator = self.flowise_client.consult_aeromedical_risk(enhanced_prompt)
+
+            full_response = ""
+            for chunk in response_generator:
+                if isinstance(chunk, dict):
+                    if chunk.get("event") == "token":
+                        full_response += chunk.get("data", "")
+                    elif chunk.get("event") == "end":
+                        break
+                else:
+                    full_response += str(chunk)
+
+            logger.info("Flowise aeromedical risk query completed successfully")
+            return full_response or "Flowise aeromedical risk query completed successfully."
+
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")
             return f"Error querying Flowise aeromedical risk: {str(e)}"
