@@ -178,29 +178,27 @@ class MultilineInputHandler:
     
     def _display_multiline_instructions(self) -> None:
         """Display instructions for multiline input."""
-        instructions = """
-        ## 📝 Multiline Input Mode
-        
-        **How to enter multiline text:**
-        - Type or paste your text across multiple lines
-        - Press **Enter** after each line to continue
-        - Type **'/send'** on a new line to finish and send your input
-        - Or press **Ctrl+D** (Linux/Mac) or **Ctrl+Z** (Windows) to finish
-        
-        **Perfect for:**
-        - Large context blocks
-        - Pasted research papers or articles
-        - Multi-paragraph questions
-        - Code snippets or data
-        
-        **Tips:**
-        - You can paste large blocks of text directly
-        - The system will handle formatting automatically
-        - Line counts will be shown for large inputs
-        - Use '/send' to submit your multiline input
-        """
-        
-        self.console.print(Panel(instructions, title="📖 Multiline Input Help", border_style="blue"))
+        self.console.print()
+        self.console.print("📝 [bold]Multiline Input Mode[/bold]")
+        self.console.print()
+        self.console.print("[bold]How to enter multiline text:[/bold]")
+        self.console.print("- Type or paste your text across multiple lines")
+        self.console.print("- Press [bold]Enter[/bold] after each line to continue")
+        self.console.print("- Type [bold]'/send'[/bold] on a new line to finish and send your input")
+        self.console.print("- Or press [bold]Ctrl+D[/bold] (Linux/Mac) or [bold]Ctrl+Z[/bold] (Windows) to finish")
+        self.console.print()
+        self.console.print("[bold]Perfect for:[/bold]")
+        self.console.print("- Large context blocks")
+        self.console.print("- Pasted research papers or articles")
+        self.console.print("- Multi-paragraph questions")
+        self.console.print("- Code snippets or data")
+        self.console.print()
+        self.console.print("[bold]Tips:[/bold]")
+        self.console.print("- You can paste large blocks of text directly")
+        self.console.print("- The system will handle formatting automatically")
+        self.console.print("- Line counts will be shown for large inputs")
+        self.console.print("- Use '/send' to submit your multiline input")
+        self.console.print()
     
     def _display_input_summary(self, text: str) -> None:
         """
@@ -220,17 +218,17 @@ class MultilineInputHandler:
         
         preview = '\n'.join(preview_lines)
         
-        summary_text = f"""
-        **Input Summary:**
-        - Lines: {len(lines)}
-        - Characters: {char_count:,}
-        - Words: {word_count:,}
-        
-        **Preview:**
-        {preview}
-        """
-        
-        self.console.print(Panel(summary_text, title="✅ Input Received", border_style="green"))
+        self.console.print()
+        self.console.print("✅ [green]Input Received[/green]")
+        self.console.print()
+        self.console.print("[bold]Input Summary:[/bold]")
+        self.console.print(f"- Lines: {len(lines)}")
+        self.console.print(f"- Characters: {char_count:,}")
+        self.console.print(f"- Words: {word_count:,}")
+        self.console.print()
+        self.console.print("[bold]Preview:[/bold]")
+        self.console.print(preview)
+        self.console.print()
 
 
 def get_multiline_input_simple() -> str:

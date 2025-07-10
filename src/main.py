@@ -165,47 +165,35 @@ class EnhancedPromptEnhancerApp:
     def display_enhanced_welcome(self) -> None:
         """Display an enhanced welcome message with better onboarding."""
         
-        # Title panel
-        title_text = "🚀 Advanced Aeromedical Evidence Review System"
-        title_panel = Panel(
-            Text(title_text, style="bold blue", justify="center"),
-            border_style="bright_blue",
-            padding=(1, 2)
-        )
+        # Title - simple text with emoticon
+        self.console.print("\n🚀 [bold blue]Advanced Aeromedical Evidence Review System[/bold blue]\n")
         
         # Quick start guide
-        quick_start = """
-        ## 🎯 How to Get Started
-
-        **Just ask your question!** The system will automatically detect the best processing method:
-
-        • **Medical/Aviation Questions** → Flowise with specialized medical knowledge
-        • **Research/Analysis** → O3 deep research with web search
-        • **Risk Assessment** → Aeromedical risk evaluation
+        self.console.print("🎯 [bold]How to Get Started[/bold]")
+        self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
+        self.console.print()
+        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized medical knowledge")
+        self.console.print("• [bold]Research/Analysis[/bold] → O3 deep research with web search")
+        self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
+        self.console.print()
+        self.console.print("[bold]Pro Tips:[/bold]")
+        self.console.print("• Type [bold]?[/bold] for quick help  • [bold]/modes[/bold] to see all modes  • [bold]>>>[/bold] for multiline input")
+        self.console.print("• [bold]/history[/bold] to review conversation  • [bold]/clear[/bold] to start fresh")
+        self.console.print()
         
-        **Pro Tips:**
-        • Type **`?`** for quick help  • **`/modes`** to see all modes  • **`>>>`** for multiline input
-        • **`/history`** to review conversation  • **`/clear`** to start fresh
-        """
-        
-        # Available modes table
-        modes_table = Table.grid(padding=1)
-        modes_table.add_column(style="cyan")
-        modes_table.add_column(style="green")
-        modes_table.add_column(style="yellow") 
-        modes_table.add_column(style="magenta")
-        
-        modes_table.add_row(
-            "🔬 O3 Research\nComplex analysis\nLatest research\nTechnology reviews",
-            "🌐 Medical RAG\nClinical questions\nPubMed searches\nPhysiology data", 
-            "🚁 Aero Risk\nFlight safety\nPilot fitness\nRisk assessment",
-            "🎯 Smart Mode\nAuto-detection\nBest AI selection\nSeamless routing"
-        )
-        
-        # Display all panels
-        self.console.print(title_panel)
-        self.console.print(Panel(Markdown(quick_start), title="🚀 Quick Start", border_style="green"))
-        self.console.print(Panel(modes_table, title="🛠️ Available Processing Modes", border_style="cyan"))
+        # Available modes - simple text layout
+        self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
+        self.console.print()
+        self.console.print("[cyan]🔬 O3 Research[/cyan]          [green]🌐 Medical RAG[/green]")
+        self.console.print("Complex analysis            Clinical questions")
+        self.console.print("Latest research             PubMed searches")  
+        self.console.print("Technology reviews          Physiology data")
+        self.console.print()
+        self.console.print("[yellow]🚁 Aero Risk[/yellow]           [magenta]🎯 Smart Mode[/magenta]")
+        self.console.print("Flight safety               Auto-detection")
+        self.console.print("Pilot fitness               Best AI selection")
+        self.console.print("Risk assessment             Seamless routing")
+        self.console.print()
         
         # Current status
         self.display_current_status()
@@ -222,104 +210,93 @@ class EnhancedPromptEnhancerApp:
         
         emoji, mode_name, description = mode_info.get(self.current_mode, ("❓", "Unknown", "Unknown mode"))
         
-        status_table = Table.grid(padding=1)
-        status_table.add_column(style="cyan", justify="right")
-        status_table.add_column(style="white")
-        
-        status_table.add_row("Current Mode:", f"{emoji} {mode_name}")
-        status_table.add_row("Description:", description)
-        status_table.add_row("Messages:", str(len(self.messages)))
-        status_table.add_row("Quick Help:", "Type ? for help, /modes for mode selection")
-        
-        self.console.print(Panel(status_table, title="📊 Current Status", border_style="blue", padding=(0, 1)))
+        self.console.print("📊 [bold]Current Status[/bold]")
+        self.console.print(f"Current Mode: {emoji} {mode_name}")
+        self.console.print(f"Description: {description}")
+        self.console.print(f"Messages: {len(self.messages)}")
+        self.console.print("Quick Help: Type ? for help, /modes for mode selection")
+        self.console.print()
     
     def display_mode_selection(self) -> None:
         """Display the mode selection interface."""
-        modes_table = Table(title="🛠️ Available Processing Modes")
-        modes_table.add_column("Mode", style="cyan", width=20)
-        modes_table.add_column("Best For", style="yellow", width=40)
-        modes_table.add_column("Quick Switch", style="green", width=15)
+        self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
+        self.console.print()
         
-        modes_table.add_row(
-            "🎯 Smart Auto-Detection", 
-            "Let the system choose the best AI (Recommended)", 
-            "/smart"
-        )
-        modes_table.add_row(
-            "🔬 O3 Deep Research", 
-            "Complex analysis, latest research, technology reviews", 
-            "/o3"
-        )
-        modes_table.add_row(
-            "🌐 Flowise Medical RAG", 
-            "Medical questions, PubMed, clinical knowledge", 
-            "/flowise"
-        )
-        modes_table.add_row(
-            "🔬 DeepResearch RAG", 
-            "Comprehensive research with deep knowledge synthesis", 
-            "/deep"
-        )
-        modes_table.add_row(
-            "🚁 Aeromedical Risk", 
-            "Aviation medicine, flight safety, risk assessment", 
-            "/aero"
-        )
+        self.console.print("[cyan]🎯 Smart Auto-Detection[/cyan]")
+        self.console.print("   Let the system choose the best AI (Recommended)")
+        self.console.print("   Quick Switch: [green]/smart[/green]")
+        self.console.print()
         
-        self.console.print(modes_table)
+        self.console.print("[cyan]🔬 O3 Deep Research[/cyan]")
+        self.console.print("   Complex analysis, latest research, technology reviews")
+        self.console.print("   Quick Switch: [green]/o3[/green]")
+        self.console.print()
+        
+        self.console.print("[cyan]🌐 Flowise Medical RAG[/cyan]")
+        self.console.print("   Medical questions, PubMed, clinical knowledge")
+        self.console.print("   Quick Switch: [green]/flowise[/green]")
+        self.console.print()
+        
+        self.console.print("[cyan]🔬 DeepResearch RAG[/cyan]")
+        self.console.print("   Comprehensive research with deep knowledge synthesis")
+        self.console.print("   Quick Switch: [green]/deep[/green]")
+        self.console.print()
+        
+        self.console.print("[cyan]🚁 Aeromedical Risk[/cyan]")
+        self.console.print("   Aviation medicine, flight safety, risk assessment")
+        self.console.print("   Quick Switch: [green]/aero[/green]")
+        self.console.print()
     
     def display_contextual_help(self) -> None:
         """Display contextual help based on current mode."""
         base_commands = [
-            ("**Your question**", "Ask anything - the system will process it"),
-            ("**`?`**", "Show this help"),
-            ("**`>>>`**", "Enter multiline mode for large text"),
-            ("**`/modes`**", "Switch processing modes"),
-            ("**`/status`**", "Show current system status"),
-            ("**`/history`**", "View conversation history"),
-            ("**`/export`**", "Export latest response to markdown"),
-            ("**`/save`**", "Export full conversation to markdown"),
-            ("**`/report`**", "Export structured research report"),
-            ("**`/exports`**", "List all exported files"),
-            ("**`/clear`**", "Clear conversation history"),
-            ("**`/quit`**", "Exit the application")
+            ("Your question", "Ask anything - the system will process it"),
+            ("?", "Show this help"),
+            (">>>", "Enter multiline mode for large text"),
+            ("/modes", "Switch processing modes"),
+            ("/status", "Show current system status"),
+            ("/history", "View conversation history"),
+            ("/export", "Export latest response to markdown"),
+            ("/save", "Export full conversation to markdown"),
+            ("/report", "Export structured research report"),
+            ("/exports", "List all exported files"),
+            ("/clear", "Clear conversation history"),
+            ("/quit", "Exit the application")
         ]
         
         mode_specific = {
             "smart": [
-                ("**Auto-detection**", "System selects best AI based on your question"),
-                ("**Override**", "Use /o3, /flowise, /aero to force specific mode")
+                ("Auto-detection", "System selects best AI based on your question"),
+                ("Override", "Use /o3, /flowise, /aero to force specific mode")
             ],
             "o3": [
-                ("**Best for**", "Scientific research, complex analysis, current events"),
-                ("**Features**", "o3-deep-research model with web search capabilities")
+                ("Best for", "Scientific research, complex analysis, current events"),
+                ("Features", "o3-deep-research model with web search capabilities")
             ],
             "flowise": [
-                ("**Best for**", "Medical questions, clinical knowledge, PubMed searches"),
-                ("**Features**", "Specialized medical RAG with multiple knowledge bases")
+                ("Best for", "Medical questions, clinical knowledge, PubMed searches"),
+                ("Features", "Specialized medical RAG with multiple knowledge bases")
             ],
             "aeromedical_risk": [
-                ("**Best for**", "Aviation medicine, pilot fitness, flight safety"),
-                ("**Features**", "Conservative risk assessment with safety-first approach")
+                ("Best for", "Aviation medicine, pilot fitness, flight safety"),
+                ("Features", "Conservative risk assessment with safety-first approach")
             ]
         }
         
-        # Create help table
-        help_table = Table.grid(padding=1)
-        help_table.add_column(style="cyan", justify="right")
-        help_table.add_column(style="white")
+        # Display help
+        self.console.print("📖 [bold]Help & Commands[/bold]")
+        self.console.print()
         
-        # Add base commands
-        help_table.add_row("[bold yellow]Commands:[/bold yellow]", "")
+        self.console.print("[bold yellow]Commands:[/bold yellow]")
         for cmd, desc in base_commands:
-            help_table.add_row(cmd, desc)
+            self.console.print(f"  [bold]{cmd}[/bold] - {desc}")
         
         # Add mode-specific help
         if self.current_mode in mode_specific:
-            help_table.add_row("", "")
-            help_table.add_row(f"[bold yellow]Current Mode ({self.current_mode.title()}):[/bold yellow]", "")
+            self.console.print()
+            self.console.print(f"[bold yellow]Current Mode ({self.current_mode.title()}):[/bold yellow]")
             for cmd, desc in mode_specific[self.current_mode]:
-                help_table.add_row(cmd, desc)
+                self.console.print(f"  [bold]{cmd}[/bold] - {desc}")
         
         # Quick examples
         examples = {
@@ -346,12 +323,11 @@ class EnhancedPromptEnhancerApp:
         }
         
         if self.current_mode in examples:
-            help_table.add_row("", "")
-            help_table.add_row("[bold yellow]Example Questions:[/bold yellow]", "")
+            self.console.print()
+            self.console.print("[bold yellow]Example Questions:[/bold yellow]")
             for example in examples[self.current_mode]:
-                help_table.add_row("•", f"'{example}'")
-        
-        self.console.print(Panel(help_table, title="📖 Help & Commands", border_style="yellow"))
+                self.console.print(f"  • '{example}'")
+        self.console.print()
     
     def get_user_input_enhanced(self) -> str:
         """
@@ -581,7 +557,7 @@ class EnhancedPromptEnhancerApp:
             self.switch_mode(suggested_mode)
         
         if not self.current_agent:
-            self.console.print("[red]❌ No processing agent available. Please select a mode first.[/red]")
+            self.console.print("❌ [red]No processing agent available. Please select a mode first.[/red]")
             self.display_mode_selection()
             return True
         
@@ -620,7 +596,7 @@ class EnhancedPromptEnhancerApp:
                 if last_message.get("role") == "assistant" and last_message.get("content"):
                     response_content = last_message["content"]
                     
-                    # Create response panel with mode indicator
+                    # Simple response display without borders
                     mode_info = {
                         "o3": "🔬 O3 Deep Research",
                         "flowise": "🌐 Flowise Medical RAG",
@@ -630,12 +606,10 @@ class EnhancedPromptEnhancerApp:
                     
                     title = mode_info.get(self.current_mode, f"🤖 {agent_name}")
                     
-                    self.console.print(Panel(
-                        response_content,
-                        title=title,
-                        border_style="green",
-                        padding=(1, 2)
-                    ))
+                    self.console.print(f"\n{title}")
+                    self.console.print("─" * 60)
+                    self.console.print(response_content)
+                    self.console.print("─" * 60)
             
             # Show success message with helpful next steps
             self.console.print(f"\n[green]✅ Response generated successfully![/green]")
@@ -644,32 +618,32 @@ class EnhancedPromptEnhancerApp:
             self.show_export_options()
             
             if self.current_mode == "smart":
-                self.console.print("[dim]💡 Ask another question or type /modes to explore different processing options[/dim]")
+                self.console.print("💡 Ask another question or type /modes to explore different processing options")
             else:
-                self.console.print(f"[dim]💡 Continue in {self.current_mode} mode or type /smart for auto-detection[/dim]")
+                self.console.print(f"💡 Continue in {self.current_mode} mode or type /smart for auto-detection")
             
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")
-            self.console.print(Panel(
-                f"[red]Flowise API Error:[/red] {e}\n\n"
-                "[yellow]Suggestions:[/yellow]\n"
-                "• Check your Flowise API configuration\n"
-                "• Verify your internet connection\n"
-                "• Try switching to O3 mode with /o3",
-                title="❌ API Error",
-                border_style="red"
-            ))
+            self.console.print()
+            self.console.print("❌ [red]Flowise API Error[/red]")
+            self.console.print(f"[red]{e}[/red]")
+            self.console.print()
+            self.console.print("[yellow]Suggestions:[/yellow]")
+            self.console.print("• Check your Flowise API configuration")
+            self.console.print("• Verify your internet connection")
+            self.console.print("• Try switching to O3 mode with /o3")
+            self.console.print()
         except Exception as e:
             logger.error(f"Unexpected error processing request: {e}")
-            self.console.print(Panel(
-                f"[red]Unexpected Error:[/red] {e}\n\n"
-                "[yellow]Suggestions:[/yellow]\n"
-                "• Try rephrasing your question\n"
-                "• Check the logs for more details\n"
-                "• Try a different processing mode",
-                title="❌ Processing Error", 
-                border_style="red"
-            ))
+            self.console.print()
+            self.console.print("❌ [red]Processing Error[/red]")
+            self.console.print(f"[red]{e}[/red]")
+            self.console.print()
+            self.console.print("[yellow]Suggestions:[/yellow]")
+            self.console.print("• Try rephrasing your question")
+            self.console.print("• Check the logs for more details")
+            self.console.print("• Try a different processing mode")
+            self.console.print()
         
         return True
     
@@ -679,7 +653,8 @@ class EnhancedPromptEnhancerApp:
             self.console.print("💭 [yellow]No conversation history yet. Start by asking a question![/yellow]")
             return
         
-        self.console.print(Panel(f"📜 Conversation History ({len(self.messages)} messages)", border_style="magenta"))
+        self.console.print(f"📜 [bold]Conversation History[/bold] ({len(self.messages)} messages)")
+        self.console.print()
         
         for i, message in enumerate(self.messages):
             role = message.get("role", "unknown")
@@ -703,44 +678,42 @@ class EnhancedPromptEnhancerApp:
             
             if i < len(self.messages) - 1:
                 self.console.print("[dim]" + "─" * 50 + "[/dim]")
-    
+        self.console.print()
+
     def display_settings(self) -> None:
         """Display and allow modification of user settings."""
-        settings_table = Table(title="⚙️ User Settings")
-        settings_table.add_column("Setting", style="cyan")
-        settings_table.add_column("Current Value", style="green")
-        settings_table.add_column("Description", style="yellow")
+        self.console.print("⚙️ [bold]User Settings[/bold]")
+        self.console.print()
         
-        settings_table.add_row(
-            "Auto-suggest modes", 
-            "✅ Enabled" if self.user_preferences["auto_suggest"] else "❌ Disabled",
-            "Automatically suggest optimal processing modes"
-        )
-        settings_table.add_row(
-            "Show tips", 
-            "✅ Enabled" if self.user_preferences["show_tips"] else "❌ Disabled",
-            "Show helpful tips and context"
-        )
-        settings_table.add_row(
-            "Confirm mode switches", 
-            "✅ Enabled" if self.user_preferences["confirm_mode_switch"] else "❌ Disabled",
-            "Ask before automatically switching modes"
-        )
+        self.console.print("[cyan]Auto-suggest modes[/cyan]")
+        self.console.print(f"  Current: {'✅ Enabled' if self.user_preferences['auto_suggest'] else '❌ Disabled'}")
+        self.console.print("  Description: Automatically suggest optimal processing modes")
+        self.console.print()
         
-        self.console.print(settings_table)
-        self.console.print("\n[dim]Settings modification coming in future update. Type /help for available commands.[/dim]")
-    
+        self.console.print("[cyan]Show tips[/cyan]")
+        self.console.print(f"  Current: {'✅ Enabled' if self.user_preferences['show_tips'] else '❌ Disabled'}")
+        self.console.print("  Description: Show helpful tips and context")
+        self.console.print()
+        
+        self.console.print("[cyan]Confirm mode switches[/cyan]")
+        self.console.print(f"  Current: {'✅ Enabled' if self.user_preferences['confirm_mode_switch'] else '❌ Disabled'}")
+        self.console.print("  Description: Ask before automatically switching modes")
+        self.console.print()
+        
+        self.console.print("Settings modification coming in future update. Type /help for available commands.")
+        self.console.print()
+
     def export_latest_response(self) -> None:
         """Export the latest response to a markdown file."""
         try:
             if not self.messages:
-                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
             
             # Check if there's at least one assistant response
             has_response = any(msg.get("role") == "assistant" for msg in self.messages)
             if not has_response:
-                self.console.print("[yellow]⚠️  No AI response found to export.[/yellow]")
+                self.console.print("⚠️ [yellow]No AI response found to export.[/yellow]")
                 return
             
             agent_name = self.current_agent.name if self.current_agent else "Unknown"
@@ -749,24 +722,25 @@ class EnhancedPromptEnhancerApp:
                 self.messages, self.current_mode, agent_name
             )
             
-            self.console.print(Panel(
-                f"[green]✅ Latest response exported successfully![/green]\n\n"
-                f"**File:** `{file_path}`\n"
-                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
-                f"[dim]💡 You can now share this markdown file or import it into your documentation.[/dim]",
-                title="📄 Export Complete",
-                border_style="green"
-            ))
+            self.console.print()
+            self.console.print("📄 [green]Export Complete[/green]")
+            self.console.print(f"[green]✅ Latest response exported successfully![/green]")
+            self.console.print()
+            self.console.print(f"[bold]File:[/bold] `{file_path}`")
+            self.console.print(f"[bold]Location:[/bold] `{self.markdown_exporter.get_export_directory()}`")
+            self.console.print()
+            self.console.print("💡 You can now share this markdown file or import it into your documentation.")
+            self.console.print()
             
         except Exception as e:
             logger.error(f"Error exporting latest response: {e}")
-            self.console.print(f"[red]❌ Export failed: {e}[/red]")
-    
+            self.console.print(f"❌ [red]Export failed: {e}[/red]")
+
     def export_full_conversation(self) -> None:
         """Export the complete conversation to a markdown file."""
         try:
             if not self.messages:
-                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
             
             agent_name = self.current_agent.name if self.current_agent else "Unknown"
@@ -775,30 +749,31 @@ class EnhancedPromptEnhancerApp:
                 self.messages, self.current_mode, agent_name
             )
             
-            self.console.print(Panel(
-                f"[green]✅ Full conversation exported successfully![/green]\n\n"
-                f"**File:** `{file_path}`\n"
-                f"**Messages:** {len(self.messages)}\n"
-                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
-                f"[dim]💡 This includes all questions and responses from your current session.[/dim]",
-                title="📚 Conversation Export Complete",
-                border_style="green"
-            ))
+            self.console.print()
+            self.console.print("📚 [green]Conversation Export Complete[/green]")
+            self.console.print(f"[green]✅ Full conversation exported successfully![/green]")
+            self.console.print()
+            self.console.print(f"[bold]File:[/bold] `{file_path}`")
+            self.console.print(f"[bold]Messages:[/bold] {len(self.messages)}")
+            self.console.print(f"[bold]Location:[/bold] `{self.markdown_exporter.get_export_directory()}`")
+            self.console.print()
+            self.console.print("💡 This includes all questions and responses from your current session.")
+            self.console.print()
             
         except Exception as e:
             logger.error(f"Error exporting conversation: {e}")
-            self.console.print(f"[red]❌ Export failed: {e}[/red]")
-    
+            self.console.print(f"❌ [red]Export failed: {e}[/red]")
+
     def export_structured_report(self) -> None:
         """Export a structured research report."""
         try:
             if not self.messages:
-                self.console.print("[yellow]⚠️  No conversation to export. Ask a question first![/yellow]")
+                self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
             
             # Ask for optional title
             title = Prompt.ask(
-                "\n[cyan]📝 Report title (optional)[/cyan]",
+                "\n📝 [cyan]Report title (optional)[/cyan]",
                 default="",
                 show_default=False
             )
@@ -810,81 +785,74 @@ class EnhancedPromptEnhancerApp:
                 title if title.strip() else None
             )
             
-            self.console.print(Panel(
-                f"[green]✅ Research report exported successfully![/green]\n\n"
-                f"**File:** `{file_path}`\n"
-                f"**Format:** Structured research report with metadata\n"
-                f"**Location:** `{self.markdown_exporter.get_export_directory()}`\n\n"
-                f"[dim]💡 This report includes executive summary, questions, and detailed analysis.[/dim]",
-                title="📊 Research Report Export Complete",
-                border_style="green"
-            ))
+            self.console.print()
+            self.console.print("📊 [green]Research Report Export Complete[/green]")
+            self.console.print(f"[green]✅ Research report exported successfully![/green]")
+            self.console.print()
+            self.console.print(f"[bold]File:[/bold] `{file_path}`")
+            self.console.print(f"[bold]Format:[/bold] Structured research report with metadata")
+            self.console.print(f"[bold]Location:[/bold] `{self.markdown_exporter.get_export_directory()}`")
+            self.console.print()
+            self.console.print("💡 This report includes executive summary, questions, and detailed analysis.")
+            self.console.print()
             
         except Exception as e:
             logger.error(f"Error exporting report: {e}")
-            self.console.print(f"[red]❌ Export failed: {e}[/red]")
-    
+            self.console.print(f"❌ [red]Export failed: {e}[/red]")
+
     def list_exported_files(self) -> None:
         """List all exported markdown files."""
         try:
             exports = self.markdown_exporter.list_exports()
             
             if not exports:
-                self.console.print(Panel(
-                    "[yellow]No exported files found.[/yellow]\n\n"
-                    "Use `/export`, `/save`, or `/report` to create markdown exports.",
-                    title="📁 Exported Files",
-                    border_style="yellow"
-                ))
+                self.console.print()
+                self.console.print("📁 [yellow]Exported Files[/yellow]")
+                self.console.print("[yellow]No exported files found.[/yellow]")
+                self.console.print()
+                self.console.print("Use `/export`, `/save`, or `/report` to create markdown exports.")
+                self.console.print()
                 return
             
-            # Create table of exports
-            table = Table(title=f"📁 Exported Files ({len(exports)} total)")
-            table.add_column("File", style="cyan", width=30)
-            table.add_column("Type", style="green", width=15)
-            table.add_column("Modified", style="yellow", width=20)
-            table.add_column("Path", style="dim", width=50)
+            # Display exports as simple text
+            self.console.print()
+            self.console.print(f"📁 [bold]Exported Files[/bold] ({len(exports)} total)")
+            self.console.print()
             
             for filename, filepath, modified_time in exports:
                 # Determine type based on filename
                 if filename.startswith("response_"):
-                    file_type = "Response"
+                    file_type = "📄 Response"
                 elif filename.startswith("conversation_"):
-                    file_type = "Conversation"
+                    file_type = "📚 Conversation"
                 elif filename.startswith("report_"):
-                    file_type = "Report"
+                    file_type = "📊 Report"
                 else:
-                    file_type = "Export"
+                    file_type = "📎 Export"
                 
                 modified_str = modified_time.strftime("%Y-%m-%d %H:%M")
                 
-                table.add_row(filename, file_type, modified_str, filepath)
+                self.console.print(f"[cyan]{file_type}[/cyan] - {filename}")
+                self.console.print(f"  Modified: {modified_str}")
+                self.console.print(f"  Path: {filepath}")
+                self.console.print()
             
-            self.console.print(table)
-            
-            self.console.print(f"\n[dim]💡 Export directory: `{self.markdown_exporter.get_export_directory()}`[/dim]")
+            self.console.print(f"💡 Export directory: `{self.markdown_exporter.get_export_directory()}`")
+            self.console.print()
             
         except Exception as e:
             logger.error(f"Error listing exports: {e}")
-            self.console.print(f"[red]❌ Failed to list exports: {e}[/red]")
-    
+            self.console.print(f"❌ [red]Failed to list exports: {e}[/red]")
+
     def show_export_options(self) -> None:
         """Show export options after a response is generated."""
-        export_table = Table.grid(padding=1)
-        export_table.add_column(style="dim cyan", justify="right")
-        export_table.add_column(style="dim white")
-        
-        export_table.add_row("📄", "/export - Save this response to markdown")
-        export_table.add_row("📚", "/save - Save full conversation to markdown") 
-        export_table.add_row("📊", "/report - Create structured research report")
-        
-        self.console.print(Panel(
-            export_table,
-            title="💾 Export Options",
-            border_style="dim blue",
-            padding=(0, 1)
-        ))
-    
+        self.console.print()
+        self.console.print("💾 [bold]Export Options[/bold]")
+        self.console.print("📄 /export - Save this response to markdown")
+        self.console.print("📚 /save - Save full conversation to markdown")
+        self.console.print("📊 /report - Create structured research report")
+        self.console.print()
+
     def run_enhanced(self) -> None:
         """Run the enhanced application with improved user experience."""
         try:
@@ -896,7 +864,7 @@ class EnhancedPromptEnhancerApp:
                 try:
                     user_input = self.get_user_input_enhanced()
                 except (KeyboardInterrupt, EOFError):
-                    self.console.print("\n[yellow]👋 Goodbye! Thanks for using the Aeromedical Evidence Review System![/yellow]")
+                    self.console.print("\n👋 [yellow]Goodbye! Thanks for using the Aeromedical Evidence Review System![/yellow]")
                     break
                 
                 # Handle the input
@@ -906,16 +874,16 @@ class EnhancedPromptEnhancerApp:
             
         except Exception as e:
             logger.error(f"Fatal error in enhanced main loop: {e}")
-            self.console.print(Panel(
-                f"[red]Fatal Error:[/red] {e}\n\n"
-                "The application encountered an unexpected error and needs to close.\n"
-                "Please check the logs for more details.",
-                title="💥 Critical Error",
-                border_style="red"
-            ))
+            self.console.print()
+            self.console.print("💥 [red]Critical Error[/red]")
+            self.console.print(f"[red]Fatal Error:[/red] {e}")
+            self.console.print()
+            self.console.print("The application encountered an unexpected error and needs to close.")
+            self.console.print("Please check the logs for more details.")
+            self.console.print()
         finally:
-            self.console.print("\n[bold blue]✨ Thank you for using the Enhanced Aeromedical Evidence Review System![/bold blue]")
-            self.console.print("[dim]Your research makes aviation safer. Keep up the great work![/dim]")
+            self.console.print("\n✨ [bold blue]Thank you for using the Enhanced Aeromedical Evidence Review System![/bold blue]")
+            self.console.print("Your research makes aviation safer. Keep up the great work!")
 
 
 # Keep original class for compatibility
