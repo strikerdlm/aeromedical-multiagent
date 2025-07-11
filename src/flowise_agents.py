@@ -249,6 +249,32 @@ class FlowiseAgentSystem:
             logger.error(f"Error in Flowise prompt enhancement: {e}")
             return f"Error enhancing prompt for Flowise: {str(e)}"
     
+    def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
+        """
+        Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
+        
+        Args:
+            enhanced_prompt: The enhanced prompt to send
+            
+        Returns:
+            Response from Flowise aerospace medicine RAG chatflow
+        """
+        try:
+            logger.info("Querying Flowise aerospace medicine RAG chatflow")
+            result = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
+            
+            # Extract response text using the helper function
+            response_text = _extract_flowise_response_text(result)
+            logger.info("Flowise aerospace medicine RAG query completed successfully")
+            return response_text
+            
+        except FlowiseAPIError as e:
+            logger.error(f"Flowise API error: {e}")
+            return f"Error querying Flowise aerospace medicine RAG: {str(e)}"
+        except Exception as e:
+            logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
+            return f"Unexpected error: {str(e)}"
+    
     def query_flowise_deep_research(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise deep research chatflow.
@@ -261,21 +287,12 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise deep research chatflow")
-            response_generator = self.flowise_client.consult_deep_research(enhanced_prompt)
+            result = self.flowise_client.consult_deep_research(enhanced_prompt)
             
-            # Collect streaming response
-            full_response = ""
-            for chunk in response_generator:
-                if isinstance(chunk, dict):
-                    if chunk.get("event") == "token":
-                        full_response += chunk.get("data", "")
-                    elif chunk.get("event") == "end":
-                        break
-                else:
-                    full_response += str(chunk)
-            
+            # Extract response text using the helper function
+            response_text = _extract_flowise_response_text(result)
             logger.info("Flowise deep research query completed successfully")
-            return full_response or "Flowise deep research completed successfully."
+            return response_text
             
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")
@@ -296,67 +313,18 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise aeromedical risk chatflow")
-            response_generator = self.flowise_client.consult_aeromedical_risk(enhanced_prompt)
+            result = self.flowise_client.consult_aeromedical_risk(enhanced_prompt)
 
-            full_response = ""
-            for chunk in response_generator:
-                if isinstance(chunk, dict):
-                    if chunk.get("event") == "token":
-                        full_response += chunk.get("data", "")
-                    elif chunk.get("event") == "end":
-                        break
-                else:
-                    full_response += str(chunk)
-
+            # Extract response text using the helper function
+            response_text = _extract_flowise_response_text(result)
             logger.info("Flowise aeromedical risk query completed successfully")
-            return full_response or "Flowise aeromedical risk query completed successfully."
+            return response_text
 
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")
             return f"Error querying Flowise aeromedical risk: {str(e)}"
         except Exception as e:
             logger.error(f"Unexpected error in Flowise aeromedical risk: {e}")
-            return f"Unexpected error: {str(e)}"
-    
-    def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
-        """
-        Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
-        
-        Args:
-            enhanced_prompt: The enhanced prompt to send
-            
-        Returns:
-            Response from Flowise aerospace medicine RAG chatflow
-        """
-        try:
-            logger.info("Querying Flowise aerospace medicine RAG chatflow")
-            result = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
-            
-            # Handle both streaming and non-streaming responses
-            if isinstance(result, dict):
-                # Non-streaming response - extract text directly
-                response_text = _extract_flowise_response_text(result)
-                logger.info("Flowise aerospace medicine RAG query completed successfully (non-streaming)")
-                return response_text
-            elif hasattr(result, '__iter__'):
-                # Streaming response - collect chunks
-                full_response = ""
-                for chunk in result:
-                    full_response += _extract_flowise_response_text(chunk)
-                
-                logger.info("Flowise aerospace medicine RAG query completed successfully (streaming)")
-                return full_response or "Flowise aerospace medicine RAG query completed successfully."
-            else:
-                # Fallback for other response types
-                response_text = _extract_flowise_response_text(result)
-                logger.info("Flowise aerospace medicine RAG query completed successfully (direct)")
-                return response_text
-            
-        except FlowiseAPIError as e:
-            logger.error(f"Flowise API error: {e}")
-            return f"Error querying Flowise aerospace medicine RAG: {str(e)}"
-        except Exception as e:
-            logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
             return f"Unexpected error: {str(e)}"
     
     def route_to_flowise_specialist(self, query_type: str, enhanced_prompt: str) -> str:
@@ -374,16 +342,10 @@ class FlowiseAgentSystem:
             logger.info(f"Routing to Flowise specialist: {query_type}")
             result = self.flowise_client.route_medical_query(query_type, enhanced_prompt)
             
-            if isinstance(result, dict):
-                return _extract_flowise_response_text(result)
-            elif hasattr(result, '__iter__'):
-                # Handle generator/streaming response
-                full_response = ""
-                for chunk in result:
-                    full_response += _extract_flowise_response_text(chunk)
-                return full_response or f"Flowise {query_type} specialist query completed successfully."
-            else:
-                return _extract_flowise_response_text(result)
+            # Extract response text using the helper function
+            response_text = _extract_flowise_response_text(result)
+            logger.info(f"Flowise {query_type} specialist query completed successfully")
+            return response_text
                 
         except FlowiseAPIError as e:
             logger.error(f"Flowise routing error: {e}")
