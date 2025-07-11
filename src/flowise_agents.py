@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, Any, List, Optional
 
-from .agents import Agent
+from agents import Agent, tool
 from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
 from .config import OpenAIModelsConfig, AppConfig
 
@@ -73,6 +73,7 @@ class FlowisePromptTools:
         """
         self.flowise_client = flowise_client or MedicalFlowiseRouter()
     
+    @tool
     def analyze_prompt_for_flowise(self, user_prompt: str) -> str:
         """
         Analyze the user prompt to determine the best Flowise chatflow.
@@ -121,6 +122,7 @@ class FlowisePromptTools:
             logger.error(f"Error analyzing prompt for Flowise: {e}")
             return f"Error analyzing prompt for Flowise: {str(e)}"
     
+    @tool
     def enhance_prompt_for_flowise(self, original_prompt: str, flowise_analysis: str) -> str:
         """
         Enhance the original prompt specifically for Flowise chatflows.
@@ -208,18 +210,21 @@ class FlowiseAgentSystem:
         """Store the Flowise analysis for routing decisions."""
         self._flowise_analysis = analysis
     
+    @tool
     def transfer_to_flowise_processor(self) -> Agent:
         """Transfer to the Flowise processor agent."""
         if not self._flowise_processor:
             self._flowise_processor = self.create_flowise_processor()
         return self._flowise_processor
     
+    @tool
     def transfer_to_flowise_enhancer(self) -> Agent:
         """Transfer back to the Flowise enhancer agent."""
         if not self._flowise_enhancer:
             self._flowise_enhancer = self.create_flowise_enhancer()
         return self._flowise_enhancer
     
+    @tool
     def analyze_and_enhance_for_flowise(self, user_prompt: str) -> str:
         """
         Analyze the user prompt and create an enhanced version for Flowise.
@@ -249,6 +254,7 @@ class FlowiseAgentSystem:
             logger.error(f"Error in Flowise prompt enhancement: {e}")
             return f"Error enhancing prompt for Flowise: {str(e)}"
     
+    @tool
     def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
@@ -275,6 +281,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
             return f"Unexpected error: {str(e)}"
     
+    @tool
     def query_flowise_deep_research(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise deep research chatflow.
@@ -301,6 +308,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise deep research: {e}")
             return f"Unexpected error: {str(e)}"
     
+    @tool
     def query_aeromedical_risk(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aeromedical risk chatflow.
@@ -327,6 +335,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aeromedical risk: {e}")
             return f"Unexpected error: {str(e)}"
     
+    @tool
     def route_to_flowise_specialist(self, query_type: str, enhanced_prompt: str) -> str:
         """
         Route the enhanced prompt to a specialist Flowise chatflow.
@@ -418,7 +427,8 @@ class FlowiseAgentSystem:
         agent = Agent(
             name="Flowise Prompt Enhancer",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=AppConfig.OPENAI_MODEL
         )
         
         self._flowise_enhancer = agent
@@ -481,7 +491,8 @@ class FlowiseAgentSystem:
         agent = Agent(
             name="Flowise Processor",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=AppConfig.OPENAI_MODEL
         )
         
         self._flowise_processor = agent
@@ -544,7 +555,8 @@ class FlowiseAgentSystem:
         agent = Agent(
             name="DeepResearch Flowise",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=AppConfig.OPENAI_MODEL
         )
         
         return agent
@@ -608,7 +620,8 @@ class FlowiseAgentSystem:
         agent = Agent(
             name="Aeromedical Risk Assessment",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=AppConfig.OPENAI_MODEL
         )
         
         return agent
@@ -671,7 +684,8 @@ class FlowiseAgentSystem:
         agent = Agent(
             name="Aerospace Medicine RAG",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=AppConfig.OPENAI_MODEL
         )
         
         return agent

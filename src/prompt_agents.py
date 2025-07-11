@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, Any, List, Optional
 
-from .agents import Agent
+from agents import Agent, tool
 from .openai_enhanced_client import EnhancedOpenAIClient, create_enhanced_openai_client
 from .config import OpenAIModelsConfig
 
@@ -35,6 +35,7 @@ class EnhancedPromptTools:
         """
         self.openai_client = openai_client or create_enhanced_openai_client()
     
+    @tool
     def analyze_prompt_context(self, user_prompt: str) -> str:
         """
         Analyze the user prompt to understand context and intent.
@@ -82,6 +83,7 @@ class EnhancedPromptTools:
             logger.error(f"Error analyzing prompt: {e}")
             return f"Error analyzing prompt: {str(e)}"
     
+    @tool
     def enhance_prompt_with_context(self, original_prompt: str, context_analysis: str) -> str:
         """
         Enhance the original prompt based on context analysis.
@@ -165,18 +167,21 @@ class PromptEnhancementAgents:
         """Store the original question for routing decisions."""
         self._original_question = question
     
+    @tool
     def transfer_to_prompt_processor(self) -> Agent:
         """Transfer to the prompt processor agent."""
         if not self._prompt_processor:
             self._prompt_processor = self.create_prompt_processor()
         return self._prompt_processor
     
+    @tool
     def transfer_to_prompt_enhancer(self) -> Agent:
         """Transfer back to the prompt enhancer agent."""
         if not self._prompt_enhancer:
             self._prompt_enhancer = self.create_prompt_enhancer()
         return self._prompt_enhancer
     
+    @tool
     def analyze_and_enhance_prompt(self, user_prompt: str) -> str:
         """
         Analyze the user prompt and create an enhanced version.
@@ -205,6 +210,7 @@ class PromptEnhancementAgents:
             logger.error(f"Error in prompt enhancement: {e}")
             return f"Error enhancing prompt: {str(e)}"
     
+    @tool
     def process_with_advanced_routing(self, enhanced_prompt: str) -> str:
         """
         Process the enhanced prompt using advanced OpenAI model routing.
@@ -231,6 +237,7 @@ class PromptEnhancementAgents:
             logger.error(f"Error in advanced routing: {e}")
             return f"Error processing with advanced routing: {str(e)}"
     
+    @tool
     def force_deep_research_processing(self, enhanced_prompt: str) -> str:
         """
         Force processing with o3-deep-research model.
@@ -248,6 +255,7 @@ class PromptEnhancementAgents:
             logger.error(f"Error in deep research processing: {e}")
             return f"Error processing with deep research: {str(e)}"
     
+    @tool
     def force_o3_web_search_processing(self, enhanced_prompt: str) -> str:
         """
         Force processing with o3 + web search.
@@ -319,7 +327,8 @@ class PromptEnhancementAgents:
         agent = Agent(
             name="Prompt Enhancer",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=OpenAIModelsConfig.GPT4_MINI.model_name
         )
         
         self._prompt_enhancer = agent
@@ -381,7 +390,8 @@ class PromptEnhancementAgents:
         agent = Agent(
             name="Prompt Processor",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=OpenAIModelsConfig.GPT4_MINI.model_name
         )
         
         self._prompt_processor = agent
@@ -397,6 +407,7 @@ class PromptEnhancementAgents:
         Returns:
             Configured Triage agent
         """
+        @tool
         def escalate_to_human(summary: str) -> str:
             """Escalate complex issues to human assistance."""
             logger.info(f"Escalating to human: {summary}")
@@ -435,7 +446,8 @@ class PromptEnhancementAgents:
         return Agent(
             name="Triage Agent",
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model=OpenAIModelsConfig.GPT4_MINI.model_name
         )
 
 

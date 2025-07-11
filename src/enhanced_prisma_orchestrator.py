@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import redis
 from openai import OpenAI
 
-from .agents import Agent, AgentOrchestrator
+from agents import Agent, AgentOrchestrator, tool
 from .config import AppConfig, PRISMAConfig
 from .perplexity_client import PerplexityClient
 from .grok_client import GrokClient
@@ -198,6 +198,7 @@ class EnhancedPRISMATools:
         self.flowise_client = FlowiseClient()
         self.markdown_exporter = MarkdownExporter()
     
+    @tool
     def parallel_web_search(self, queries: List[str], max_workers: int = 5) -> Dict[str, Any]:
         """Perform parallel web searches using multiple agents."""
         results = {}
@@ -242,6 +243,7 @@ class EnhancedPRISMATools:
             logger.error(f"Error in web search: {e}")
             return {"error": str(e)}
     
+    @tool
     def parallel_analysis(self, data_sets: List[Dict[str, Any]], analysis_type: str = "systematic") -> Dict[str, Any]:
         """Perform parallel analysis using multiple agents."""
         results = {}
@@ -300,6 +302,7 @@ class EnhancedPRISMATools:
             logger.error(f"Error in analysis: {e}")
             return {"error": str(e)}
     
+    @tool
     def citation_pass(self, content: str, sources: List[Dict[str, Any]]) -> str:
         """Perform citation pass to ensure all claims are source-attributed."""
         try:
@@ -368,9 +371,46 @@ class LeadResearcherAgent:
         self.config = config
         self.memory_system = memory_system
         self.tools = EnhancedPRISMATools(memory_system)
-        self.subagents = {}
+        self.agent_orchestrator = AgentOrchestrator()
+        self.subagents: Dict[str, Agent] = {}
         self.current_workflow: Optional[EnhancedPRISMAWorkflow] = None
-    
+        self._create_sub_agents()
+
+    def _create_sub_agents(self):
+        """Create the sub-agents for the workflow."""
+        search_agent_instructions = """
+        You are a SearchAgent. Your task is to conduct parallel web searches for a given set of queries.
+        You should use the `parallel_web_search` tool to perform the searches.
+        """
+        self.subagents["SearchAgent"] = Agent(
+            name="SearchAgent",
+            instructions=search_agent_instructions,
+            tools=[self.tools.parallel_web_search],
+            model=self.config.model
+        )
+
+        analysis_agent_instructions = """
+        You are an AnalysisAgent. Your task is to perform parallel analysis of datasets.
+        You should use the `parallel_analysis` tool to perform the analysis.
+        """
+        self.subagents["AnalysisAgent"] = Agent(
+            name="AnalysisAgent",
+            instructions=analysis_agent_instructions,
+            tools=[self.tools.parallel_analysis],
+            model=self.config.model
+        )
+
+        citation_agent_instructions = """
+        You are a CitationAgent. Your task is to perform a citation pass on a given text to ensure all claims are attributed to sources.
+        You should use the `citation_pass` tool.
+        """
+        self.subagents["CitationAgent"] = Agent(
+            name="CitationAgent",
+            instructions=citation_agent_instructions,
+            tools=[self.tools.citation_pass],
+            model=self.config.model
+        )
+
     def initialize_workflow(self, research_question: str, search_keywords: List[str], 
                            inclusion_criteria: List[str], exclusion_criteria: List[str]) -> str:
         """Initialize a new PRISMA workflow with orchestrator-worker pattern."""
@@ -486,7 +526,7 @@ class LeadResearcherAgent:
         return groups
     
     def execute_parallel_search(self) -> Dict[str, Any]:
-        """Execute parallel search using multiple SearchAgents."""
+        """Execute parallel search using the SearchAgent."""
         if not self.current_workflow:
             return {"error": "No active workflow"}
         
@@ -501,10 +541,32 @@ class LeadResearcherAgent:
                 keywords = plan.objective.split(": ")[1] if ": " in plan.objective else plan.objective
                 search_queries.append(f"{self.current_workflow.research_question} {keywords}")
             
-            # Execute parallel search
-            logger.info(f"Executing parallel search with {len(search_queries)} SearchAgents")
-            search_results = self.tools.parallel_web_search(search_queries, max_workers=5)
+            # Execute parallel search using the SearchAgent
+            logger.info(f"Executing parallel search with {len(search_queries)} queries via SearchAgent")
             
+            search_agent = self.subagents["SearchAgent"]
+            
+            # The tool expects a list of strings. We'll pass it as a JSON string.
+            input_content = json.dumps(search_queries)
+            
+            response = self.agent_orchestrator.run_full_turn(
+                agent=search_agent,
+                messages=[{"role": "user", "content": f"Please run a parallel web search for the following queries: {input_content}"}]
+            )
+            
+            search_results_str = response.messages[-1]["content"]
+            # The tool returns a dictionary, but the agent will return it as a string.
+            # We need to parse it. A safer way would be to use a structured output from the agent.
+            # For now, we'll assume the agent returns a JSON string.
+            try:
+                search_results = json.loads(search_results_str)
+            except json.JSONDecodeError:
+                # If it's not a JSON string, it might be a direct string representation of the dict.
+                # This is fragile and should be improved.
+                import ast
+                search_results = ast.literal_eval(search_results_str)
+
+
             # Store results
             self.current_workflow.search_results = search_results
             self.current_workflow.current_phase = "analysis"
@@ -517,7 +579,7 @@ class LeadResearcherAgent:
             return {
                 "status": "success",
                 "searches_completed": len(search_results),
-                "total_sources": sum(len(result.get("sources", [])) for result in search_results.values()),
+                "total_sources": sum(len(result.get("sources", [])) for result in search_results.values() if isinstance(result, dict)),
                 "next_phase": "analysis"
             }
             
@@ -526,7 +588,7 @@ class LeadResearcherAgent:
             return {"error": str(e)}
     
     def execute_parallel_analysis(self) -> Dict[str, Any]:
-        """Execute parallel analysis using multiple AnalysisAgents."""
+        """Execute parallel analysis using the AnalysisAgent."""
         if not self.current_workflow or not self.current_workflow.search_results:
             return {"error": "No search results available"}
         
@@ -534,17 +596,31 @@ class LeadResearcherAgent:
             # Prepare data for analysis
             data_sets = []
             for query, result in self.current_workflow.search_results.items():
-                if "error" not in result:
+                if isinstance(result, dict) and "error" not in result:
                     data_sets.append({
                         "query": query,
                         "content": result.get("response", ""),
                         "sources": result.get("sources", [])
                     })
             
-            # Execute parallel analysis
-            logger.info(f"Executing parallel analysis with {len(data_sets)} data sets")
-            analysis_results = self.tools.parallel_analysis(data_sets, "systematic")
+            # Execute parallel analysis using the AnalysisAgent
+            logger.info(f"Executing parallel analysis with {len(data_sets)} data sets via AnalysisAgent")
             
+            analysis_agent = self.subagents["AnalysisAgent"]
+            input_content = json.dumps(data_sets)
+            
+            response = self.agent_orchestrator.run_full_turn(
+                agent=analysis_agent,
+                messages=[{"role": "user", "content": f"Please run a parallel analysis on the following datasets: {input_content}"}]
+            )
+            
+            analysis_results_str = response.messages[-1]["content"]
+            try:
+                analysis_results = json.loads(analysis_results_str)
+            except json.JSONDecodeError:
+                import ast
+                analysis_results = ast.literal_eval(analysis_results_str)
+
             # Store results
             self.current_workflow.analysis_results = analysis_results
             self.current_workflow.current_phase = "citation"
@@ -558,8 +634,8 @@ class LeadResearcherAgent:
                 "status": "success",
                 "analyses_completed": len(analysis_results),
                 "average_confidence": sum(
-                    result.get("confidence", 0) for result in analysis_results.values()
-                ) / len(analysis_results),
+                    result.get("confidence", 0) for result in analysis_results.values() if isinstance(result, dict)
+                ) / len(analysis_results) if analysis_results else 0,
                 "next_phase": "citation"
             }
             
@@ -568,7 +644,7 @@ class LeadResearcherAgent:
             return {"error": str(e)}
     
     def execute_citation_pass(self) -> Dict[str, Any]:
-        """Execute citation pass using CitationAgent."""
+        """Execute citation pass using the CitationAgent."""
         if not self.current_workflow or not self.current_workflow.analysis_results:
             return {"error": "No analysis results available"}
         
@@ -578,17 +654,26 @@ class LeadResearcherAgent:
             all_sources = []
             
             for result in self.current_workflow.analysis_results.values():
-                if "error" not in result:
+                if isinstance(result, dict) and "error" not in result:
                     all_content += result.get("result", "") + "\n\n"
             
             # Collect all sources
             for result in self.current_workflow.search_results.values():
-                if "error" not in result:
+                if isinstance(result, dict) and "error" not in result:
                     all_sources.extend(result.get("sources", []))
             
-            # Execute citation pass
-            logger.info("Executing citation pass")
-            cited_content = self.tools.citation_pass(all_content, all_sources)
+            # Execute citation pass using the CitationAgent
+            logger.info("Executing citation pass via CitationAgent")
+            
+            citation_agent = self.subagents["CitationAgent"]
+            input_data = {"content": all_content, "sources": all_sources}
+            
+            response = self.agent_orchestrator.run_full_turn(
+                agent=citation_agent,
+                messages=[{"role": "user", "content": f"Please perform a citation pass on the following data: {json.dumps(input_data)}"}]
+            )
+
+            cited_content = response.messages[-1]["content"]
             
             # Store results
             self.current_workflow.citation_results = {

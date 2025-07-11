@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Optional, Generator, Union
 from dataclasses import dataclass
 from openai import OpenAI
 
-from .agents import Agent, AgentOrchestrator
+from agents import Agent, tool
 from .config import AppConfig, PRISMAConfig
 from .perplexity_client import PerplexityClient, PRISMAPerplexityRouter
 from .grok_client import GrokClient, PRISMAGrokRouter
@@ -75,6 +75,7 @@ class PRISMAAgentTools:
         # Store workflow state
         self.workflow: Optional[PRISMAWorkflow] = None
     
+    @tool
     def initialize_workflow(
         self,
         research_question: str,
@@ -109,6 +110,7 @@ class PRISMAAgentTools:
             logger.error(f"Error initializing workflow: {e}")
             return f"❌ Failed to initialize workflow: {str(e)}"
     
+    @tool
     def conduct_systematic_search(self) -> str:
         """
         Conduct systematic literature search using multiple sources.
@@ -168,6 +170,7 @@ class PRISMAAgentTools:
             logger.error(f"Error in systematic search: {e}")
             return f"❌ Literature search failed: {str(e)}"
     
+    @tool
     def screen_and_filter_studies(self) -> str:
         """
         Screen and filter studies based on inclusion/exclusion criteria.
@@ -220,6 +223,7 @@ class PRISMAAgentTools:
             logger.error(f"Error in study screening: {e}")
             return f"❌ Study screening failed: {str(e)}"
     
+    @tool
     def extract_and_analyze_data(self) -> str:
         """
         Extract data from included studies and perform analysis.
@@ -274,6 +278,7 @@ class PRISMAAgentTools:
             logger.error(f"Error in data extraction/analysis: {e}")
             return f"❌ Data extraction/analysis failed: {str(e)}"
     
+    @tool
     def generate_systematic_review(self) -> str:
         """
         Generate the complete PRISMA-compliant systematic review.
@@ -344,6 +349,7 @@ class PRISMAAgentTools:
             logger.error(f"Error generating systematic review: {e}")
             return f"❌ Systematic review generation failed: {str(e)}"
     
+    @tool
     def generate_prisma_flow_diagram(self) -> str:
         """
         Generate a PRISMA 2020 flow diagram in Mermaid format.
@@ -411,6 +417,7 @@ flowchart TD
             logger.error(f"Error generating PRISMA flow diagram: {e}")
             return f"```mermaid\nflowchart TD\n    A[Error: {e}]\n```"
 
+    @tool
     def export_review_as_markdown(self, review_content: str) -> str:
         """
         Exports the final systematic review to a markdown file.
@@ -435,6 +442,7 @@ flowchart TD
             logger.error(f"Error exporting PRISMA review as markdown: {e}")
             return f"❌ Failed to export review: {e}"
 
+    @tool
     def validate_and_finalize_review(self) -> str:
         """
         Validate the systematic review for PRISMA compliance and finalize.
@@ -616,14 +624,14 @@ class PRISMAAgentSystem:
     Manages the complete systematic review workflow using OpenAI Agents SDK.
     """
     
-    def __init__(self, orchestrator: Optional[AgentOrchestrator] = None):
+    def __init__(self, orchestrator: Optional[Any] = None):
         """
         Initialize the PRISMA agent system.
         
         Args:
             orchestrator: Optional agent orchestrator (creates default if None)
         """
-        self.orchestrator = orchestrator or AgentOrchestrator()
+        self.orchestrator = orchestrator
         self.tools = PRISMAAgentTools()
         
         # Define agents with handoffs for code-based orchestration
@@ -633,9 +641,9 @@ class PRISMAAgentSystem:
         self._validator_agent: Agent = self.create_validator_agent()
         
         # Set up handoffs
-        self._searcher_agent.handoffs = [self._reviewer_agent]
-        self._reviewer_agent.handoffs = [self._writer_agent]
-        self._writer_agent.handoffs = [self._validator_agent]
+        # self._searcher_agent.handoffs = [self._reviewer_agent]
+        # self._reviewer_agent.handoffs = [self._writer_agent]
+        # self._writer_agent.handoffs = [self._validator_agent]
 
     def get_initial_agent(self) -> Agent:
         """Get the first agent in the workflow."""
@@ -669,7 +677,8 @@ class PRISMAAgentSystem:
         return Agent(
             name="Literature Searcher Agent",
             instructions=instructions,
-            tools=[self.tools.conduct_systematic_search]
+            tools=[self.tools.conduct_systematic_search],
+            model=AppConfig.OPENAI_MODEL
         )
     
     def create_reviewer_agent(self) -> Agent:
@@ -701,7 +710,8 @@ class PRISMAAgentSystem:
         return Agent(
             name="Study Reviewer Agent",
             instructions=instructions,
-            tools=[self.tools.screen_and_filter_studies, self.tools.extract_and_analyze_data]
+            tools=[self.tools.screen_and_filter_studies, self.tools.extract_and_analyze_data],
+            model=AppConfig.OPENAI_MODEL
         )
     
     def create_writer_agent(self) -> Agent:
@@ -738,7 +748,8 @@ class PRISMAAgentSystem:
         return Agent(
             name="Review Writer Agent",
             instructions=instructions,
-            tools=[self.tools.generate_systematic_review]
+            tools=[self.tools.generate_systematic_review],
+            model=AppConfig.OPENAI_MODEL
         )
     
     def create_validator_agent(self) -> Agent:
@@ -778,7 +789,8 @@ class PRISMAAgentSystem:
         return Agent(
             name="Validation Agent",
             instructions=instructions,
-            tools=[self.tools.validate_and_finalize_review, self.tools.generate_prisma_flow_diagram, self.tools.export_review_as_markdown]
+            tools=[self.tools.validate_and_finalize_review, self.tools.generate_prisma_flow_diagram, self.tools.export_review_as_markdown],
+            model=AppConfig.OPENAI_MODEL
         )
 
 
