@@ -18,6 +18,44 @@ from .config import OpenAIModelsConfig, AppConfig
 logger = logging.getLogger(__name__)
 
 
+def _extract_flowise_response_text(response: Any) -> str:
+    """Safely extract the main text from a Flowise API response."""
+    if isinstance(response, str):
+        return response
+        
+    if not isinstance(response, dict):
+        return str(response)
+
+    # Direct text keys
+    for key in ["text", "answer", "output", "response", "message", "content"]:
+        if isinstance(response.get(key), str):
+            return response[key]
+
+    # Nested 'data' dictionary
+    if "data" in response and isinstance(response["data"], str):
+        return response["data"]
+    if "data" in response and isinstance(response["data"], dict):
+        for key in ["text", "answer", "output", "response", "message", "content"]:
+            if isinstance(response["data"].get(key), str):
+                return response["data"][key]
+
+    # OpenAI-compatible 'choices' list
+    if "choices" in response and isinstance(response["choices"], list) and response["choices"]:
+        choice = response["choices"][0]
+        if isinstance(choice, dict):
+            if "message" in choice and isinstance(choice["message"], dict) and "content" in choice["message"]:
+                if choice["message"]["content"]:
+                    return choice["message"]["content"]
+            if "delta" in choice and isinstance(choice["delta"], dict) and "content" in choice["delta"]:
+                if choice["delta"]["content"]:
+                    return choice["delta"]["content"]
+
+    # If we get here, we haven't found a clear text field.
+    if response == {}:
+        return ""
+    return str(response)
+
+
 class FlowisePromptTools:
     """
     Tools for prompt enhancement using only Flowise API.
@@ -297,30 +335,20 @@ class FlowiseAgentSystem:
             # Handle both streaming and non-streaming responses
             if isinstance(result, dict):
                 # Non-streaming response - extract text directly
-                response_text = result.get("text", str(result))
+                response_text = _extract_flowise_response_text(result)
                 logger.info("Flowise aerospace medicine RAG query completed successfully (non-streaming)")
                 return response_text
             elif hasattr(result, '__iter__'):
                 # Streaming response - collect chunks
                 full_response = ""
                 for chunk in result:
-                    if isinstance(chunk, dict):
-                        if chunk.get("event") == "token":
-                            full_response += chunk.get("data", "")
-                        elif chunk.get("event") == "end":
-                            break
-                        elif "text" in chunk:
-                            # Some APIs return the full text in a single chunk
-                            full_response = chunk["text"]
-                            break
-                    else:
-                        full_response += str(chunk)
+                    full_response += _extract_flowise_response_text(chunk)
                 
                 logger.info("Flowise aerospace medicine RAG query completed successfully (streaming)")
                 return full_response or "Flowise aerospace medicine RAG query completed successfully."
             else:
                 # Fallback for other response types
-                response_text = str(result)
+                response_text = _extract_flowise_response_text(result)
                 logger.info("Flowise aerospace medicine RAG query completed successfully (direct)")
                 return response_text
             
@@ -347,21 +375,15 @@ class FlowiseAgentSystem:
             result = self.flowise_client.route_medical_query(query_type, enhanced_prompt)
             
             if isinstance(result, dict):
-                return result.get("text", str(result))
+                return _extract_flowise_response_text(result)
             elif hasattr(result, '__iter__'):
                 # Handle generator/streaming response
                 full_response = ""
                 for chunk in result:
-                    if isinstance(chunk, dict):
-                        if chunk.get("event") == "token":
-                            full_response += chunk.get("data", "")
-                        elif chunk.get("event") == "end":
-                            break
-                    else:
-                        full_response += str(chunk)
+                    full_response += _extract_flowise_response_text(chunk)
                 return full_response or f"Flowise {query_type} specialist query completed successfully."
             else:
-                return str(result)
+                return _extract_flowise_response_text(result)
                 
         except FlowiseAPIError as e:
             logger.error(f"Flowise routing error: {e}")

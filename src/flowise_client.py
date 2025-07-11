@@ -74,7 +74,7 @@ class FlowiseClient:
         Raises:
             FlowiseAPIError: If the API request fails
         """
-        url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
+        url = f"{self.base_url}/api/v1/predictions/{chatflow_id}"
         
         payload = {
             "question": question,
