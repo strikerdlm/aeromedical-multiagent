@@ -13,10 +13,7 @@ from typing import Optional, List
 # installed in very minimal environments used for unit tests, so we fall
 # back to simple stub implementations if the import fails.
 try:
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.text import Text
-    from rich.prompt import Prompt
+    from .custom_rich import Console, Panel, Text, Prompt
 except Exception:  # pragma: no cover - allow missing dependency
     class Console:  # type: ignore
         def print(self, *args, **kwargs):

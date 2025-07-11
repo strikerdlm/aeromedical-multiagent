@@ -16,12 +16,8 @@ import asyncio
 import time
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-from rich.prompt import Prompt, Confirm
-from rich.markdown import Markdown
+from .custom_rich import Console, Panel, Table, Text, Prompt, Confirm, Markdown
+from rich.console import Console as RichConsole
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
 from rich.live import Live
 from pydantic import BaseModel
@@ -45,7 +41,7 @@ class ProgressTracker:
     async support, and timeout handling.
     """
     
-    def __init__(self, console: Console):
+    def __init__(self, console):
         self.console = console
         self.progress = Progress(
             SpinnerColumn(),
@@ -107,9 +103,11 @@ class AsyncProgressHandler:
     Follows OpenAI Agents async patterns for better user experience.
     """
     
-    def __init__(self, console: Console):
+    def __init__(self, console):
         self.console = console
-        self.tracker = ProgressTracker(console)
+        # Use rich console for progress tracking
+        self.rich_console = RichConsole()
+        self.tracker = ProgressTracker(self.rich_console)
         self.status_history: List[ProcessingStatus] = []
     
     async def execute_with_progress(self, 
@@ -131,7 +129,7 @@ class AsyncProgressHandler:
         task_id = self.tracker.start_task(f"🔄 {operation_name}")
         
         try:
-            with Live(self.tracker.progress, console=self.console, refresh_per_second=4):
+            with Live(self.tracker.progress, console=self.rich_console, refresh_per_second=4):
                 # Create progress update task
                 progress_task = asyncio.create_task(
                     self._update_progress_periodically(task_id, operation_name)
