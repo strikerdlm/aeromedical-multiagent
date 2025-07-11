@@ -12,13 +12,19 @@ import logging
 import sys
 import os
 import re
+import asyncio
+import time
 from typing import Dict, Any, List, Optional, Tuple
+from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.prompt import Prompt, Confirm
 from rich.markdown import Markdown
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
+from rich.live import Live
+from pydantic import BaseModel
 # Remove problematic imports and use simpler Rich components
 
 from .config import AppConfig
@@ -29,6 +35,197 @@ from .flowise_client import FlowiseAPIError
 from .multiline_input import MultilineInputHandler, detect_paste_input, format_large_text_preview
 from .markdown_exporter import MarkdownExporter
 from .prisma_orchestrator import create_prisma_orchestrator, PRISMAOrchestrator
+
+
+class ProgressTracker:
+    """
+    Progress tracking system following OpenAI Agents patterns.
+    
+    Provides structured progress reporting with percentage completion,
+    async support, and timeout handling.
+    """
+    
+    def __init__(self, console: Console):
+        self.console = console
+        self.progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            console=console,
+            transient=True
+        )
+        self.current_task_id = None
+        self.start_time = None
+        self.timeout_threshold = 60  # 60 seconds timeout warning
+        
+    def start_task(self, description: str, total: int = 100) -> int:
+        """Start a new progress task."""
+        self.start_time = time.time()
+        self.current_task_id = self.progress.add_task(description, total=total)
+        return self.current_task_id
+    
+    def update_progress(self, task_id: int, advance: int = 1, description: str = None) -> None:
+        """Update progress for a task."""
+        if description:
+            self.progress.update(task_id, description=description, advance=advance)
+        else:
+            self.progress.update(task_id, advance=advance)
+    
+    def complete_task(self, task_id: int) -> None:
+        """Complete a task."""
+        self.progress.update(task_id, completed=100)
+        elapsed = time.time() - self.start_time if self.start_time else 0
+        self.console.print(f"✅ [green]Task completed in {elapsed:.1f}s[/green]")
+    
+    def check_timeout_warning(self) -> bool:
+        """Check if we should show a timeout warning."""
+        if self.start_time and time.time() - self.start_time > self.timeout_threshold:
+            return True
+        return False
+    
+    def get_elapsed_time(self) -> float:
+        """Get elapsed time since task started."""
+        return time.time() - self.start_time if self.start_time else 0
+
+
+class ProcessingStatus(BaseModel):
+    """Structured status reporting following OpenAI Agents pattern."""
+    stage: str
+    progress: int
+    message: str
+    elapsed_time: float
+    estimated_remaining: Optional[float] = None
+    is_timeout_warning: bool = False
+
+
+class AsyncProgressHandler:
+    """
+    Async progress handler for long-running operations.
+    
+    Follows OpenAI Agents async patterns for better user experience.
+    """
+    
+    def __init__(self, console: Console):
+        self.console = console
+        self.tracker = ProgressTracker(console)
+        self.status_history: List[ProcessingStatus] = []
+    
+    async def execute_with_progress(self, 
+                                   operation_func,
+                                   operation_name: str,
+                                   timeout_seconds: int = 120) -> Any:
+        """
+        Execute an operation with progress tracking and timeout handling.
+        
+        Args:
+            operation_func: The async function to execute
+            operation_name: Name of the operation for progress display
+            timeout_seconds: Timeout in seconds
+            
+        Returns:
+            Result of the operation or raises timeout
+        """
+        # Start progress tracking
+        task_id = self.tracker.start_task(f"🔄 {operation_name}")
+        
+        try:
+            with Live(self.tracker.progress, console=self.console, refresh_per_second=4):
+                # Create progress update task
+                progress_task = asyncio.create_task(
+                    self._update_progress_periodically(task_id, operation_name)
+                )
+                
+                # Create timeout task
+                timeout_task = asyncio.create_task(
+                    asyncio.sleep(timeout_seconds)
+                )
+                
+                # Create operation task
+                operation_task = asyncio.create_task(operation_func())
+                
+                # Wait for first completion
+                done, pending = await asyncio.wait(
+                    [operation_task, timeout_task],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                
+                # Cancel remaining tasks
+                for task in pending:
+                    task.cancel()
+                progress_task.cancel()
+                
+                # Check results
+                if operation_task in done:
+                    result = await operation_task
+                    self.tracker.complete_task(task_id)
+                    return result
+                else:
+                    # Timeout occurred
+                    self.tracker.progress.update(task_id, description="⏰ Operation timed out")
+                    raise asyncio.TimeoutError(f"Operation '{operation_name}' timed out after {timeout_seconds}s")
+                    
+        except Exception as e:
+            self.tracker.progress.update(task_id, description=f"❌ Error: {str(e)[:50]}...")
+            raise e
+    
+    async def _update_progress_periodically(self, task_id: int, operation_name: str):
+        """Update progress periodically with time-based estimates."""
+        stages = [
+            "Initializing connection...",
+            "Sending request...",
+            "Processing query...",
+            "Analyzing content...",
+            "Generating response...",
+            "Finalizing results..."
+        ]
+        
+        stage_duration = 20  # seconds per stage
+        current_stage = 0
+        
+        while True:
+            try:
+                elapsed = self.tracker.get_elapsed_time()
+                
+                # Calculate current stage and progress
+                stage_index = min(int(elapsed / stage_duration), len(stages) - 1)
+                stage_progress = (elapsed % stage_duration) / stage_duration * 100
+                overall_progress = (stage_index * 100 + stage_progress) / len(stages)
+                
+                # Update progress
+                current_description = f"🔄 {operation_name} - {stages[stage_index]}"
+                self.tracker.update_progress(task_id, advance=0, description=current_description)
+                self.tracker.progress.update(task_id, completed=min(overall_progress, 95))
+                
+                # Check for timeout warning
+                if self.tracker.check_timeout_warning() and not any(s.is_timeout_warning for s in self.status_history):
+                    self.console.print("⚠️ [yellow]Operation is taking longer than expected...[/yellow]")
+                    self.status_history.append(ProcessingStatus(
+                        stage="timeout_warning",
+                        progress=int(overall_progress),
+                        message="Operation taking longer than expected",
+                        elapsed_time=elapsed,
+                        is_timeout_warning=True
+                    ))
+                
+                # Record status
+                self.status_history.append(ProcessingStatus(
+                    stage=stages[stage_index],
+                    progress=int(overall_progress),
+                    message=f"Processing {operation_name}",
+                    elapsed_time=elapsed,
+                    estimated_remaining=max(0, 120 - elapsed) if elapsed < 120 else None
+                ))
+                
+                await asyncio.sleep(1)  # Update every second
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                # Log error but continue
+                logging.error(f"Error in progress update: {e}")
+                await asyncio.sleep(1)
 
 
 # Set up logging with proper Unicode support
@@ -81,6 +278,7 @@ class EnhancedPromptEnhancerApp:
         self.multiline_handler = MultilineInputHandler(self.console)
         self.orchestrator = AgentOrchestrator()
         self.markdown_exporter = MarkdownExporter()
+        self.progress_handler = AsyncProgressHandler(self.console)
         
         # Create both agent systems
         self.o3_agents = create_o3_enhancement_system()
@@ -198,6 +396,7 @@ class EnhancedPromptEnhancerApp:
         self.console.print("• Type [bold]?[/bold] for quick help  • [bold]/modes[/bold] to see all modes  • [bold]>>>[/bold] for multiline input")
         self.console.print("• [bold]/history[/bold] to review conversation  • [bold]/clear[/bold] to start fresh")
         self.console.print("• [bold]/fallback[/bold] to toggle auto-fallback to O3 when Flowise times out")
+        self.console.print("• [bold]Progress tracking[/bold] shows completion percentage and time estimates")
         self.console.print()
         
         # Available modes - simple text layout
@@ -296,6 +495,7 @@ class EnhancedPromptEnhancerApp:
         mode_specific = {
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
+                ("Progress tracking", "Shows completion percentage and time estimates"),
                 ("Auto-fallback", "Automatically switches to O3 if Flowise times out"),
                 ("Override", "Use /o3, /deep, /aero, /aerospace, /prisma to force specific mode")
             ],
@@ -659,9 +859,42 @@ class EnhancedPromptEnhancerApp:
             else:
                 self.console.print(f"\n{mode_emoji} [cyan]Processing your request with[/cyan] [bold]{agent_name}[/bold]...")
             
-            # Execute the current agent with progress indication
-            with self.console.status("[bold green]Analyzing and generating response..."):
-                response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
+            # Execute the current agent with async progress tracking
+            try:
+                # Create async operation
+                async_operation = lambda: self.async_orchestrator_run(self.current_agent, self.messages)
+                
+                # Run with progress tracking
+                response = self.run_async_operation(
+                    async_operation,
+                    f"{agent_name} Processing",
+                    timeout_seconds=120
+                )
+                
+                # Fallback to synchronous if async failed
+                if response is None:
+                    self.console.print("🔄 [yellow]Falling back to synchronous processing...[/yellow]")
+                    with self.console.status("[bold green]Analyzing and generating response..."):
+                        response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
+                        
+            except asyncio.TimeoutError:
+                self.console.print("⏰ [red]Operation timed out after 120 seconds[/red]")
+                # Attempt fallback if this is a Flowise operation
+                if self.current_mode in ["deep_research", "aeromedical_risk", "aerospace_medicine_rag"]:
+                    if self.user_preferences["auto_fallback"] and self.attempt_flowise_fallback(user_input):
+                        return True
+                else:
+                    self.console.print("🔄 [yellow]Trying one more time with extended timeout...[/yellow]")
+                    try:
+                        with self.console.status("[bold green]Retrying with extended timeout..."):
+                            response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
+                    except Exception as retry_error:
+                        self.console.print(f"❌ [red]Retry failed: {retry_error}[/red]")
+                        return True
+            except Exception as async_error:
+                self.console.print(f"🔄 [yellow]Async processing failed, using standard method: {async_error}[/yellow]")
+                with self.console.status("[bold green]Analyzing and generating response..."):
+                    response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
             
             # Update current agent and messages
             if response.agent:
@@ -679,7 +912,7 @@ class EnhancedPromptEnhancerApp:
                         "o3": "🔬 O3 Deep Research",
                         "deep_research": "🔬 Deep Research",
                         "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
-                        "aerospace_medicine_rag": "�� Aerospace Medicine RAG"
+                        "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG"
                     }
                     
                     title = mode_info.get(self.current_mode, f"🤖 {agent_name}")
@@ -838,6 +1071,54 @@ class EnhancedPromptEnhancerApp:
             
             return False
     
+    async def async_orchestrator_run(self, agent, messages):
+        """Async wrapper for orchestrator.run_full_turn."""
+        # Run the synchronous operation in a thread pool
+        import concurrent.futures
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self.orchestrator.run_full_turn, agent, messages)
+            return future.result()
+    
+    async def async_prisma_review(self, user_input: str):
+        """Async wrapper for PRISMA review."""
+        import concurrent.futures
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(self.prisma_orchestrator.quick_prisma_review, user_input)
+            return future.result()
+    
+    def run_async_operation(self, async_func, operation_name: str, timeout_seconds: int = 120):
+        """Run an async operation with progress tracking."""
+        try:
+            # Always try to create a new event loop for clean execution
+            try:
+                # Check if there's a running loop
+                current_loop = asyncio.get_running_loop()
+                # If we get here, there's a running loop, so we need to use threading
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        self._run_async_in_new_loop,
+                        async_func, operation_name, timeout_seconds
+                    )
+                    return future.result()
+            except RuntimeError:
+                # No running loop, we can use asyncio.run
+                return self._run_async_in_new_loop(async_func, operation_name, timeout_seconds)
+        except Exception as e:
+            # Fallback to synchronous execution if async fails
+            logging.warning(f"Async operation failed, falling back to sync: {e}")
+            return None
+    
+    def _run_async_in_new_loop(self, async_func, operation_name: str, timeout_seconds: int):
+        """Run async operation in a new event loop."""
+        return asyncio.run(
+            self.progress_handler.execute_with_progress(
+                async_func, operation_name, timeout_seconds
+            )
+        )
+    
     def handle_prisma_request(self, user_input: str) -> bool:
         """
         Handle PRISMA systematic review requests.
@@ -860,9 +1141,32 @@ class EnhancedPromptEnhancerApp:
             self.console.print(f"\n📊 [cyan]Initiating PRISMA systematic review for:[/cyan] {user_input[:100]}...")
             self.console.print("[dim]Using multi-agent framework with O3, Perplexity, Grok, and Flowise...[/dim]")
             
-            # Create systematic review using the orchestrator
-            with self.console.status("[bold green]Conducting comprehensive systematic review..."):
-                review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
+            # Create systematic review using the orchestrator with progress tracking
+            try:
+                # Create async operation for PRISMA review
+                async_operation = lambda: self.async_prisma_review(user_input)
+                
+                # Run with progress tracking
+                review_results = self.run_async_operation(
+                    async_operation,
+                    "PRISMA Systematic Review",
+                    timeout_seconds=180  # Extended timeout for PRISMA
+                )
+                
+                # Fallback to synchronous if async failed
+                if review_results is None:
+                    self.console.print("🔄 [yellow]Falling back to synchronous PRISMA processing...[/yellow]")
+                    with self.console.status("[bold green]Conducting comprehensive systematic review..."):
+                        review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
+                        
+            except asyncio.TimeoutError:
+                self.console.print("⏰ [red]PRISMA review timed out after 180 seconds[/red]")
+                self.console.print("💡 [yellow]PRISMA reviews can take time due to multi-agent processing. Please try again or use a simpler query.[/yellow]")
+                return True
+            except Exception as async_error:
+                self.console.print(f"🔄 [yellow]Async PRISMA processing failed, using standard method: {async_error}[/yellow]")
+                with self.console.status("[bold green]Conducting comprehensive systematic review..."):
+                    review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
             
             # Handle the response
             if "error" in review_results:
