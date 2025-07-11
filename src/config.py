@@ -125,38 +125,20 @@ class FlowiseConfig:
     BASE_URL: str = os.getenv("FLOWISE_API_URL", "https://cloud.flowiseai.com")
     API_KEY: str = os.getenv("FLOWISE_API_KEY", "")
     
-    # Chatflow IDs mapping
+    # Chatflow IDs mapping - Only the three available chatflows
     CHATFLOW_IDS: Dict[str, str] = {
-        "physiology_rag": os.getenv("CHATFLOW_PHYSIOLOGY_RAG", ""),
-        "nasa_hrp": os.getenv("CHATFLOW_NASA_HRP", ""),
-        "flight_surgeon": os.getenv("CHATFLOW_FLIGHT_SURGEON", ""),
-        "drone_pilot": os.getenv("CHATFLOW_DRONE_PILOT", ""),
-        "pubmed": os.getenv("CHATFLOW_PUBMED", ""),
-        "arxiv": os.getenv("CHATFLOW_ARXIV", ""),
-        "crossref": os.getenv("CHATFLOW_CROSSREF", ""),
-        "clinical_textbooks": os.getenv("CHATFLOW_CLINICAL_TEXTBOOKS", ""),
-        "five_minute_consult": os.getenv("CHATFLOW_FIVE_MINUTE_CONSULT", ""),
-        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", ""),
         "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", ""),
-        "agentic_rag": os.getenv("CHATFLOW_AGENTIC_RAG", ""),
-        # PRISMA-specific chatflow IDs
-        "prisma_research_1": "43677137-d307-4ff4-96c9-5019b6e10879",
-        "prisma_research_2": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", ""),
+        "aerospace_medicine_rag": os.getenv("CHATFLOW_AEROSPACE_MEDICINE_RAG", ""),
     }
     
     # Chatflow configurations
     CHATFLOW_CONFIGS: Dict[str, ChatflowConfig] = {
-        "physiology_rag": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["physiology_rag"],
-            session_id="physiology_session",
-            temperature=0.3,
+        "aeromedical_risk": ChatflowConfig(
+            chatflow_id=CHATFLOW_IDS["aeromedical_risk"],
+            session_id="aeromedical_session",
+            temperature=0.2,  # Conservative for risk assessment
             max_tokens=2000
-        ),
-        "nasa_hrp": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["nasa_hrp"],
-            session_id="nasa_session",
-            temperature=0.2,
-            max_tokens=1500
         ),
         "deep_research": ChatflowConfig(
             chatflow_id=CHATFLOW_IDS["deep_research"],
@@ -164,30 +146,11 @@ class FlowiseConfig:
             temperature=0.4,
             max_tokens=4000
         ),
-        "agentic_rag": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["agentic_rag"],
-            session_id="agentic_session",
+        "aerospace_medicine_rag": ChatflowConfig(
+            chatflow_id=CHATFLOW_IDS["aerospace_medicine_rag"],
+            session_id="aerospace_medicine_session",
             temperature=0.3,
             max_tokens=3000
-        ),
-        "aeromedical_risk": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["aeromedical_risk"],
-            session_id="aeromedical_session",
-            temperature=0.2,  # Conservative for risk assessment
-            max_tokens=2000
-        ),
-        # PRISMA-specific chatflow configurations
-        "prisma_research_1": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["prisma_research_1"],
-            session_id="prisma_research_1_session",
-            temperature=0.3,
-            max_tokens=8000
-        ),
-        "prisma_research_2": ChatflowConfig(
-            chatflow_id=CHATFLOW_IDS["prisma_research_2"],
-            session_id="prisma_research_2_session",
-            temperature=0.3,
-            max_tokens=8000
         ),
     }
     

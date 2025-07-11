@@ -78,17 +78,14 @@ Advanced reasoning with **OpenAI's O3 models**:
 ### 🌐 **Flowise Medical RAG Integration**
 Specialized **knowledge bases** with domain expertise:
 
-- **Medical Literature**: PubMed, clinical textbooks, physiology databases
-- **NASA Human Research Program**: Space medicine and aerospace physiology data
-- **Aviation Medicine**: Flight safety, medical certification, regulations
-- **Multi-Agent RAG**: Complex retrieval with multiple knowledge sources
+- **Aerospace Medicine Literature**: Scientific articles and textbooks in aerospace medicine
+- **Deep Research**: Comprehensive research analysis with multiple sources
+- **Aeromedical Risk Assessment**: Aviation medicine risk evaluation and analysis
 
-**Specialized Chatflows**:
-- `physiology_rag`: Human physiology and medical questions
-- `nasa_hrp`: NASA Human Research Program and space medicine
-- `deep_research`: Comprehensive research synthesis
-- `agentic_rag`: Multi-agent RAG processing
-- `aeromedical_risk`: Aviation medicine risk assessment
+**Available Chatflows**:
+- `aeromedical_risk`: Aviation medicine risk assessment and analysis
+- `deep_research`: Comprehensive research synthesis with multiple sources
+- `aerospace_medicine_rag`: Scientific articles and textbooks in aerospace medicine
 
 ### 🚁 **Aeromedical Risk Assessment**
 Specialized **aviation medicine analysis**:
@@ -135,6 +132,11 @@ Specialized **aviation medicine analysis**:
    FLOWISE_API_URL=https://cloud.flowiseai.com
    FLOWISE_API_KEY=your_flowise_api_key_here
 
+   # Optional: Flowise Chatflow IDs (configure with your actual chatflow IDs)
+   CHATFLOW_DEEP_RESEARCH=your_deep_research_chatflow_id_here
+   CHATFLOW_AEROMEDICAL_RISK=your_aeromedical_risk_chatflow_id_here
+   CHATFLOW_AEROSPACE_MEDICINE_RAG=your_aerospace_medicine_rag_chatflow_id_here
+
    # Optional: Google Custom Search (for O3 web search)
    SEARCH_API_KEY=your_google_search_api_key_here
    SEARCH_ENGINE_ID=your_search_engine_id_here
@@ -171,10 +173,9 @@ Just ask your question! The system automatically routes to:
 Force specific processing modes:
 - **`/prisma`** - PRISMA Systematic Review workflow
 - **`/o3`** - O3 Deep Research (complex analysis, latest research)
-- **`/flowise`** - Flowise Medical RAG (clinical knowledge, PubMed)
-- **`/deep`** - DeepResearch RAG (comprehensive synthesis)
+- **`/deep`** - Deep Research (comprehensive research synthesis)
 - **`/aero`** - Aeromedical Risk Assessment (aviation medicine)
-- **`/smart`** - Return to smart auto-detection mode
+- **`/aerospace`** - Aerospace Medicine RAG (scientific articles and textbooks)
 
 ### **Navigation & Help**
 - **`?`** - Show contextual help for current mode

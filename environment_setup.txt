@@ -46,9 +46,8 @@ LOG_LEVEL=INFO
 
 # Flowise Chatflow IDs (configure these with your actual chatflow IDs)
 CHATFLOW_DEEP_RESEARCH=your_deep_research_chatflow_id_here
-CHATFLOW_AGENTIC_RAG=your_agentic_rag_chatflow_id_here
-CHATFLOW_PHYSIOLOGY_RAG=your_physiology_rag_chatflow_id_here
-CHATFLOW_NASA_HRP=your_nasa_hrp_chatflow_id_here
+CHATFLOW_AEROMEDICAL_RISK=your_aeromedical_risk_chatflow_id_here
+CHATFLOW_AEROSPACE_MEDICINE_RAG=your_aerospace_medicine_rag_chatflow_id_here
 
 ---END ENV FILE CONTENT---
 

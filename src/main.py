@@ -99,7 +99,7 @@ class EnhancedPromptEnhancerApp:
         self.messages: List[Dict[str, Any]] = []
         
         # Current processing mode and agent
-        self.current_mode: str = "smart"  # "smart", "o3", "flowise", "deepresearch_flowise", "aeromedical_risk", "prisma"
+        self.current_mode: str = "smart"  # "smart", "o3", "deep_research", "aeromedical_risk", "aerospace_medicine_rag"
         self.current_agent = None
         self.user_preferences = {
             "auto_suggest": True,
@@ -115,17 +115,23 @@ class EnhancedPromptEnhancerApp:
                 r"what.*latest|recent.*development|current.*state",
                 r"explain.*detail|comprehensive.*analysis|in-depth"
             ],
-            "flowise": [
-                r"medical|physiology|clinical|health|treatment|therapy|diagnosis",
-                r"NASA|space|microgravity|aerospace|flight|aviation",
-                r"cardiovascular|respiratory|neurological|psychological",
-                r"pubmed|literature|journal|study|research.*paper"
+            "deep_research": [
+                r"research|study|analysis|comprehensive|literature|review",
+                r"scientific|academic|peer.*review|publication|journal",
+                r"systematic.*review|meta.*analysis|evidence.*based",
+                r"multiple.*sources|research.*synthesis|knowledge.*base"
             ],
             "aeromedical_risk": [
                 r"pilot|flight.*safety|aviation.*medicine|aeromedical",
                 r"risk.*assessment|medical.*fitness|flight.*physical",
                 r"commercial.*pilot|airline|FAA|aviation.*regulation",
                 r"altitude.*sickness|hypoxia|G-force|aerospace.*physiology"
+            ],
+            "aerospace_medicine_rag": [
+                r"aerospace.*medicine|space.*medicine|aviation.*medicine",
+                r"scientific.*article|textbook|medical.*literature",
+                r"physiology|clinical|health|treatment|therapy|diagnosis",
+                r"medical.*research|clinical.*guideline|evidence.*based"
             ]
         }
         
@@ -167,9 +173,9 @@ class EnhancedPromptEnhancerApp:
             if confidence > 0.3:  # Minimum confidence threshold
                 return best_mode, confidence
         
-        # Default to flowise for medical/scientific queries, o3 for general
-        if any(term in query_lower for term in ["medical", "health", "physiology", "clinical"]):
-            return "flowise", 0.6
+        # Default to aerospace_medicine_rag for medical/scientific queries, o3 for general
+        if any(term in query_lower for term in ["medical", "health", "physiology", "clinical", "aerospace", "aviation"]):
+            return "aerospace_medicine_rag", 0.6
         else:
             return "o3", 0.5
     
@@ -183,8 +189,8 @@ class EnhancedPromptEnhancerApp:
         self.console.print("🎯 [bold]How to Get Started[/bold]")
         self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
         self.console.print()
-        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized medical knowledge")
-        self.console.print("• [bold]Research/Analysis[/bold] → O3 deep research with web search")
+        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge")
+        self.console.print("• [bold]Research/Analysis[/bold] → O3 deep research with web search or Flowise deep research")
         self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
         self.console.print()
         self.console.print("[bold]Pro Tips:[/bold]")
@@ -195,34 +201,30 @@ class EnhancedPromptEnhancerApp:
         # Available modes - simple text layout
         self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
         self.console.print()
-        self.console.print("[cyan]🔬 O3 Research[/cyan]          [green]🌐 Medical RAG[/green]")
-        self.console.print("Complex analysis            Clinical questions")
-        self.console.print("Latest research             PubMed searches")  
-        self.console.print("Technology reviews          Physiology data")
+        self.console.print("[cyan]🔬 O3 Research[/cyan]          [green]🔬 Deep Research[/green]")
+        self.console.print("Complex analysis            Comprehensive analysis")
+        self.console.print("Latest research             Multiple sources")  
+        self.console.print("Technology reviews          Literature synthesis")
         self.console.print()
-        self.console.print("[yellow]🚁 Aero Risk[/yellow]           [magenta]🎯 Smart Mode[/magenta]")
-        self.console.print("Flight safety               Auto-detection")
-        self.console.print("Pilot fitness               Best AI selection")
-        self.console.print("Risk assessment             Seamless routing")
+        self.console.print("[yellow]🚁 Aero Risk[/yellow]           [blue]🚀 Aerospace Medicine[/blue]")
+        self.console.print("Flight safety               Scientific articles")
+        self.console.print("Risk assessment             Medical textbooks")
+        self.console.print("Aviation medicine           Evidence-based care")
         self.console.print()
-        if self.prisma_orchestrator:
-            self.console.print("[bright_blue]📊 PRISMA Review[/bright_blue]")
-            self.console.print("Systematic reviews          Meta-analyses")
-            self.console.print("Evidence synthesis          Research workflows")
+        self.console.print("[magenta]🎯 Smart Mode[/magenta]")
+        self.console.print("Auto-detection")
+        self.console.print("Best AI selection")
+        self.console.print("Seamless routing")
         self.console.print()
-        
-        # Current status
-        self.display_current_status()
     
     def display_current_status(self) -> None:
         """Display current system status and available options."""
         mode_info = {
             "smart": ("🎯", "Smart Auto-Detection", "System automatically selects best AI"),
             "o3": ("🔬", "O3 Deep Research", "Complex analysis and reasoning"),
-            "flowise": ("🌐", "Flowise Medical RAG", "Medical and scientific knowledge"),
-            "deepresearch_flowise": ("🔬", "DeepResearch RAG", "Comprehensive research synthesis"),
+            "deep_research": ("🔬", "Deep Research", "Comprehensive research synthesis"),
             "aeromedical_risk": ("🚁", "Aeromedical Risk", "Aviation medicine assessment"),
-            "prisma": ("📊", "PRISMA Systematic Review", "Systematic reviews and meta-analyses")
+            "aerospace_medicine_rag": ("🚀", "Aerospace Medicine RAG", "Scientific articles and textbooks"),
         }
         
         emoji, mode_name, description = mode_info.get(self.current_mode, ("❓", "Unknown", "Unknown mode"))
@@ -249,19 +251,19 @@ class EnhancedPromptEnhancerApp:
         self.console.print("   Quick Switch: [green]/o3[/green]")
         self.console.print()
         
-        self.console.print("[cyan]🌐 Flowise Medical RAG[/cyan]")
-        self.console.print("   Medical questions, PubMed, clinical knowledge")
-        self.console.print("   Quick Switch: [green]/flowise[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]🔬 DeepResearch RAG[/cyan]")
-        self.console.print("   Comprehensive research with deep knowledge synthesis")
+        self.console.print("[cyan]🔬 Deep Research[/cyan]")
+        self.console.print("   Comprehensive research analysis with multiple sources")
         self.console.print("   Quick Switch: [green]/deep[/green]")
         self.console.print()
         
         self.console.print("[cyan]🚁 Aeromedical Risk[/cyan]")
         self.console.print("   Aviation medicine, flight safety, risk assessment")
         self.console.print("   Quick Switch: [green]/aero[/green]")
+        self.console.print()
+        
+        self.console.print("[cyan]🚀 Aerospace Medicine RAG[/cyan]")
+        self.console.print("   Scientific articles and textbooks in aerospace medicine")
+        self.console.print("   Quick Switch: [green]/aerospace[/green]")
         self.console.print()
         
         # Show PRISMA option if available
@@ -291,19 +293,23 @@ class EnhancedPromptEnhancerApp:
         mode_specific = {
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
-                ("Override", "Use /o3, /flowise, /aero, /prisma to force specific mode")
+                ("Override", "Use /o3, /deep, /aero, /aerospace, /prisma to force specific mode")
             ],
             "o3": [
                 ("Best for", "Scientific research, complex analysis, current events"),
                 ("Features", "o3-deep-research model with web search capabilities")
             ],
-            "flowise": [
-                ("Best for", "Medical questions, clinical knowledge, PubMed searches"),
-                ("Features", "Specialized medical RAG with multiple knowledge bases")
+            "deep_research": [
+                ("Best for", "Comprehensive research, literature synthesis, multiple sources"),
+                ("Features", "Specialized research RAG with advanced knowledge synthesis")
             ],
             "aeromedical_risk": [
                 ("Best for", "Aviation medicine, pilot fitness, flight safety"),
                 ("Features", "Conservative risk assessment with safety-first approach")
+            ],
+            "aerospace_medicine_rag": [
+                ("Best for", "Aerospace medicine, scientific articles, medical textbooks"),
+                ("Features", "Specialized aerospace medicine knowledge base with evidence-based content")
             ],
             "prisma": [
                 ("Best for", "Systematic reviews, meta-analyses, comprehensive research"),
@@ -338,15 +344,20 @@ class EnhancedPromptEnhancerApp:
                 "Compare latest renewable energy technologies",
                 "Analyze current developments in space exploration"
             ],
-            "flowise": [
-                "Physiological changes during long-duration spaceflight",
-                "Recent research on pilot fatigue mitigation",
-                "Clinical guidelines for aviation medical examinations"
+            "deep_research": [
+                "Comprehensive analysis of pilot fatigue countermeasures",
+                "Literature review on cardiovascular effects in aerospace medicine",
+                "Research synthesis on telemedicine effectiveness"
             ],
             "aeromedical_risk": [
                 "Cardiovascular risk factors for commercial pilots",
                 "Medical fitness requirements for high-altitude operations",
                 "Assessment of medication effects on flight safety"
+            ],
+            "aerospace_medicine_rag": [
+                "Physiological changes during long-duration spaceflight",
+                "Clinical guidelines for aviation medical examinations",
+                "Evidence-based treatment protocols for aerospace medicine"
             ],
             "prisma": [
                 "Effectiveness of telemedicine interventions in rural healthcare",
@@ -373,9 +384,9 @@ class EnhancedPromptEnhancerApp:
         mode_prompts = {
             "smart": "🎯 Ask your question (auto-detection enabled)",
             "o3": "🔬 Enter your research question",
-            "flowise": "🌐 Enter your medical/scientific question",
-            "deepresearch_flowise": "🔬 Enter your research query",
+            "deep_research": "🔬 Enter your research query",
             "aeromedical_risk": "🚁 Enter your aeromedical question",
+            "aerospace_medicine_rag": "🚀 Enter your aerospace medicine question",
             "prisma": "📊 Enter your systematic review research question"
         }
         
@@ -412,8 +423,9 @@ class EnhancedPromptEnhancerApp:
             # High confidence - suggest mode switch
             mode_names = {
                 "o3": "🔬 O3 Deep Research",
-                "flowise": "🌐 Flowise Medical RAG", 
+                "deep_research": "🔬 Deep Research", 
                 "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
+                "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG",
                 "prisma": "📊 PRISMA Systematic Review"
             }
             
@@ -450,9 +462,9 @@ class EnhancedPromptEnhancerApp:
         mode_agents = {
             "smart": None,
             "o3": self.o3_agents["o3_enhancer"],
-            "flowise": self.flowise_agents["flowise_enhancer"],
-            "deepresearch_flowise": self.flowise_agents["deep_research"],
+            "deep_research": self.flowise_agents["deep_research"],
             "aeromedical_risk": self.flowise_agents["aeromedical_risk"],
+            "aerospace_medicine_rag": self.flowise_agents["aerospace_medicine_rag"],
             "prisma": None  # Special handling for PRISMA
         }
         
@@ -474,9 +486,9 @@ class EnhancedPromptEnhancerApp:
         mode_names = {
             "smart": "🎯 Smart Auto-Detection",
             "o3": "🔬 O3 Deep Research",
-            "flowise": "🌐 Flowise Medical RAG",
-            "deepresearch_flowise": "🔬 DeepResearch RAG",
+            "deep_research": "🔬 Deep Research",
             "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
+            "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG",
             "prisma": "📊 PRISMA Systematic Review"
         }
         
@@ -518,14 +530,14 @@ class EnhancedPromptEnhancerApp:
             elif command in ['o3', 'research']:
                 self.switch_mode("o3")
                 return True
-            elif command in ['flowise', 'medical', 'f']:
-                self.switch_mode("flowise")
-                return True
             elif command in ['deep', 'deepresearch', 'd']:
-                self.switch_mode("deepresearch_flowise")
+                self.switch_mode("deep_research")
                 return True
             elif command in ['aero', 'aeromedical', 'risk', 'a']:
                 self.switch_mode("aeromedical_risk")
+                return True
+            elif command in ['aerospace', 'aerospace_medicine', 'medicine', 'am']:
+                self.switch_mode("aerospace_medicine_rag")
                 return True
             elif command in ['prisma', 'systematic', 'review', 'p']:
                 self.switch_mode("prisma")
@@ -628,9 +640,9 @@ class EnhancedPromptEnhancerApp:
             agent_name = self.current_agent.name
             mode_emoji = {
                 "o3": "🔬",
-                "flowise": "🌐", 
-                "deepresearch_flowise": "🔬",
-                "aeromedical_risk": "🚁"
+                "deep_research": "🔬",
+                "aeromedical_risk": "🚁",
+                "aerospace_medicine_rag": "🚀"
             }.get(self.current_mode, "🤖")
             
             if len(user_input) > 500:
@@ -658,9 +670,9 @@ class EnhancedPromptEnhancerApp:
                     # Simple response display without borders
                     mode_info = {
                         "o3": "🔬 O3 Deep Research",
-                        "flowise": "🌐 Flowise Medical RAG",
-                        "deepresearch_flowise": "🔬 DeepResearch RAG", 
-                        "aeromedical_risk": "🚁 Aeromedical Risk Assessment"
+                        "deep_research": "🔬 Deep Research",
+                        "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
+                        "aerospace_medicine_rag": "�� Aerospace Medicine RAG"
                     }
                     
                     title = mode_info.get(self.current_mode, f"🤖 {agent_name}")

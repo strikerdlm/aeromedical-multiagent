@@ -259,36 +259,30 @@ class MedicalFlowiseRouter(FlowiseClient):
     """
     Specialized router for medical and research-focused chatflows.
     
-    Provides domain-specific methods for different types of medical
-    and research queries.
+    Provides domain-specific methods for the three available chatflows:
+    1. Aeromedical Risk Agents - Aviation medicine risk assessment
+    2. Deep Research Flowise Agents - Comprehensive research analysis  
+    3. Aerospace Medicine RAG Agent - Scientific articles and textbooks in aerospace medicine
     """
     
     def consult_deep_research(self, query: str) -> Generator[Dict[str, Any], None, None]:
         """Query the deep research chatflow for comprehensive analysis."""
         return self.send_message_with_config("deep_research", query)
     
-    def consult_agentic_rag(self, query: str) -> Generator[Dict[str, Any], None, None]:
-        """Query the agentic RAG system for enhanced responses."""
-        return self.send_message_with_config("agentic_rag", query)
-    
-    def consult_pubmed(self, query: str) -> Dict[str, Any]:
-        """Query PubMed medical literature (non-streaming)."""
-        return self.send_message_with_config("pubmed", query, streaming=False)
-    
-    def consult_nasa_hrp(self, query: str) -> Dict[str, Any]:
-        """Query NASA Human Research Program data."""
-        return self.send_message_with_config("nasa_hrp", query)
-    
-    def consult_aeromedical_risk(self, query: str) -> Dict[str, Any]:
+    def consult_aeromedical_risk(self, query: str) -> Generator[Dict[str, Any], None, None]:
         """Query aeromedical risk assessment chatflow."""
         return self.send_message_with_config("aeromedical_risk", query)
+    
+    def consult_aerospace_medicine_rag(self, query: str) -> Generator[Dict[str, Any], None, None]:
+        """Query aerospace medicine RAG chatflow for scientific articles and textbooks."""
+        return self.send_message_with_config("aerospace_medicine_rag", query)
     
     def route_medical_query(self, query_type: str, question: str) -> Union[Dict[str, Any], Generator]:
         """
         Route medical queries to appropriate specialized chatflows.
         
         Args:
-            query_type: Type of query ('research', 'medical', 'nasa', etc.)
+            query_type: Type of query ('research', 'aeromedical', 'aerospace_medicine')
             question: The actual question to ask
             
         Returns:
@@ -299,11 +293,9 @@ class MedicalFlowiseRouter(FlowiseClient):
         """
         routing_map = {
             "research": "deep_research",
-            "medical": "physiology_rag",
-            "nasa": "nasa_hrp",
-            "agentic": "agentic_rag",
-            "pubmed": "pubmed",
             "aeromedical": "aeromedical_risk",
+            "aerospace_medicine": "aerospace_medicine_rag",
+            "medical": "aerospace_medicine_rag",  # Default medical queries to aerospace medicine RAG
         }
         
         if query_type not in routing_map:

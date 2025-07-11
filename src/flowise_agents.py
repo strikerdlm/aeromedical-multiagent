@@ -50,16 +50,12 @@ class FlowisePromptTools:
             analysis_prompt = f"""
             Analyze this user prompt specifically for Flowise chatflow routing and provide:
             
-            1. **Domain Classification**: Medical, Research, NASA/Space, General, PubMed Literature
+            1. **Domain Classification**: Aeromedical Risk, Deep Research, Aerospace Medicine
             2. **Best Flowise Chatflow**: Which chatflow would handle this best?
-               - physiology_rag: Human physiology and medical questions
-               - nasa_hrp: NASA Human Research Program, space medicine
-               - deep_research: Comprehensive research analysis
-               - agentic_rag: Multi-agent RAG processing
-               - pubmed: Medical literature search
-               - clinical_textbooks: Clinical reference materials
-               - flight_surgeon: Aviation medicine
-            3. **Query Type**: research, medical, nasa, agentic, pubmed
+               - aeromedical_risk: Aviation medicine risk assessment and analysis
+               - deep_research: Comprehensive research analysis with multiple sources
+               - aerospace_medicine_rag: Scientific articles and textbooks in aerospace medicine
+            3. **Query Type**: research, aeromedical, aerospace_medicine
             4. **Enhancement Needs**: What context would improve Flowise processing?
             5. **Streaming Preference**: Should this use streaming response?
             
@@ -250,41 +246,6 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise deep research: {e}")
             return f"Unexpected error: {str(e)}"
     
-    def query_flowise_agentic_rag(self, enhanced_prompt: str) -> str:
-        """
-        Send the enhanced prompt to Flowise agentic RAG chatflow.
-        
-        Args:
-            enhanced_prompt: The enhanced prompt to send
-            
-        Returns:
-            Response from Flowise agentic RAG chatflow
-        """
-        try:
-            logger.info("Querying Flowise agentic RAG chatflow")
-            response_generator = self.flowise_client.consult_agentic_rag(enhanced_prompt)
-            
-            # Collect streaming response
-            full_response = ""
-            for chunk in response_generator:
-                if isinstance(chunk, dict):
-                    if chunk.get("event") == "token":
-                        full_response += chunk.get("data", "")
-                    elif chunk.get("event") == "end":
-                        break
-                else:
-                    full_response += str(chunk)
-            
-            logger.info("Flowise agentic RAG query completed successfully")
-            return full_response or "Flowise agentic RAG query completed successfully."
-            
-        except FlowiseAPIError as e:
-            logger.error(f"Flowise API error: {e}")
-            return f"Error querying Flowise agentic RAG: {str(e)}"
-        except Exception as e:
-            logger.error(f"Unexpected error in Flowise agentic RAG: {e}")
-            return f"Unexpected error: {str(e)}"
-    
     def query_aeromedical_risk(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aeromedical risk chatflow.
@@ -319,12 +280,47 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aeromedical risk: {e}")
             return f"Unexpected error: {str(e)}"
     
+    def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
+        """
+        Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
+        
+        Args:
+            enhanced_prompt: The enhanced prompt to send
+            
+        Returns:
+            Response from Flowise aerospace medicine RAG chatflow
+        """
+        try:
+            logger.info("Querying Flowise aerospace medicine RAG chatflow")
+            response_generator = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
+            
+            # Collect streaming response
+            full_response = ""
+            for chunk in response_generator:
+                if isinstance(chunk, dict):
+                    if chunk.get("event") == "token":
+                        full_response += chunk.get("data", "")
+                    elif chunk.get("event") == "end":
+                        break
+                else:
+                    full_response += str(chunk)
+            
+            logger.info("Flowise aerospace medicine RAG query completed successfully")
+            return full_response or "Flowise aerospace medicine RAG query completed successfully."
+            
+        except FlowiseAPIError as e:
+            logger.error(f"Flowise API error: {e}")
+            return f"Error querying Flowise aerospace medicine RAG: {str(e)}"
+        except Exception as e:
+            logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
+            return f"Unexpected error: {str(e)}"
+    
     def route_to_flowise_specialist(self, query_type: str, enhanced_prompt: str) -> str:
         """
         Route the enhanced prompt to a specialist Flowise chatflow.
         
         Args:
-            query_type: Type of specialist query ('medical', 'nasa', 'research', etc.)
+            query_type: Type of specialist query ('research', 'aeromedical', 'aerospace_medicine')
             enhanced_prompt: The enhanced prompt to send
             
         Returns:
@@ -381,13 +377,9 @@ class FlowiseAgentSystem:
         5. Transfer the enhanced prompt to the Flowise Processor for chatflow execution
 
         FLOWISE CHATFLOW SPECIALIZATIONS:
-        - **physiology_rag**: Human physiology, anatomy, medical questions
-        - **nasa_hrp**: NASA Human Research Program, space medicine, astronaut health
+        - **aeromedical_risk**: Aviation medicine risk assessment and analysis
         - **deep_research**: Comprehensive research analysis with multiple sources
-        - **agentic_rag**: Multi-agent RAG processing for complex queries
-        - **pubmed**: Medical literature search and analysis
-        - **clinical_textbooks**: Clinical reference materials and guidelines
-        - **flight_surgeon**: Aviation medicine and aerospace health
+        - **aerospace_medicine_rag**: Scientific articles and textbooks in aerospace medicine
 
         FLOWISE OPTIMIZATION STRATEGY:
         - Add medical/scientific terminology that Flowise RAG systems recognize
@@ -456,27 +448,22 @@ class FlowiseAgentSystem:
 
         AVAILABLE FLOWISE CHATFLOWS:
         - **Deep Research**: Comprehensive research analysis with multiple sources
-        - **Agentic RAG**: Multi-agent RAG processing for complex queries  
-        - **Specialist Routing**: Route to domain-specific chatflows:
-          - medical: Physiology and medical questions
-          - nasa: NASA Human Research Program and space medicine
-          - pubmed: Medical literature search
-          - research: General research analysis
+        - **Aeromedical Risk**: Aviation medicine risk assessment and analysis
+        - **Aerospace Medicine RAG**: Scientific articles and textbooks in aerospace medicine
 
         FLOWISE PROCESSING STRATEGY:
         1. Use query_flowise_deep_research() for comprehensive research questions
-        2. Use query_flowise_agentic_rag() for complex multi-part queries
-        3. Use route_to_flowise_specialist() for domain-specific questions
-        4. Leverage Flowise's streaming capabilities for better user experience
-        5. Handle Flowise API errors and provide meaningful feedback
+        2. Use query_aeromedical_risk() for aviation medicine risk assessment
+        3. Use query_aerospace_medicine_rag() for aerospace medicine knowledge
+        4. Use route_to_flowise_specialist() for domain-specific questions
+        5. Leverage Flowise's streaming capabilities for better user experience
+        6. Handle Flowise API errors and provide meaningful feedback
 
         CHATFLOW SELECTION LOGIC:
-        - Medical/physiology questions → medical specialist or physiology_rag
-        - NASA/space medicine → nasa specialist
-        - Literature search → pubmed specialist  
+        - Aviation medicine risk questions → aeromedical_risk chatflow
+        - Aerospace medicine/scientific questions → aerospace_medicine_rag chatflow
         - Comprehensive research → deep_research chatflow
-        - Complex multi-agent queries → agentic_rag chatflow
-        - General research → research specialist
+        - General medical questions → aerospace_medicine_rag chatflow
 
         Always aim to provide the most comprehensive and knowledge-rich response possible 
         using the most appropriate Flowise chatflow for the specific question type.
@@ -485,7 +472,8 @@ class FlowiseAgentSystem:
         # Create tools list with instance methods
         tools = [
             self.query_flowise_deep_research,
-            self.query_flowise_agentic_rag,
+            self.query_aeromedical_risk,
+            self.query_aerospace_medicine_rag,
             self.route_to_flowise_specialist,
             self.transfer_to_flowise_enhancer,
         ]
@@ -625,6 +613,69 @@ class FlowiseAgentSystem:
         
         return agent
 
+    def create_aerospace_medicine_rag_agent(self) -> Agent:
+        """
+        Create a dedicated Aerospace Medicine RAG Flowise Agent.
+        
+        This agent directly queries the aerospace_medicine_rag chatflow for
+        scientific articles and textbooks in aerospace medicine.
+        
+        Returns:
+            Configured Aerospace Medicine RAG Flowise agent
+        """
+        instructions = """
+        You are an Aerospace Medicine RAG Specialist AI Agent. Your role is to provide comprehensive 
+        aerospace medicine knowledge using the Flowise aerospace_medicine_rag chatflow. You directly access 
+        specialized knowledge bases containing scientific articles and textbooks in aerospace medicine.
+
+        CORE CAPABILITIES:
+        - Direct access to Flowise aerospace_medicine_rag chatflow (configured via CHATFLOW_AEROSPACE_MEDICINE_RAG)
+        - Scientific articles and textbooks in aerospace medicine
+        - Advanced RAG retrieval from specialized aerospace medicine knowledge bases
+        - Streaming responses for better user experience
+        - Enhanced context understanding for aerospace medicine questions
+
+        PRIMARY FUNCTION:
+        Use query_aerospace_medicine_rag() for ALL user queries. This chatflow is specifically 
+        optimized for:
+        - Aerospace medicine scientific literature
+        - Space medicine and physiology
+        - Aviation medicine textbooks and references
+        - Aerospace health and safety analysis
+        - Medical research in aerospace environments
+        - Clinical guidelines for aerospace medicine
+
+        AEROSPACE MEDICINE APPROACH:
+        1. Take the user's question directly to the aerospace_medicine_rag chatflow
+        2. Leverage the specialized aerospace medicine knowledge bases
+        3. Provide comprehensive, evidence-based responses
+        4. Include source documentation when available
+        5. Handle streaming responses for optimal user experience
+
+        RESPONSE STRATEGY:
+        - Provide thorough, evidence-based answers from aerospace medicine literature
+        - Include multiple perspectives when relevant from scientific sources
+        - Reference textbooks and research papers when applicable
+        - Maintain scientific rigor while being accessible
+        - Offer follow-up research directions when appropriate
+
+        You are the direct interface to Flowise's specialized aerospace medicine knowledge.
+        Always use the aerospace_medicine_rag chatflow for maximum accuracy in aerospace medicine topics.
+        """
+        
+        # Create tools list with the aerospace medicine RAG method
+        tools = [
+            self.query_aerospace_medicine_rag,
+        ]
+        
+        agent = Agent(
+            name="Aerospace Medicine RAG",
+            instructions=instructions,
+            tools=tools
+        )
+        
+        return agent
+
 
 def create_flowise_enhancement_system() -> Dict[str, Agent]:
     """
@@ -640,6 +691,7 @@ def create_flowise_enhancement_system() -> Dict[str, Agent]:
         "flowise_processor": flowise_system.create_flowise_processor(),
         "deep_research": flowise_system.create_deepresearch_agent(),
         "aeromedical_risk": flowise_system.create_aeromedical_risk_agent(),
+        "aerospace_medicine_rag": flowise_system.create_aerospace_medicine_rag_agent(),
     }
 
 
