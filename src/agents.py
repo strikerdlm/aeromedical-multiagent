@@ -118,22 +118,50 @@ You have access to the following capabilities:
 
 Please respond to the following user input with a comprehensive answer based on your capabilities."""
             
-            # Use OpenAI API directly - for Flowise agents, we'll just provide a direct response
-            # since they're designed to call Flowise APIs through their tools
+            # For Flowise agents, try to call their tools directly
             if "Flowise" in agent.name or "RAG" in agent.name or "Research" in agent.name:
-                # For Flowise agents, provide a response that indicates the chatflow would be called
-                response_content = f"""Based on your question, I would normally query the {agent.name} system to provide you with specialized knowledge from our aerospace medicine databases.
+                # Try to call the agent's tool directly
+                if agent.tools and len(agent.tools) > 0:
+                    try:
+                        # Get the main tool (usually the first one for specialized agents)
+                        main_tool = agent.tools[0]
+                        
+                        # Extract the user's actual question from the input_prompt
+                        user_question = input_prompt
+                        if "**user**:" in input_prompt:
+                            # Extract just the user's question
+                            parts = input_prompt.split("**user**:")
+                            if len(parts) > 1:
+                                user_question = parts[-1].strip()
+                        
+                        # Call the tool directly with the user's question
+                        logger.info(f"Calling {agent.name} tool directly with user question")
+                        response_content = main_tool(user_question)
+                        
+                        # Create a simple result object
+                        result = type('AgentResult', (), {})()
+                        result.final_output = response_content
+                        return result
+                        
+                    except Exception as tool_error:
+                        logger.error(f"Error calling {agent.name} tool: {tool_error}")
+                        # Fall back to informative message
+                        response_content = f"""I encountered an error while trying to access the {agent.name} system: {str(tool_error)}
 
-However, to get the actual response from the Flowise chatflow, you would need to have:
-1. A valid Flowise API key configured (FLOWISE_API_KEY)
-2. The appropriate chatflow ID configured in your environment variables
-3. A working Flowise instance
-
-The system is configured to use the specialized knowledge bases for aerospace medicine, but the actual API call requires proper configuration.
+To resolve this issue, please ensure:
+1. Your Flowise API key is configured (FLOWISE_API_KEY environment variable)
+2. The appropriate chatflow ID is configured for {agent.name}
+3. Your Flowise instance is accessible
 
 Your question: {input_prompt}
 
-This would typically be processed through our specialized aerospace medicine knowledge base to provide you with evidence-based information from scientific articles and textbooks."""
+This question would typically be processed through our specialized aerospace medicine knowledge base."""
+                else:
+                    response_content = f"""The {agent.name} system is configured but no tools are available.
+
+Your question: {input_prompt}
+
+Please check the agent configuration."""
             else:
                 # For other agents, use the OpenAI API
                 response = self.client.chat.completions.create(

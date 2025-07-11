@@ -74,7 +74,7 @@ class ChatflowConfig:
     chatflow_id: str
     session_id: str
     return_source_documents: bool = True
-    streaming: bool = True
+    streaming: bool = False  # Changed to False for more reliable responses
     temperature: float = 0.3
     max_tokens: int = 2000
 
@@ -127,9 +127,9 @@ class FlowiseConfig:
     
     # Chatflow IDs mapping - Only the three available chatflows
     CHATFLOW_IDS: Dict[str, str] = {
-        "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", ""),
-        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", ""),
-        "aerospace_medicine_rag": os.getenv("CHATFLOW_AEROSPACE_MEDICINE_RAG", ""),
+        "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", "c7a56c4b-a8a2-423d-ad6c-e49a7003e8cb"),
+        "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", "43677137-d307-4ff4-96c9-5019b6e10879"),
+        "aerospace_medicine_rag": os.getenv("CHATFLOW_AEROSPACE_MEDICINE_RAG", "d0bf0d84-1343-4f3b-a887-780d20f9e3c6"),
     }
     
     # Chatflow configurations

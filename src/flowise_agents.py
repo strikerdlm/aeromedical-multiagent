@@ -292,21 +292,37 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise aerospace medicine RAG chatflow")
-            response_generator = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
+            result = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
             
-            # Collect streaming response
-            full_response = ""
-            for chunk in response_generator:
-                if isinstance(chunk, dict):
-                    if chunk.get("event") == "token":
-                        full_response += chunk.get("data", "")
-                    elif chunk.get("event") == "end":
-                        break
-                else:
-                    full_response += str(chunk)
-            
-            logger.info("Flowise aerospace medicine RAG query completed successfully")
-            return full_response or "Flowise aerospace medicine RAG query completed successfully."
+            # Handle both streaming and non-streaming responses
+            if isinstance(result, dict):
+                # Non-streaming response - extract text directly
+                response_text = result.get("text", str(result))
+                logger.info("Flowise aerospace medicine RAG query completed successfully (non-streaming)")
+                return response_text
+            elif hasattr(result, '__iter__'):
+                # Streaming response - collect chunks
+                full_response = ""
+                for chunk in result:
+                    if isinstance(chunk, dict):
+                        if chunk.get("event") == "token":
+                            full_response += chunk.get("data", "")
+                        elif chunk.get("event") == "end":
+                            break
+                        elif "text" in chunk:
+                            # Some APIs return the full text in a single chunk
+                            full_response = chunk["text"]
+                            break
+                    else:
+                        full_response += str(chunk)
+                
+                logger.info("Flowise aerospace medicine RAG query completed successfully (streaming)")
+                return full_response or "Flowise aerospace medicine RAG query completed successfully."
+            else:
+                # Fallback for other response types
+                response_text = str(result)
+                logger.info("Flowise aerospace medicine RAG query completed successfully (direct)")
+                return response_text
             
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")

@@ -43,10 +43,12 @@ class FlowiseClient:
         """
         self.base_url = base_url or FlowiseConfig.BASE_URL
         self.api_key = api_key or FlowiseConfig.API_KEY
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        
+        # Create headers - only add Authorization if API key is provided
+        self.headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            self.headers["Authorization"] = f"Bearer {self.api_key}"
+        
         self.session = requests.Session()
         self.session.headers.update(self.headers)
     
