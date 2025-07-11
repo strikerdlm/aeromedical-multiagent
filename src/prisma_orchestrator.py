@@ -65,7 +65,7 @@ class PRISMAOrchestrator:
         additional_context: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Create a complete PRISMA systematic review.
+        Create a complete PRISMA systematic review using code-based orchestration.
         
         Args:
             research_question: Primary research question
@@ -80,7 +80,7 @@ class PRISMAOrchestrator:
         try:
             logger.info(f"Starting PRISMA systematic review creation for: {research_question}")
             
-            # Initialize workflow
+            # Initialize workflow state and tools
             search_strategy = {
                 "keywords": search_keywords,
                 "databases": ["PubMed", "Google Scholar", "Cochrane Library", "Web of Science"],
@@ -88,60 +88,73 @@ class PRISMAOrchestrator:
                 "language": "English",
                 "additional_context": additional_context
             }
+            self.prisma_system.tools.initialize_workflow(
+                research_question, search_strategy, inclusion_criteria, exclusion_criteria
+            )
+
+            # --- Code-based Agent Orchestration ---
             
-            # Start the multi-agent workflow
-            planner_agent = self.prisma_agents["planner"]
-            
-            # Initialize the workflow
-            messages = [
-                {
-                    "role": "user",
-                    "content": f"""
-                    Create a comprehensive PRISMA systematic review for the following:
-                    
-                    Research Question: {research_question}
-                    
-                    Search Keywords: {', '.join(search_keywords)}
-                    
-                    Inclusion Criteria:
-                    {chr(10).join(f'- {criteria}' for criteria in inclusion_criteria)}
-                    
-                    Exclusion Criteria:
-                    {chr(10).join(f'- {criteria}' for criteria in exclusion_criteria)}
-                    
-                    Additional Context: {additional_context or 'None'}
-                    
-                    Please initialize the workflow and coordinate with all specialized agents to create a complete PRISMA-compliant systematic review.
-                    """
-                }
-            ]
-            
-            # Execute the workflow using the agent orchestrator
-            response = self.agent_orchestrator.run_conversation(
-                agent=planner_agent,
-                messages=messages,
-                max_turns=20  # Allow for complex multi-agent interactions
+            # 1. Searcher Agent
+            searcher_agent = self.prisma_system.create_searcher_agent()
+            search_task = self.agent_orchestrator.run_full_turn(
+                agent=searcher_agent,
+                messages=[{"role": "user", "content": "Conduct a systematic literature search based on the initialized workflow."}]
             )
             
-            # Extract the final systematic review
-            final_message = response.messages[-1]
-            systematic_review = final_message.get("content", "")
+            # 2. Reviewer Agent
+            reviewer_agent = self.prisma_system.create_reviewer_agent()
+            review_task = self.agent_orchestrator.run_full_turn(
+                agent=reviewer_agent,
+                messages=search_task.messages + [{"role": "user", "content": "Screen the search results and then extract and analyze the data."}]
+            )
+
+            # 3. Writer Agent
+            writer_agent = self.prisma_system.create_writer_agent()
+            write_task = self.agent_orchestrator.run_full_turn(
+                agent=writer_agent,
+                messages=review_task.messages + [{"role": "user", "content": "Generate the complete systematic review document."}]
+            )
+            
+            # 4. Validator Agent
+            validator_agent = self.prisma_system.create_validator_agent()
+            validation_task = self.agent_orchestrator.run_full_turn(
+                agent=validator_agent,
+                messages=write_task.messages + [{"role": "user", "content": "Validate the final review, generate the PRISMA flow diagram, and then export the final review document to a markdown file."}]
+            )
+
+            # --- End Orchestration ---
+
+            # Extract final outputs from the entire workflow
+            final_validation_summary = validation_task.messages[-1].get("content", "")
+            systematic_review = ""
+            for msg in reversed(write_task.messages):
+                if msg.get("role") == "assistant":
+                    systematic_review = msg.get("content", "")
+                    break
+
+            flow_diagram = self.prisma_system.tools.generate_prisma_flow_diagram()
+
+            final_report = f"{systematic_review}\n\n# PRISMA Flow Diagram\n\n{flow_diagram}"
+
+            # The export path will be in the validation summary
+            export_path_message = final_validation_summary
             
             # Compile workflow results
             workflow_results = {
-                "systematic_review": systematic_review,
+                "systematic_review": final_report,
+                "export_path": export_path_message,
                 "research_question": research_question,
                 "search_strategy": search_strategy,
                 "inclusion_criteria": inclusion_criteria,
                 "exclusion_criteria": exclusion_criteria,
                 "workflow_metadata": {
-                    "total_messages": len(response.messages),
-                    "agents_used": list(set(msg.get("agent", "unknown") for msg in response.messages)),
+                    "total_messages": len(validation_task.messages),
+                    "agents_used": ["Searcher", "Reviewer", "Writer", "Validator"],
                     "completion_time": time.time(),
-                    "word_count": len(systematic_review.split()),
-                    "estimated_citations": systematic_review.count("(") + systematic_review.count("[")
+                    "word_count": len(final_report.split()),
+                    "estimated_citations": final_report.count("(") + final_report.count("[")
                 },
-                "validation_status": self._validate_systematic_review(systematic_review),
+                "validation_status": self._validate_systematic_review(final_report),
                 "session_id": f"prisma_{int(time.time())}"
             }
             

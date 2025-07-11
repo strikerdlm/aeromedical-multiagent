@@ -314,10 +314,10 @@ class MarkdownExporter:
     
     def list_exports(self) -> List[Tuple[str, str, datetime]]:
         """
-        List all exported files with metadata.
+        List all exported markdown files in the export directory, sorted by modification time.
         
         Returns:
-            List of tuples (filename, filepath, modified_time)
+            A list of tuples, each containing (filename, absolute_path, modified_time).
         """
         exports = []
         if self.output_dir.exists():
@@ -331,4 +331,29 @@ class MarkdownExporter:
     
     def get_export_directory(self) -> str:
         """Get the full path to the export directory."""
-        return str(self.output_dir.absolute()) 
+        return str(self.output_dir.absolute())
+
+    def _generate_prisma_filename(self, research_question: str) -> str:
+        """Generates a filename for the PRISMA review."""
+        sanitized_title = self._sanitize_filename(research_question)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"PRISMA_review_{sanitized_title}_{timestamp}.md"
+
+    def export_prisma_review(self, review_content: str, research_question: str) -> str:
+        """
+        Export a full PRISMA systematic review to a markdown file.
+        
+        Args:
+            review_content: The full content of the systematic review.
+            research_question: The research question for filename generation.
+
+        Returns:
+            The absolute path to the exported file.
+        """
+        filename = self._generate_prisma_filename(research_question)
+        file_path = self.output_dir / filename
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(review_content)
+        
+        return str(file_path) 
