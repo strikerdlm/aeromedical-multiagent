@@ -202,13 +202,13 @@ class EnhancedPromptEnhancerApp:
         self.console.print()
         self.console.print("[yellow]🚁 Aero Risk[/yellow]           [magenta]🎯 Smart Mode[/magenta]")
         self.console.print("Flight safety               Auto-detection")
+        self.console.print("Pilot fitness               Best AI selection")
+        self.console.print("Risk assessment             Seamless routing")
         self.console.print()
         if self.prisma_orchestrator:
             self.console.print("[bright_blue]📊 PRISMA Review[/bright_blue]")
             self.console.print("Systematic reviews          Meta-analyses")
             self.console.print("Evidence synthesis          Research workflows")
-        self.console.print("Pilot fitness               Best AI selection")
-        self.console.print("Risk assessment             Seamless routing")
         self.console.print()
         
         # Current status
@@ -221,7 +221,8 @@ class EnhancedPromptEnhancerApp:
             "o3": ("🔬", "O3 Deep Research", "Complex analysis and reasoning"),
             "flowise": ("🌐", "Flowise Medical RAG", "Medical and scientific knowledge"),
             "deepresearch_flowise": ("🔬", "DeepResearch RAG", "Comprehensive research synthesis"),
-            "aeromedical_risk": ("🚁", "Aeromedical Risk", "Aviation medicine assessment")
+            "aeromedical_risk": ("🚁", "Aeromedical Risk", "Aviation medicine assessment"),
+            "prisma": ("📊", "PRISMA Systematic Review", "Systematic reviews and meta-analyses")
         }
         
         emoji, mode_name, description = mode_info.get(self.current_mode, ("❓", "Unknown", "Unknown mode"))
@@ -262,6 +263,13 @@ class EnhancedPromptEnhancerApp:
         self.console.print("   Aviation medicine, flight safety, risk assessment")
         self.console.print("   Quick Switch: [green]/aero[/green]")
         self.console.print()
+        
+        # Show PRISMA option if available
+        if self.prisma_orchestrator:
+            self.console.print("[cyan]📊 PRISMA Systematic Review[/cyan]")
+            self.console.print("   Systematic reviews, meta-analyses, evidence synthesis")
+            self.console.print("   Quick Switch: [green]/prisma[/green]")
+            self.console.print()
     
     def display_contextual_help(self) -> None:
         """Display contextual help based on current mode."""
@@ -283,7 +291,7 @@ class EnhancedPromptEnhancerApp:
         mode_specific = {
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
-                ("Override", "Use /o3, /flowise, /aero to force specific mode")
+                ("Override", "Use /o3, /flowise, /aero, /prisma to force specific mode")
             ],
             "o3": [
                 ("Best for", "Scientific research, complex analysis, current events"),
@@ -296,6 +304,10 @@ class EnhancedPromptEnhancerApp:
             "aeromedical_risk": [
                 ("Best for", "Aviation medicine, pilot fitness, flight safety"),
                 ("Features", "Conservative risk assessment with safety-first approach")
+            ],
+            "prisma": [
+                ("Best for", "Systematic reviews, meta-analyses, comprehensive research"),
+                ("Features", "Multi-agent workflow with O3, Perplexity, Grok, and Flowise")
             ]
         }
         
@@ -335,6 +347,11 @@ class EnhancedPromptEnhancerApp:
                 "Cardiovascular risk factors for commercial pilots",
                 "Medical fitness requirements for high-altitude operations",
                 "Assessment of medication effects on flight safety"
+            ],
+            "prisma": [
+                "Effectiveness of telemedicine interventions in rural healthcare",
+                "Systematic review of pilot fatigue countermeasures",
+                "Meta-analysis of cardiovascular effects in aerospace medicine"
             ]
         }
         
@@ -358,7 +375,8 @@ class EnhancedPromptEnhancerApp:
             "o3": "🔬 Enter your research question",
             "flowise": "🌐 Enter your medical/scientific question",
             "deepresearch_flowise": "🔬 Enter your research query",
-            "aeromedical_risk": "🚁 Enter your aeromedical question"
+            "aeromedical_risk": "🚁 Enter your aeromedical question",
+            "prisma": "📊 Enter your systematic review research question"
         }
         
         prompt_text = mode_prompts.get(self.current_mode, "💬 Enter your question")
@@ -395,7 +413,8 @@ class EnhancedPromptEnhancerApp:
             mode_names = {
                 "o3": "🔬 O3 Deep Research",
                 "flowise": "🌐 Flowise Medical RAG", 
-                "aeromedical_risk": "🚁 Aeromedical Risk Assessment"
+                "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
+                "prisma": "📊 PRISMA Systematic Review"
             }
             
             mode_name = mode_names.get(suggested_mode, suggested_mode)
