@@ -14,29 +14,36 @@ This framework enables **flight surgeons**, **aeromedical professionals**, and *
 
 ## 🔬 Core Capabilities
 
+### 📊 **PRISMA Systematic Review**
+- **Automated PRISMA 2020 Workflow**: Conducts end-to-end systematic reviews, from literature search to final report generation.
+- **Multi-Model Synthesis**: Integrates O3, Perplexity, and Grok models for search, analysis, and writing.
+- **Publication-Ready Output**: Generates 8,000-10,000 word documents with citations and PRISMA-compliant formatting.
+- **Code-Based Orchestration**: Uses the OpenAI Agents SDK for a deterministic and reliable agent workflow.
+
 ### 🧠 **Multi-Agent Architecture**
-- **Intelligent Agent Orchestration**: Multiple specialized agents work together using OpenAI's agent pattern
-- **Smart Mode Detection**: Automatically selects the most appropriate AI system based on query analysis
-- **Seamless Handoffs**: Smooth transitions between different processing flows for optimal results
-- **Specialized Knowledge Routing**: Directs queries to domain-specific knowledge bases and chatflows
+- **Intelligent Agent Orchestration**: Multiple specialized agents work together using the OpenAI Agents SDK.
+- **Smart Mode Detection**: Automatically selects the most appropriate AI system based on query analysis.
+- **Seamless Handoffs**: Smooth transitions between different processing flows for optimal results.
+- **Specialized Knowledge Routing**: Directs queries to domain-specific knowledge bases and chatflows.
 
 ### 🔬 **O3 Deep Research Flow**
-- **o3-deep-research-2025-06-26**: Advanced reasoning model for in-depth scientific synthesis
-- **o3 with Web Search**: Enhanced with real-time information retrieval and high-level reasoning
-- **Intelligent Classification**: Automatically selects the best O3 model based on query complexity
-- **Perfect for**: Complex aeromedical research, technology analysis, multi-step reasoning tasks
+- **o3-deep-research-2025-06-26**: Advanced reasoning model for in-depth scientific synthesis.
+- **o3 with Web Search**: Enhanced with real-time information retrieval and high-level reasoning.
+- **Intelligent Classification**: Automatically selects the best O3 model based on query complexity.
+- **Perfect for**: Complex aeromedical research, technology analysis, multi-step reasoning tasks.
 
 ### 🌐 **Flowise Medical RAG Integration**
-- **Specialized Medical Knowledge Bases**: PubMed, clinical textbooks, physiology databases
-- **NASA Human Research Program**: Access to space medicine and aerospace physiology data
-- **Aeromedical Risk Assessment**: Specialized chatflow for aviation safety analysis
-- **RAG-Enhanced Processing**: Retrieval-Augmented Generation with domain expertise
+- **Specialized Medical Knowledge Bases**: PubMed, clinical textbooks, physiology databases.
+- **NASA Human Research Program**: Access to space medicine and aerospace physiology data.
+- **Aeromedical Risk Assessment**: Specialized chatflow for aviation safety analysis.
+- **RAG-Enhanced Processing**: Retrieval-Augmented Generation with domain expertise.
 - **Multiple Specialized Chatflows**:
   - `physiology_rag`: Human physiology and medical questions
   - `nasa_hrp`: NASA Human Research Program and space medicine
   - `deep_research`: Comprehensive research analysis
   - `agentic_rag`: Multi-agent RAG processing
   - `aeromedical_risk`: Aviation medicine risk assessment
+---
 
 ### 📝 **Advanced Input & Export System**
 - **Multiline Input Support**: Perfect for pasting entire research papers, abstracts, or articles
@@ -55,64 +62,75 @@ This framework enables **flight surgeons**, **aeromedical professionals**, and *
 ## 📋 Requirements
 
 - **Python 3.8+**
-- **OpenAI API key** (required for O3 models and prompt enhancement)
-- **Flowise API access** (optional - for specialized medical knowledge bases)
-- **Google Custom Search API** (optional - for O3 web search capabilities)
+- `openai-agents` and other dependencies from `requirements.txt`.
+- **OpenAI API key** (required for O3 models and prompt enhancement).
+- **Flowise API access** (optional - for specialized medical knowledge bases).
+- **Perplexity API Key** (required for PRISMA feature).
+- **Grok (XAI) API Key** (required for PRISMA feature).
+- **Google Custom Search API** (optional - for O3 web search capabilities).
 
 ## 🛠️ Installation
 
-1. **Clone the repository:**
-```bash
-git clone <repository-url>
-cd textappv2
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd textappv2
+    ```
 
-2. **Install dependencies:**
-```bash
-pip install -r requirements.txt
-```
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-3. **Set up environment variables:**
-   
-   Create a `.env` file in the project root:
-   
-   ```bash
-   # Required: OpenAI API Configuration
-   OPENAI_API_KEY=your_openai_api_key_here
-   
-   # Optional: Flowise Cloud Configuration (for specialized medical knowledge)
-   FLOWISE_API_URL=https://cloud.flowiseai.com
-   FLOWISE_API_KEY=your_flowise_api_key_here
-   
-   # Optional: Google Custom Search (for O3 web search)
-   SEARCH_API_KEY=your_google_search_api_key_here
-   SEARCH_ENGINE_ID=your_search_engine_id_here
-   
-   # Optional: Application Settings
-   LOG_LEVEL=INFO
-   TIMEOUT=60
-   MAX_RETRIES=3
-   ```
-   
-   **⚠️ Security Note**: The `.env` file is already in `.gitignore` to prevent accidental commits.
+3.  **Set up environment variables:**
+
+    Create a `.env` file in the project root:
+
+    ```bash
+    # Required: OpenAI API Configuration
+    OPENAI_API_KEY=your_openai_api_key_here
+
+    # Required for PRISMA Feature
+    PPLX_API_KEY=your_perplexity_api_key_here
+    XAI_API=your_grok_xai_api_key_here
+
+    # Optional: Flowise Cloud Configuration (for specialized medical knowledge)
+    FLOWISE_API_URL=https://cloud.flowiseai.com
+    FLOWISE_API_KEY=your_flowise_api_key_here
+
+    # Optional: Google Custom Search (for O3 web search)
+    SEARCH_API_KEY=your_google_search_api_key_here
+    SEARCH_ENGINE_ID=your_search_engine_id_here
+
+    # Optional: Application Settings
+    LOG_LEVEL=INFO
+    TIMEOUT=60
+    MAX_RETRIES=3
+    ```
+
+    **⚠️ Security Note**: The `.env` file is already in `.gitignore` to prevent accidental commits.
 
 ## 🚀 Usage
+---
+### 🛠️ **Manual Mode Selection**
+- **`/prisma`** - Switch to the PRISMA Systematic Review workflow.
+- **`/o3`** - Switch to O3 Deep Research (complex analysis, latest research).
+- **`/flowise`** - Switch to Flowise Medical RAG (clinical knowledge, PubMed).
+- **`/aero`** - Switch to Aeromedical Risk Assessment (aviation medicine).
+- **`/smart`** - Return to smart auto-detection mode.
 
-**Start the application:**
-```bash
-python run_app.py
-```
+### 📖 **Help & Information**
+- **`?`** - Show contextual help for current mode.
+- **`/modes`** - View all available processing modes.
+- **`/status`** - Show current system status.
+- **`/history`** - View conversation history.
+- **`/prisma-status`** - Check the status of the PRISMA system and its components.
 
-**Simple workflow - just ask your question:**
-```
-🎯 Ask your question (auto-detection enabled)
->>> What are the cardiovascular effects of microgravity on pilots?
+### 📄 **Export & Documentation**
+- **`/export`** - Export latest response to markdown.
+---
 
-🎯 Auto-detected optimal mode: 🌐 Flowise Medical RAG (confidence: 87%)
-🌐 Processing your request with Flowise Medical Agent...
-```
-
-## 💡 Quick Commands & Navigation
+### 💡 Quick Commands & Navigation
 
 ### 🎯 **Smart Mode (Recommended)**
 - Just ask your question - the system automatically detects the best AI
@@ -165,18 +183,44 @@ User Input → Smart Detection → Agent Orchestrator → Specialized Agents →
 ```
 
 ### **Agent Types**
-- **O3 Prompt Enhancer**: Analyzes and enhances prompts for O3 models
-- **O3 Processor**: Routes to o3-deep-research or o3+web search
-- **Flowise Enhancer**: Optimizes prompts for Flowise RAG systems
-- **Flowise Processor**: Routes to specialized medical chatflows
+- **PRISMA Agents**: A team of agents (Searcher, Reviewer, Writer, Validator) that execute the systematic review workflow.
+- **O3 Prompt Enhancer**: Analyzes and enhances prompts for O3 models.
+- **O3 Processor**: Routes to `o3-deep-research` or o3+web search.
+- **Flowise Enhancer**: Optimizes prompts for Flowise RAG systems.
+- **Flowise Processor**: Routes to specialized medical chatflows.
 
 ### **Processing Flows**
-1. **O3 Deep Research**: Complex analysis → o3-deep-research-2025-06-26
-2. **O3 + Web Search**: Current information → o3 with real-time web search
-3. **Flowise Medical RAG**: Clinical questions → Specialized knowledge bases
-4. **Aeromedical Risk**: Aviation safety → Conservative risk assessment
+1. **PRISMA Systematic Review**: A code-orchestrated workflow that uses O3, Perplexity, Grok, and Flowise to generate a complete systematic review.
+2. **O3 Deep Research**: Complex analysis → o3-deep-research-2025-06-26.
+3. **O3 + Web Search**: Current information → o3 with real-time web search.
+4. **Flowise Medical RAG**: Clinical questions → Specialized knowledge bases.
+5. **Aeromedical Risk**: Aviation safety → Conservative risk assessment.
 
 ## 🔬 Technical Features
+---
+textappv2/
+├── src/
+│   ├── main.py                    # Enhanced CLI with smart mode detection
+│   ├── agents.py                  # Multi-agent orchestration system using OpenAI Agents SDK
+│   ├── o3_agents.py              # O3 model integration and routing
+│   ├── flowise_agents.py         # Flowise chatflow integration
+│   ├── prisma_orchestrator.py     # Orchestrator for the PRISMA workflow
+│   ├── prisma_agents.py           # Agent definitions for the PRISMA workflow
+│   ├── perplexity_client.py       # Client for Perplexity API
+│   ├── grok_client.py             # Client for Grok (XAI) API
+│   ├── openai_enhanced_client.py # Enhanced OpenAI client with web search
+│   ├── flowise_client.py         # Flowise API client with error handling
+│   ├── markdown_exporter.py      # Professional documentation export
+│   ├── multiline_input.py        # Advanced input handling
+│   └── config.py                 # Configuration management
+├── exports/                       # Markdown export directory
+├── requirements.txt              # Python dependencies
+├── run_app.py                    # Application entry point
+├── README.md                     # This file
+├── PRISMA_FEATURE.md              # Detailed documentation for the PRISMA feature
+└── IMPROVEMENTS.md               # Recent enhancements documentation
+```
+---
 
 ### **Smart Classification System**
 - **Pattern Recognition**: Analyzes query content using regex patterns
@@ -263,9 +307,13 @@ This framework is in **active development** and designed for **research purposes
 textappv2/
 ├── src/
 │   ├── main.py                    # Enhanced CLI with smart mode detection
-│   ├── agents.py                  # Multi-agent orchestration system
+│   ├── agents.py                  # Multi-agent orchestration system using OpenAI Agents SDK
 │   ├── o3_agents.py              # O3 model integration and routing
 │   ├── flowise_agents.py         # Flowise chatflow integration
+│   ├── prisma_orchestrator.py     # Orchestrator for the PRISMA workflow
+│   ├── prisma_agents.py           # Agent definitions for the PRISMA workflow
+│   ├── perplexity_client.py       # Client for Perplexity API
+│   ├── grok_client.py             # Client for Grok (XAI) API
 │   ├── openai_enhanced_client.py # Enhanced OpenAI client with web search
 │   ├── flowise_client.py         # Flowise API client with error handling
 │   ├── markdown_exporter.py      # Professional documentation export
@@ -275,6 +323,7 @@ textappv2/
 ├── requirements.txt              # Python dependencies
 ├── run_app.py                    # Application entry point
 ├── README.md                     # This file
+├── PRISMA_FEATURE.md              # Detailed documentation for the PRISMA feature
 └── IMPROVEMENTS.md               # Recent enhancements documentation
 ```
 
@@ -293,12 +342,11 @@ MIT License - See LICENSE file for details.
 ## 🆘 Support
 
 For technical support or questions about the framework:
-- Check the logs in `prompt_enhancer.log` for detailed error information
-- Refer to `IMPROVEMENTS.md` for recent enhancements and changes
-- Ensure all required environment variables are properly configured
+- Check the logs in `prompt_enhancer.log` for detailed error information.
+- Refer to `IMPROVEMENTS.md` and `PRISMA_FEATURE.md` for recent enhancements and changes.
+- Ensure all required environment variables are properly configured.
 
 **⚠️ For questions about the research nature of this project or its limitations, please consult with qualified aerospace medicine professionals.**
-
 ---
 
 *This framework represents ongoing research in AI-assisted evidence review for aerospace medicine. It is designed to augment, not replace, expert medical and safety judgment.* 

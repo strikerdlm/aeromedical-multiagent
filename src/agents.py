@@ -17,6 +17,8 @@ from pydantic import BaseModel
 # module can be imported without the dependency installed.
 try:
     from openai import OpenAI  # type: ignore
+    from agents import Agent as SdkAgent, Runner
+    import asyncio
 except Exception:  # pragma: no cover - fallback for missing dependency
     class _DummyCompletions:
         def create(self, *args, **kwargs):
@@ -41,6 +43,97 @@ from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
 logger = logging.getLogger(__name__)
 
 
+# This remains for now as it's used as a type hint and data structure elsewhere.
+class Agent(BaseModel):
+    """
+    Represents an AI agent with specific instructions and tools.
+    
+    This follows the OpenAI Agents pattern from the cookbook for
+    orchestrating multiple agents with handoffs.
+    """
+    
+    name: str
+    instructions: str
+    tools: List[Callable] = []
+    model: str = AppConfig.OPENAI_MODEL
+    handoffs: List[Agent] = []
+    
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class AgentOrchestrator:
+    """
+    Orchestrates multiple agents with handoffs and tool execution
+    using the OpenAI Agents SDK.
+    """
+
+    def __init__(self, client: Optional[OpenAI] = None):
+        """
+        Initialize the agent orchestrator.
+        """
+        self.client = client or OpenAI(api_key=AppConfig.OPENAI_API_KEY)
+        self.flowise_client = MedicalFlowiseRouter()
+
+    async def _run_agent_async(self, agent: Agent, input_prompt: str) -> any:
+        """Async helper to run the agent using the SDK's Runner."""
+        # Convert our Pydantic Agent to an SDK Agent
+        sdk_agent = SdkAgent(
+            name=agent.name,
+            instructions=agent.instructions,
+            tools=agent.tools,
+            model=agent.model,
+        )
+        return await Runner.run(sdk_agent, input_prompt)
+
+    def run_full_turn(self, agent: Agent, messages: List[Dict[str, Any]]) -> Any:
+        """
+        Runs a full turn of an agent using the OpenAI Agents SDK Runner.
+        This method is synchronous and wraps the async runner.
+        """
+        if not Runner or not SdkAgent:
+            raise ImportError("openai-agents SDK not installed. Please run 'pip install openai-agents'.")
+
+        # The SDK Runner takes a single string input. We'll format the message history.
+        input_prompt = "\n\n---\n\n".join(
+            [f"**{msg['role']}**: {msg['content']}" for msg in messages]
+        )
+
+        # Run the async helper in a new event loop.
+        result = asyncio.run(self._run_agent_async(agent, input_prompt))
+
+        # Adapt the SDK's result object to the format expected by the application.
+        final_output = result.final_output if result and hasattr(result, 'final_output') else "Agent did not produce a final output."
+
+        # The application expects a response object with a 'messages' list and an 'agent' object.
+        response = type('AgentResponse', (), {})()
+        response.agent = agent
+        response.messages = [{"role": "assistant", "content": final_output}]
+
+        return response
+        
+    def run_conversation(self, agent: Agent, messages: List[Dict[str, Any]], max_turns: int = 5) -> Any:
+        """
+        Runs a conversation with an agent for a set number of turns.
+        NOTE: This is a simplified conversational loop. The primary method is `run_full_turn`.
+        """
+        current_messages = list(messages)
+        
+        for _ in range(max_turns):
+            response = self.run_full_turn(agent, current_messages)
+            
+            # Extract the assistant's response and add it to the history
+            assistant_message = response.messages[-1]
+            current_messages.append(assistant_message)
+            
+            # In a real scenario, we'd check for a termination condition.
+            # Here, we just return the final state.
+            
+        final_response = type('AgentResponse', (), {})()
+        final_response.agent = agent
+        final_response.messages = current_messages
+        return final_response
+
 def safe_log_info(message: str) -> None:
     """
     Safely log a message, handling Unicode encoding errors.
@@ -56,190 +149,11 @@ def safe_log_info(message: str) -> None:
         logger.info(f"{safe_message} [content contained non-ASCII characters]")
 
 
-class Agent(BaseModel):
-    """
-    Represents an AI agent with specific instructions and tools.
-    
-    This follows the OpenAI Agents pattern from the cookbook for
-    orchestrating multiple agents with handoffs.
-    """
-    
-    name: str
-    instructions: str
-    tools: List[Callable] = []
-    model: str = AppConfig.OPENAI_MODEL
-    
-    class Config:
-        arbitrary_types_allowed = True
-
-
 class Response(BaseModel):
     """Response from an agent interaction containing the agent and messages."""
     
     agent: Optional[Agent]
     messages: List[Dict[str, Any]]
-
-
-class AgentOrchestrator:
-    """
-    Orchestrates multiple agents with handoffs and tool execution.
-    
-    This class manages the execution flow between different agents,
-    handles tool calls, and manages the conversation state.
-    """
-    
-    def __init__(self, client: Optional[OpenAI] = None):
-        """
-        Initialize the agent orchestrator.
-        
-        Args:
-            client: OpenAI client instance (optional, creates default if None)
-        """
-        self.client = client or OpenAI(api_key=AppConfig.OPENAI_API_KEY)
-        self.flowise_client = MedicalFlowiseRouter()
-    
-    def function_to_schema(self, func: Callable) -> Dict[str, Any]:
-        """
-        Convert a Python function to OpenAI function schema.
-        
-        Args:
-            func: The function to convert
-            
-        Returns:
-            OpenAI function schema dictionary
-            
-        Raises:
-            ValueError: If function signature cannot be determined
-        """
-        type_map = {
-            str: "string",
-            int: "integer",
-            float: "number",
-            bool: "boolean",
-            list: "array",
-            dict: "object",
-            type(None): "null",
-        }
-        
-        try:
-            signature = inspect.signature(func)
-        except ValueError as e:
-            raise ValueError(f"Failed to get signature for function {func.__name__}: {str(e)}")
-        
-        parameters = {}
-        for param in signature.parameters.values():
-            try:
-                param_type = type_map.get(param.annotation, "string")
-            except KeyError as e:
-                raise KeyError(f"Unknown type annotation {param.annotation} for parameter {param.name}: {str(e)}")
-            parameters[param.name] = {"type": param_type}
-        
-        required = [
-            param.name
-            for param in signature.parameters.values()
-            if param.default == inspect._empty
-        ]
-        
-        return {
-            "type": "function",
-            "function": {
-                "name": func.__name__,
-                "description": (func.__doc__ or "").strip(),
-                "parameters": {
-                    "type": "object",
-                    "properties": parameters,
-                    "required": required,
-                },
-            },
-        }
-    
-    def execute_tool_call(self, tool_call, tools_map: Dict[str, Callable], agent_name: str) -> Any:
-        """
-        Execute a tool call and return the result.
-        
-        Args:
-            tool_call: The tool call object from OpenAI
-            tools_map: Mapping of tool names to functions
-            agent_name: Name of the agent making the call
-            
-        Returns:
-            Result of the tool execution
-        """
-        name = tool_call.function.name
-        args = json.loads(tool_call.function.arguments)
-        
-        safe_log_info(f"{agent_name}: {name}({args})")
-        
-        try:
-            return tools_map[name](**args)
-        except Exception as e:
-            logger.error(f"Tool execution error in {name}: {e}")
-            return f"Error executing {name}: {str(e)}"
-    
-    def run_full_turn(self, agent: Agent, messages: List[Dict[str, Any]]) -> Response:
-        """
-        Execute a full turn for an agent, handling tool calls and handoffs.
-        
-        Args:
-            agent: The agent to execute
-            messages: Current conversation messages
-            
-        Returns:
-            Response containing the updated agent and new messages
-        """
-        current_agent = agent
-        num_init_messages = len(messages)
-        messages = messages.copy()
-        
-        while True:
-            # Convert tools to schemas and create mapping
-            tool_schemas = [self.function_to_schema(tool) for tool in current_agent.tools]
-            tools_map = {tool.__name__: tool for tool in current_agent.tools}
-            
-            # Make OpenAI completion call
-            try:
-                response = self.client.chat.completions.create(
-                    model=current_agent.model,
-                    messages=[{"role": "system", "content": current_agent.instructions}] + messages,
-                    tools=tool_schemas or None,
-                )
-            except Exception as e:
-                logger.error(f"OpenAI API error: {e}")
-                raise
-            
-            message = response.choices[0].message
-            messages.append(message.model_dump())
-            
-            # Print agent response if there's content
-            if message.content:
-                safe_log_info(f"{current_agent.name}: {message.content}")
-            
-            # Break if no tool calls
-            if not message.tool_calls:
-                break
-            
-            # Handle tool calls
-            for tool_call in message.tool_calls:
-                result = self.execute_tool_call(tool_call, tools_map, current_agent.name)
-                
-                # Check if result is an agent handoff
-                if isinstance(result, Agent):
-                    current_agent = result
-                    result = f"Transferred to {current_agent.name}. Adopt persona immediately."
-                
-                # Add tool result to messages
-                result_message = {
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": str(result),
-                }
-                messages.append(result_message)
-        
-        # Return response with updated agent and new messages
-        return Response(
-            agent=current_agent,
-            messages=messages[num_init_messages:]
-        )
 
 
 class PromptEnhancementTools:
