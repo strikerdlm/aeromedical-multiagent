@@ -104,7 +104,8 @@ class EnhancedPromptEnhancerApp:
         self.user_preferences = {
             "auto_suggest": True,
             "show_tips": True,
-            "confirm_mode_switch": False
+            "confirm_mode_switch": False,
+            "auto_fallback": True
         }
         
         # Smart mode detection patterns
@@ -196,6 +197,7 @@ class EnhancedPromptEnhancerApp:
         self.console.print("[bold]Pro Tips:[/bold]")
         self.console.print("• Type [bold]?[/bold] for quick help  • [bold]/modes[/bold] to see all modes  • [bold]>>>[/bold] for multiline input")
         self.console.print("• [bold]/history[/bold] to review conversation  • [bold]/clear[/bold] to start fresh")
+        self.console.print("• [bold]/fallback[/bold] to toggle auto-fallback to O3 when Flowise times out")
         self.console.print()
         
         # Available modes - simple text layout
@@ -287,12 +289,14 @@ class EnhancedPromptEnhancerApp:
             ("/report", "Export structured research report"),
             ("/exports", "List all exported files"),
             ("/clear", "Clear conversation history"),
+            ("/fallback", "Toggle automatic fallback to O3 when Flowise times out"),
             ("/quit", "Exit the application")
         ]
         
         mode_specific = {
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
+                ("Auto-fallback", "Automatically switches to O3 if Flowise times out"),
                 ("Override", "Use /o3, /deep, /aero, /aerospace, /prisma to force specific mode")
             ],
             "o3": [
@@ -565,6 +569,9 @@ class EnhancedPromptEnhancerApp:
             elif command in ['settings', 'config']:
                 self.display_settings()
                 return True
+            elif command in ['fallback', 'toggle-fallback']:
+                self.toggle_fallback()
+                return True
             
             # Export commands
             elif command in ['export', 'save-response']:
@@ -695,6 +702,12 @@ class EnhancedPromptEnhancerApp:
             
         except FlowiseAPIError as e:
             logger.error(f"Flowise API error: {e}")
+            
+            # Check if this is a timeout error and attempt automatic fallback
+            if self.user_preferences["auto_fallback"] and self.is_timeout_error(str(e)) and self.attempt_flowise_fallback(user_input):
+                return True
+            
+            # If fallback failed or not applicable, show error
             self.console.print()
             self.console.print("❌ [red]Flowise API Error[/red]")
             self.console.print(f"[red]{e}[/red]")
@@ -717,6 +730,113 @@ class EnhancedPromptEnhancerApp:
             self.console.print()
         
         return True
+    
+    def is_timeout_error(self, error_message: str) -> bool:
+        """
+        Check if the error is a timeout error that should trigger fallback.
+        
+        Args:
+            error_message: The error message to check
+            
+        Returns:
+            True if this is a timeout error, False otherwise
+        """
+        timeout_indicators = [
+            "504 Gateway Time-out",
+            "504 Gateway Timeout",
+            "timeout",
+            "timed out",
+            "connection timeout",
+            "gateway timeout",
+            "502 Bad Gateway",
+            "503 Service Unavailable"
+        ]
+        
+        error_lower = error_message.lower()
+        return any(indicator.lower() in error_lower for indicator in timeout_indicators)
+    
+    def attempt_flowise_fallback(self, user_input: str) -> bool:
+        """
+        Attempt to fallback to O3 agents when Flowise fails.
+        
+        Args:
+            user_input: The original user input
+            
+        Returns:
+            True if fallback was successful, False otherwise
+        """
+        try:
+            # Check if O3 agents are available
+            if not self.o3_agents or "o3_enhancer" not in self.o3_agents:
+                logger.warning("O3 agents not available for fallback")
+                return False
+            
+            # Store the original mode for restoration later
+            original_mode = self.current_mode
+            original_agent = self.current_agent
+            
+            # Show fallback notification
+            self.console.print()
+            self.console.print("⚡ [yellow]Flowise API timeout detected - automatically switching to O3 fallback[/yellow]")
+            self.console.print("🔄 [cyan]Retrying your request with O3 Deep Research...[/cyan]")
+            self.console.print()
+            
+            # Switch to O3 mode temporarily
+            self.switch_mode("o3")
+            
+            # Remove the failed user message from history (it was already added)
+            if self.messages and self.messages[-1].get("role") == "user":
+                self.messages.pop()
+            
+            # Add user message to conversation
+            self.messages.append({"role": "user", "content": user_input})
+            
+            # Process with O3 agent
+            with self.console.status("[bold green]Processing with O3 fallback..."):
+                response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
+            
+            # Update current agent and messages
+            if response.agent:
+                self.current_agent = response.agent
+            self.messages.extend(response.messages)
+            
+            # Display the response
+            if response.messages:
+                last_message = response.messages[-1]
+                if last_message.get("role") == "assistant" and last_message.get("content"):
+                    response_content = last_message["content"]
+                    
+                    self.console.print(f"\n🔬 O3 Deep Research (Fallback)")
+                    self.console.print("─" * 60)
+                    self.console.print(response_content)
+                    self.console.print("─" * 60)
+            
+            # Show success message
+            self.console.print(f"\n[green]✅ Fallback successful! Response generated with O3 Deep Research.[/green]")
+            
+            # Offer to stay in O3 mode or return to original mode
+            if original_mode != "o3":
+                self.console.print()
+                self.console.print(f"[yellow]💡 Note: Switched from {original_mode} to O3 mode due to Flowise timeout.[/yellow]")
+                self.console.print("• Type /o3 to stay in O3 mode")
+                self.console.print(f"• Type /{original_mode} to return to {original_mode} mode")
+                self.console.print("• Type /smart for automatic mode selection")
+            
+            # Show export options
+            self.show_export_options()
+            
+            logger.info(f"Fallback successful: {original_mode} -> O3")
+            return True
+            
+        except Exception as fallback_error:
+            logger.error(f"Fallback to O3 failed: {fallback_error}")
+            self.console.print(f"[red]❌ Fallback to O3 also failed: {fallback_error}[/red]")
+            
+            # Restore original mode and agent
+            self.current_mode = original_mode
+            self.current_agent = original_agent
+            
+            return False
     
     def handle_prisma_request(self, user_input: str) -> bool:
         """
@@ -985,7 +1105,31 @@ class EnhancedPromptEnhancerApp:
         self.console.print("  Description: Ask before automatically switching modes")
         self.console.print()
         
+        self.console.print("[cyan]Auto fallback[/cyan]")
+        self.console.print(f"  Current: {'✅ Enabled' if self.user_preferences['auto_fallback'] else '❌ Disabled'}")
+        self.console.print("  Description: Automatically fallback to O3 when Flowise encounters timeout errors")
+        self.console.print()
+        
         self.console.print("Settings modification coming in future update. Type /help for available commands.")
+        self.console.print()
+    
+    def toggle_fallback(self) -> None:
+        """Toggle the auto-fallback setting."""
+        self.user_preferences["auto_fallback"] = not self.user_preferences["auto_fallback"]
+        status = "✅ Enabled" if self.user_preferences["auto_fallback"] else "❌ Disabled"
+        
+        self.console.print()
+        self.console.print("⚙️ [bold]Auto-Fallback Setting[/bold]")
+        self.console.print(f"Auto-fallback is now: {status}")
+        self.console.print()
+        
+        if self.user_preferences["auto_fallback"]:
+            self.console.print("🔄 [green]Auto-fallback enabled[/green] - System will automatically switch to O3 when Flowise times out")
+        else:
+            self.console.print("⏸️ [yellow]Auto-fallback disabled[/yellow] - System will show error messages instead of falling back")
+        
+        self.console.print()
+        self.console.print("💡 Use /settings to view all preferences or /fallback to toggle this setting again.")
         self.console.print()
 
     def export_latest_response(self) -> None:
