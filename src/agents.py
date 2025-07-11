@@ -17,7 +17,15 @@ from pydantic import BaseModel
 # module can be imported without the dependency installed.
 try:
     from openai import OpenAI  # type: ignore
-    from agents import Agent as SdkAgent, Runner
+    # Try to import openai-agents SDK, but handle gracefully if not available
+    try:
+        from agents import Agent as SdkAgent, Runner
+        AGENTS_SDK_AVAILABLE = True
+    except ImportError:
+        # Fallback: openai-agents SDK not available
+        SdkAgent = None
+        Runner = None
+        AGENTS_SDK_AVAILABLE = False
     import asyncio
 except Exception:  # pragma: no cover - fallback for missing dependency
     class _DummyCompletions:
@@ -35,6 +43,10 @@ except Exception:  # pragma: no cover - fallback for missing dependency
         def __init__(self, *args, **kwargs):
             self.chat = _DummyChat()
             self.responses = _DummyResponses()
+    
+    SdkAgent = None
+    Runner = None
+    AGENTS_SDK_AVAILABLE = False
 
 from .config import AppConfig
 from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
@@ -77,6 +89,10 @@ class AgentOrchestrator:
 
     async def _run_agent_async(self, agent: Agent, input_prompt: str) -> Any:
         """Async helper to run the agent using the SDK's Runner."""
+        if not AGENTS_SDK_AVAILABLE:
+            # Fallback implementation using direct OpenAI API
+            return await self._run_agent_direct(agent, input_prompt)
+        
         # Convert our Pydantic Agent to an SDK Agent
         sdk_agent = SdkAgent(
             name=agent.name,
@@ -86,21 +102,64 @@ class AgentOrchestrator:
         )
         return await Runner.run(sdk_agent, input_prompt)
 
+    async def _run_agent_direct(self, agent: Agent, input_prompt: str) -> Any:
+        """Direct implementation when openai-agents SDK is not available."""
+        try:
+            # Create a simple prompt for the agent
+            system_message = f"""You are {agent.name}.
+
+{agent.instructions}
+
+Please respond to the following user input."""
+            
+            # Use OpenAI API directly
+            response = self.client.chat.completions.create(
+                model=agent.model,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": input_prompt}
+                ],
+                max_tokens=4000,
+                temperature=0.3
+            )
+            
+            # Create a simple result object
+            result = type('AgentResult', (), {})()
+            result.final_output = response.choices[0].message.content
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in direct agent execution: {e}")
+            # Create a simple result with error message
+            result = type('AgentResult', (), {})()
+            result.final_output = f"Agent execution error: {str(e)}"
+            return result
+
     def run_full_turn(self, agent: Agent, messages: List[Dict[str, Any]]) -> Any:
         """
         Runs a full turn of an agent using the OpenAI Agents SDK Runner.
         This method is synchronous and wraps the async runner.
         """
-        if not Runner or not SdkAgent:
-            raise ImportError("openai-agents SDK not installed. Please run 'pip install openai-agents'.")
-
+        if not AGENTS_SDK_AVAILABLE:
+            logger.info(f"Using direct OpenAI API for agent {agent.name} (openai-agents SDK not available)")
+        
         # The SDK Runner takes a single string input. We'll format the message history.
         input_prompt = "\n\n---\n\n".join(
             [f"**{msg['role']}**: {msg['content']}" for msg in messages]
         )
 
         # Run the async helper in a new event loop.
-        result = asyncio.run(self._run_agent_async(agent, input_prompt))
+        try:
+            result = asyncio.run(self._run_agent_async(agent, input_prompt))
+        except RuntimeError as e:
+            if "asyncio.run() cannot be called from a running event loop" in str(e):
+                # We're already in an event loop, create a new task
+                import asyncio
+                loop = asyncio.get_event_loop()
+                task = loop.create_task(self._run_agent_async(agent, input_prompt))
+                result = loop.run_until_complete(task)
+            else:
+                raise
 
         # Adapt the SDK's result object to the format expected by the application.
         final_output = result.final_output if result and hasattr(result, 'final_output') else "Agent did not produce a final output."
