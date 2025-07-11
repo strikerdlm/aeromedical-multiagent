@@ -761,6 +761,122 @@ class EnhancedPromptEnhancerApp:
         
         return True
     
+    def display_prisma_status(self) -> None:
+        """Display PRISMA system status and capabilities."""
+        try:
+            if not self.prisma_orchestrator:
+                self.console.print("📊 [bold]PRISMA System Status[/bold]")
+                self.console.print("[red]❌ PRISMA orchestrator not initialized[/red]")
+                self.console.print()
+                self.console.print("PRISMA requires the following API keys:")
+                self.console.print("• OpenAI API key (OPENAI_API_KEY)")
+                self.console.print("• Flowise API key (FLOWISE_API_KEY)")
+                self.console.print("• Perplexity API key (PPLX_API_KEY)")
+                self.console.print("• Grok API key (XAI_API)")
+                self.console.print()
+                return
+            
+            # Get system status
+            status = self.prisma_orchestrator.get_prisma_status()
+            
+            self.console.print("📊 [bold]PRISMA System Status[/bold]")
+            self.console.print()
+            
+            # API connectivity
+            api_status = status.get("api_connectivity", {})
+            self.console.print("[bold]API Connectivity:[/bold]")
+            for api_name, api_info in api_status.items():
+                api_status_text = api_info.get("status", "unknown")
+                if api_status_text == "connected":
+                    self.console.print(f"  ✅ {api_name.title()}: Connected")
+                elif api_status_text == "configured":
+                    self.console.print(f"  ⚙️ {api_name.title()}: Configured")
+                else:
+                    self.console.print(f"  ❌ {api_name.title()}: {api_status_text}")
+            self.console.print()
+            
+            # Capabilities
+            capabilities = status.get("capabilities", {})
+            models = capabilities.get("models_available", {})
+            self.console.print("[bold]Available Models:[/bold]")
+            for model_type, model_name in models.items():
+                self.console.print(f"  • {model_type.replace('_', ' ').title()}: {model_name}")
+            self.console.print()
+            
+            # Target specifications
+            specs = capabilities.get("target_specifications", {})
+            self.console.print("[bold]PRISMA Specifications:[/bold]")
+            for spec_name, spec_value in specs.items():
+                self.console.print(f"  • {spec_name.replace('_', ' ').title()}: {spec_value}")
+            self.console.print()
+            
+            # Workflow phases
+            phases = capabilities.get("workflow_phases", [])
+            self.console.print("[bold]Workflow Phases:[/bold]")
+            for phase in phases:
+                self.console.print(f"  • {phase}")
+            self.console.print()
+            
+            # Session information
+            session_count = status.get("session_history_count", 0)
+            self.console.print(f"[bold]Session Information:[/bold]")
+            self.console.print(f"  • Reviews completed: {session_count}")
+            self.console.print(f"  • Current workflow: {'Active' if status.get('current_workflow_active') else 'None'}")
+            self.console.print()
+            
+        except Exception as e:
+            logger.error(f"Error displaying PRISMA status: {e}")
+            self.console.print(f"[red]❌ Error getting PRISMA status: {e}[/red]")
+    
+    def display_prisma_reviews(self) -> None:
+        """Display recent PRISMA reviews."""
+        try:
+            if not self.prisma_orchestrator:
+                self.console.print("[red]❌ PRISMA orchestrator not available[/red]")
+                return
+            
+            # Get recent reviews
+            reviews = self.prisma_orchestrator.list_recent_reviews(limit=10)
+            
+            if not reviews:
+                self.console.print("📋 [bold]Recent PRISMA Reviews[/bold]")
+                self.console.print("[yellow]No PRISMA reviews found in current session.[/yellow]")
+                self.console.print()
+                self.console.print("Use `/prisma` mode to create systematic reviews.")
+                self.console.print()
+                return
+            
+            self.console.print(f"📋 [bold]Recent PRISMA Reviews[/bold] ({len(reviews)} total)")
+            self.console.print()
+            
+            for i, review in enumerate(reviews, 1):
+                session_id = review.get("session_id", "unknown")
+                question = review.get("research_question", "No question")
+                word_count = review.get("word_count", 0)
+                citations = review.get("estimated_citations", 0)
+                status_val = review.get("status", "unknown")
+                
+                # Display review summary
+                self.console.print(f"[cyan]{i}. {question[:80]}{'...' if len(question) > 80 else ''}[/cyan]")
+                self.console.print(f"   Session: {session_id}")
+                self.console.print(f"   Status: {status_val} | Words: {word_count} | Citations: {citations}")
+                
+                # Validation info
+                validation = review.get("validation_status", {})
+                if validation.get("meets_minimum_requirements"):
+                    self.console.print("   [green]✅ Meets PRISMA requirements[/green]")
+                else:
+                    self.console.print("   [yellow]⚠️ May need improvements[/yellow]")
+                
+                self.console.print()
+            
+            self.console.print("💡 Use `/export` to save reviews or `/prisma-status` for system information.")
+            self.console.print()
+            
+        except Exception as e:
+            logger.error(f"Error displaying PRISMA reviews: {e}")
+            self.console.print(f"[red]❌ Error getting PRISMA reviews: {e}[/red]")
+    
     def display_conversation_history(self) -> None:
         """Enhanced conversation history display."""
         if not self.messages:
