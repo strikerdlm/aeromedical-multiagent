@@ -38,14 +38,14 @@ class OpenAIModelsConfig:
     
     # Enhanced OpenAI Models
     O3_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="o3-mini",  # Use available o3-mini model
+        model_name="o4-mini",  # Use available o4-mini model with high reasoning
         max_tokens=8000,
         temperature=0.4,
         reasoning_effort="high"
     )
     
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o3-mini",  # Use available o3-mini model
+        model_name="o4-mini",  # Use available o4-mini model with high reasoning
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
@@ -76,7 +76,7 @@ class PRISMAConfig:
     
     # Required models and reasoning effort
     O3_HIGH_REASONING = ModelConfig(
-        model_name="o3-2024-12-17",
+        model_name="o4-mini",
         max_tokens=10000,
         temperature=0.3,
         reasoning_effort="high"

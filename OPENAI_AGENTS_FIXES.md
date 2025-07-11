@@ -12,8 +12,9 @@ This document outlines the fixes implemented to ensure OpenAI agents work seamle
 ### 2. Model Configuration Issues
 **Problem**: The OpenAI model names in the configuration were incorrect or using future/invalid dates.
 **Fix**: Updated model configurations in `src/config.py`:
-- Changed `o3-deep-research-2025-06-26` to `o3-mini` (using available model)
-- Changed `o3-mini-2024-01-20` to `o3-mini` (corrected year and using available model)
+- Changed `o3-deep-research-2025-06-26` to `o4-mini` (using available model with high reasoning)
+- Changed `o3-mini-2024-01-20` to `o4-mini` (updated to use latest model with high reasoning)
+- Changed `o3-2024-12-17` to `o4-mini` (updated PRISMA configuration to use latest model)
 
 ### 3. Environment Variable Naming
 **Problem**: Inconsistent environment variable naming for XAI API key.
@@ -44,7 +45,8 @@ All system tests now pass successfully:
 - **All required dependencies**: ✅ Successfully installed
 
 ## Configuration Notes
-- The system now uses `o3-mini` model which is available as of January 31, 2025
+- The system now uses `o4-mini` model with high reasoning effort for all o3 tasks
+- All model configurations maintain high reasoning effort for optimal performance
 - Environment variables are properly validated
 - API key configuration is consistent across all services
 

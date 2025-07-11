@@ -7,7 +7,7 @@ The PRISMA Systematic Review feature is a comprehensive multi-agent framework th
 ## 🌟 Key Features
 
 ### **Multi-Agent Architecture**
-- **O3 Deep Research**: Uses `o3-2024-12-17` with high reasoning effort for comprehensive analysis
+- **O4 Deep Research**: Uses `o4-mini` with high reasoning effort for comprehensive analysis
 - **Perplexity Deep Research**: Leverages `llama-3.1-sonar-large-128k-online` for literature search
 - **Grok Advanced Reasoning**: Employs `grok-beta` for critical analysis and bias detection
 - **Flowise Integration**: Connects to specialized chatflows for domain-specific knowledge
@@ -91,7 +91,7 @@ Workflow        Search         Quality         Review         Finalize
 
 ### AI Model Integration
 
-- **O3 High Reasoning** (`o3-2024-12-17`): Final review generation and synthesis
+- **O4 High Reasoning** (`o4-mini`): Final review generation and synthesis
 - **Perplexity Research** (`llama-3.1-sonar-large-128k-online`): Literature search and data extraction
 - **Grok Reasoning** (`grok-beta`): Critical analysis, bias detection, quality assessment
 - **Flowise Chatflows**: Specialized domain knowledge and additional research sources
@@ -157,7 +157,7 @@ A complete 8,000+ word systematic review including:
 ### PRISMA Configuration (`PRISMAConfig`)
 ```python
 # Model specifications
-O3_HIGH_REASONING = "o3-2024-12-17"         # Primary synthesis model
+O3_HIGH_REASONING = "o4-mini"               # Primary synthesis model
 PERPLEXITY_MODEL = "llama-3.1-sonar-large-128k-online"  # Research model
 GROK_MODEL = "grok-beta"                     # Reasoning model
 
