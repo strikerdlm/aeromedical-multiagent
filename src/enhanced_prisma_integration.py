@@ -29,25 +29,25 @@ class EnhancedPRISMAConfig:
     # Enhanced Model Configurations
     ENHANCED_MODELS = {
         "o3_deep_research": {
-            "model_name": "o3-deep-research",
+            "model_name": "o3-deep-research-2025-06-26",
             "max_tokens": 12000,
             "temperature": 0.3,
             "reasoning_effort": "high"
         },
         "o3_high_reasoning": {
-            "model_name": "o3",
+            "model_name": "o3-deep-research-2025-06-26",
             "max_tokens": 8000,
             "temperature": 0.2,
             "reasoning_effort": "high"
         },
         "grok_4": {
-            "model_name": "grok-4",
+            "model_name": "grok-beta",
             "max_tokens": 4000,
             "temperature": 0.3,
             "reasoning_effort": "high"
         },
         "perplexity_deep_research": {
-            "model_name": "llama-3.1-sonar-huge-128k-online",
+            "model_name": "sonar-deep-research",
             "max_tokens": 8000,
             "temperature": 0.2
         }

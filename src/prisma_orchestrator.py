@@ -56,6 +56,46 @@ class PRISMAOrchestrator:
         
         logger.info("PRISMA orchestrator initialized successfully")
     
+    def get_models_info(self) -> Dict[str, Any]:
+        """Get information about models being used in the PRISMA workflow."""
+        return {
+            "primary_model": "o3-deep-research-2025-06-26",
+            "fallback_model": "o4-mini-deep-research-2025-06-26",
+            "perplexity_model": "sonar-deep-research",
+            "grok_model": "grok-beta",
+            "model_capabilities": {
+                "o3-deep-research-2025-06-26": {
+                    "reasoning_effort": "high",
+                    "summary": "detailed",
+                    "web_search": True,
+                    "use_case": "Primary synthesis and analysis",
+                    "provider": "OpenAI"
+                },
+                "o4-mini-deep-research-2025-06-26": {
+                    "reasoning_effort": "high",
+                    "summary": "detailed",
+                    "web_search": False,
+                    "use_case": "Fallback for synthesis and analysis",
+                    "provider": "OpenAI"
+                },
+                "sonar-deep-research": {
+                    "use_case": "Deep literature search and research",
+                    "provider": "Perplexity"
+                },
+                "grok-beta": {
+                    "use_case": "Critical analysis and bias detection",
+                    "provider": "X.AI"
+                }
+            },
+            "workflow_phases": {
+                "literature_search": "sonar-deep-research (Perplexity)",
+                "screening_analysis": "grok-beta (X.AI)",
+                "data_extraction": "o3-deep-research-2025-06-26 (OpenAI)",
+                "synthesis_writing": "o3-deep-research-2025-06-26 (OpenAI)",
+                "validation": "o3-deep-research-2025-06-26 (OpenAI)"
+            }
+        }
+    
     def create_systematic_review(
         self,
         research_question: str,
@@ -257,6 +297,7 @@ class PRISMAOrchestrator:
                 "status": "active",
                 "api_connectivity": api_status,
                 "capabilities": capabilities,
+                "models_in_use": self.get_models_info(),
                 "session_history_count": len(self.session_history),
                 "current_workflow_active": self.current_workflow is not None,
                 "timestamp": time.time()

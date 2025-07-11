@@ -227,7 +227,7 @@ class EnhancedPRISMATools:
             # Use Perplexity for deep research
             response = self.perplexity_client.search(
                 query=query,
-                model="llama-3.1-sonar-huge-128k-online",
+                model="sonar-deep-research",
                 temperature=0.2,
                 max_tokens=4000
             )
@@ -317,14 +317,44 @@ class EnhancedPRISMATools:
             Ensure every claim has a citation and all citations are accurate.
             """
             
-            response = self.openai_client.chat.completions.create(
-                model="o3-deep-research",
-                messages=[{"role": "user", "content": citation_prompt}],
-                max_tokens=8000,
-                temperature=0.2
-            )
-            
-            return response.choices[0].message.content
+            try:
+                response = self.openai_client.responses.create(
+                    model="o3-deep-research-2025-06-26",
+                    input=[],
+                    text={
+                        "format": {
+                            "type": "text"
+                        }
+                    },
+                    reasoning={
+                        "effort": "high",
+                        "summary": "detailed"
+                    },
+                    tools=[
+                        {
+                            "type": "web_search_preview",
+                            "user_location": {
+                                "type": "approximate"
+                            },
+                            "search_context_size": "high"
+                        }
+                    ],
+                    store=False
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                # Fallback to o4-mini-deep-research
+                logger.warning(f"O3 model failed in citation pass, using fallback: {e}")
+                response = self.openai_client.chat.completions.create(
+                    model="o4-mini-deep-research-2025-06-26",
+                    messages=[{"role": "user", "content": citation_prompt}],
+                    max_tokens=8000,
+                    temperature=0.2,
+                    reasoning={
+                        "summary": "detailed"
+                    }
+                )
+                return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Error in citation pass: {e}")
             return content  # Return original content if citation fails
@@ -584,6 +614,37 @@ class LeadResearcherAgent:
             logger.error(f"Error in citation pass: {e}")
             return {"error": str(e)}
     
+    def get_models_info(self) -> Dict[str, Any]:
+        """Get information about models being used in the PRISMA workflow."""
+        return {
+            "primary_model": "o3-deep-research-2025-06-26",
+            "fallback_model": "o4-mini-deep-research-2025-06-26",
+            "perplexity_model": "sonar-deep-research",
+            "grok_model": "grok-beta",
+            "model_capabilities": {
+                "o3-deep-research-2025-06-26": {
+                    "reasoning_effort": "high",
+                    "summary": "detailed",
+                    "web_search": True,
+                    "use_case": "Primary synthesis and analysis"
+                },
+                "o4-mini-deep-research-2025-06-26": {
+                    "reasoning_effort": "high",
+                    "summary": "detailed",
+                    "web_search": False,
+                    "use_case": "Fallback for synthesis and analysis"
+                },
+                "sonar-deep-research": {
+                    "use_case": "Deep literature search and research",
+                    "provider": "Perplexity"
+                },
+                "grok-beta": {
+                    "use_case": "Critical analysis and bias detection",
+                    "provider": "X.AI"
+                }
+            }
+        }
+
     def execute_final_synthesis(self) -> Dict[str, Any]:
         """Execute final synthesis to create the complete PRISMA systematic review."""
         if not self.current_workflow or not self.current_workflow.citation_results:
@@ -629,14 +690,44 @@ class LeadResearcherAgent:
             """
             
             # Use o3-deep-research for synthesis
-            response = self.openai_client.chat.completions.create(
-                model="o3-deep-research",
-                messages=[{"role": "user", "content": synthesis_prompt}],
-                max_tokens=12000,
-                temperature=0.3
-            )
-            
-            final_synthesis = response.choices[0].message.content
+            try:
+                response = self.openai_client.responses.create(
+                    model="o3-deep-research-2025-06-26",
+                    input=[],
+                    text={
+                        "format": {
+                            "type": "text"
+                        }
+                    },
+                    reasoning={
+                        "effort": "high",
+                        "summary": "detailed"
+                    },
+                    tools=[
+                        {
+                            "type": "web_search_preview",
+                            "user_location": {
+                                "type": "approximate"
+                            },
+                            "search_context_size": "high"
+                        }
+                    ],
+                    store=False
+                )
+                final_synthesis = response.choices[0].message.content
+            except Exception as e:
+                # Fallback to o4-mini-deep-research
+                logger.warning(f"O3 model failed, using fallback: {e}")
+                response = self.openai_client.chat.completions.create(
+                    model="o4-mini-deep-research-2025-06-26",
+                    messages=[{"role": "user", "content": synthesis_prompt}],
+                    max_tokens=12000,
+                    temperature=0.3,
+                    reasoning={
+                        "summary": "detailed"
+                    }
+                )
+                
             
             # Store final synthesis
             self.current_workflow.final_synthesis = final_synthesis
@@ -673,7 +764,7 @@ class EnhancedPRISMAOrchestrator:
         
         # Initialize configuration
         self.config = AgentConfig(
-            model="o3-deep-research",
+            model="o3-deep-research-2025-06-26",
             temperature=0.2,
             max_tokens=10000,
             reasoning_effort="high"

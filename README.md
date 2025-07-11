@@ -48,7 +48,7 @@ A comprehensive **multi-agent workflow** that produces **publication-ready syste
 - **📈 Meta-Analysis Support**: Statistical analysis and evidence synthesis
 - **📚 Citation Management**: ≥50 peer-reviewed citations in APA format
 
-**AI Models Used**: O3 (high reasoning), Perplexity (deep research), Grok (critical analysis), Flowise (specialized knowledge)
+**AI Models Used**: O3 Deep Research (o3-deep-research-2025-06-26), O4 Mini Fallback (o4-mini-deep-research-2025-06-26), Perplexity Deep Research (sonar-deep-research), Grok Advanced Reasoning (grok-beta), Flowise (specialized knowledge)
 
 ### 🧠 **Smart Mode Detection System**
 Intelligent **automatic routing** based on query analysis:
@@ -237,9 +237,10 @@ Query Analysis → Mode Selection → Agent Routing → Processing → Export Op
 - **ValidationAgent**: PRISMA compliance and quality assurance
 
 ### **AI Model Integration**
-- **O3 High Reasoning**: Complex analysis and synthesis
-- **Perplexity Deep Research**: Literature search and data extraction
-- **Grok Advanced Reasoning**: Critical analysis and bias detection
+- **O3 Deep Research (o3-deep-research-2025-06-26)**: Primary synthesis and analysis with high reasoning effort
+- **O4 Mini Fallback (o4-mini-deep-research-2025-06-26)**: Fallback model for synthesis and analysis 
+- **Perplexity Deep Research (sonar-deep-research)**: Literature search and data extraction
+- **Grok Advanced Reasoning (grok-beta)**: Critical analysis and bias detection
 - **Flowise Specialized RAG**: Domain-specific knowledge retrieval
 
 ### **Processing Flows**
@@ -299,15 +300,20 @@ textappv2/
 ```python
 # Enhanced model configurations
 ENHANCED_MODELS = {
-    "o3_high_reasoning": {
-        "model_name": "o3",
-        "temperature": 0.2,
-        "reasoning_effort": "high"
-    },
-    "perplexity_deep_research": {
-        "model_name": "llama-3.1-sonar-huge-128k-online",
-        "temperature": 0.2
-    },
+         "o3_high_reasoning": {
+         "model_name": "o3-deep-research-2025-06-26",
+         "temperature": 0.2,
+         "reasoning_effort": "high"
+     },
+     "o4_mini_fallback": {
+         "model_name": "o4-mini-deep-research-2025-06-26",
+         "temperature": 0.3,
+         "reasoning_effort": "high"
+     },
+         "perplexity_deep_research": {
+         "model_name": "sonar-deep-research",
+         "temperature": 0.2
+     },
     "grok_advanced": {
         "model_name": "grok-4",
         "temperature": 0.3

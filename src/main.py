@@ -822,6 +822,30 @@ class EnhancedPromptEnhancerApp:
                 self.console.print(f"  • {model_type.replace('_', ' ').title()}: {model_name}")
             self.console.print()
             
+            # Models in use
+            models_in_use = status.get("models_in_use", {})
+            if models_in_use:
+                self.console.print("[bold]Models Currently in Use:[/bold]")
+                primary_model = models_in_use.get("primary_model", "")
+                fallback_model = models_in_use.get("fallback_model", "")
+                perplexity_model = models_in_use.get("perplexity_model", "")
+                grok_model = models_in_use.get("grok_model", "")
+                
+                self.console.print(f"  🎯 Primary: {primary_model}")
+                self.console.print(f"  🔄 Fallback: {fallback_model}")
+                self.console.print(f"  🔍 Literature Search: {perplexity_model}")
+                self.console.print(f"  🧠 Critical Analysis: {grok_model}")
+                self.console.print()
+                
+                # Workflow phases
+                workflow_phases = models_in_use.get("workflow_phases", {})
+                if workflow_phases:
+                    self.console.print("[bold]Workflow Model Assignment:[/bold]")
+                    for phase, model_info in workflow_phases.items():
+                        phase_name = phase.replace('_', ' ').title()
+                        self.console.print(f"  • {phase_name}: {model_info}")
+                    self.console.print()
+            
             # Target specifications
             specs = capabilities.get("target_specifications", {})
             self.console.print("[bold]PRISMA Specifications:[/bold]")

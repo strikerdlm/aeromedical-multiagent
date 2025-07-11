@@ -38,15 +38,23 @@ class OpenAIModelsConfig:
     
     # Enhanced OpenAI Models
     O3_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="o4-mini",  # Use available o4-mini model with high reasoning
+        model_name="o3-deep-research-2025-06-26",
         max_tokens=8000,
         temperature=0.4,
         reasoning_effort="high"
     )
     
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o4-mini",  # Use available o4-mini model with high reasoning
+        model_name="o3",
         max_tokens=4000,
+        temperature=0.3,
+        reasoning_effort="high"
+    )
+    
+    # Fallback model for PRISMA
+    O4_MINI_DEEP_RESEARCH: ModelConfig = ModelConfig(
+        model_name="o4-mini-deep-research-2025-06-26",
+        max_tokens=8000,
         temperature=0.3,
         reasoning_effort="high"
     )
@@ -76,7 +84,15 @@ class PRISMAConfig:
     
     # Required models and reasoning effort
     O3_HIGH_REASONING = ModelConfig(
-        model_name="o4-mini",
+        model_name="o3-deep-research-2025-06-26",
+        max_tokens=10000,
+        temperature=0.3,
+        reasoning_effort="high"
+    )
+    
+    # Fallback model for PRISMA
+    O4_MINI_FALLBACK = ModelConfig(
+        model_name="o4-mini-deep-research-2025-06-26",
         max_tokens=10000,
         temperature=0.3,
         reasoning_effort="high"
@@ -84,7 +100,7 @@ class PRISMAConfig:
     
     # Perplexity configuration
     PERPLEXITY_BASE_URL: str = "https://api.perplexity.ai"
-    PERPLEXITY_MODEL: str = "llama-3.1-sonar-large-128k-online"
+    PERPLEXITY_MODEL: str = "sonar-deep-research"
     
     # Grok configuration
     GROK_BASE_URL: str = "https://api.x.ai/v1"
