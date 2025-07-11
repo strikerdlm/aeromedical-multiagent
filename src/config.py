@@ -71,6 +71,37 @@ class ChatflowConfig:
     max_tokens: int = 2000
 
 
+class PRISMAConfig:
+    """Configuration for PRISMA systematic review feature."""
+    
+    # Required models and reasoning effort
+    O3_HIGH_REASONING = ModelConfig(
+        model_name="o3-2024-12-17",
+        max_tokens=10000,
+        temperature=0.3,
+        reasoning_effort="high"
+    )
+    
+    # Perplexity configuration
+    PERPLEXITY_BASE_URL: str = "https://api.perplexity.ai"
+    PERPLEXITY_MODEL: str = "llama-3.1-sonar-large-128k-online"
+    
+    # Grok configuration
+    GROK_BASE_URL: str = "https://api.x.ai/v1"
+    GROK_MODEL: str = "grok-beta"
+    
+    # PRISMA-specific settings
+    TARGET_WORD_COUNT: int = 8000  # Minimum target word count
+    MAX_WORD_COUNT: int = 10000  # Maximum target word count
+    MIN_CITATIONS: int = 50  # Minimum required citations
+    
+    # Chatflow configurations for PRISMA
+    PRISMA_CHATFLOWS: Dict[str, str] = {
+        "research_1": "43677137-d307-4ff4-96c9-5019b6e10879",
+        "research_2": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6"
+    }
+
+
 class FlowiseConfig:
     """Central configuration for Flowise API integration."""
     
@@ -92,6 +123,9 @@ class FlowiseConfig:
         "deep_research": os.getenv("CHATFLOW_DEEP_RESEARCH", ""),
         "aeromedical_risk": os.getenv("CHATFLOW_AEROMEDICAL_RISK", ""),
         "agentic_rag": os.getenv("CHATFLOW_AGENTIC_RAG", ""),
+        # PRISMA-specific chatflow IDs
+        "prisma_research_1": "43677137-d307-4ff4-96c9-5019b6e10879",
+        "prisma_research_2": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
     }
     
     # Chatflow configurations
@@ -126,6 +160,19 @@ class FlowiseConfig:
             temperature=0.2,  # Conservative for risk assessment
             max_tokens=2000
         ),
+        # PRISMA-specific chatflow configurations
+        "prisma_research_1": ChatflowConfig(
+            chatflow_id=CHATFLOW_IDS["prisma_research_1"],
+            session_id="prisma_research_1_session",
+            temperature=0.3,
+            max_tokens=8000
+        ),
+        "prisma_research_2": ChatflowConfig(
+            chatflow_id=CHATFLOW_IDS["prisma_research_2"],
+            session_id="prisma_research_2_session",
+            temperature=0.3,
+            max_tokens=8000
+        ),
     }
     
     @classmethod
@@ -152,6 +199,10 @@ class AppConfig:
     # Web Search Configuration (for o3 with web search)
     SEARCH_API_KEY: str = os.getenv("SEARCH_API_KEY", "")  # For web search functionality
     SEARCH_ENGINE_ID: str = os.getenv("SEARCH_ENGINE_ID", "")  # Google Custom Search ID
+    
+    # PRISMA-specific API configurations
+    PPLX_API_KEY: str = os.getenv("PPLX_API_KEY", "")  # Perplexity API key
+    XAI_API_KEY: str = os.getenv("XAI_API", "")  # Grok API key
     
     # Application settings
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
@@ -194,6 +245,39 @@ class AppConfig:
                 print(f"   - {var}")
             print("\n📝 Please create a .env file with the required variables.")
             print("   See the README.md for setup instructions.")
+            return False
+        
+        return True
+    
+    @classmethod
+    def validate_prisma_environment(cls) -> bool:
+        """
+        Validate that PRISMA-specific environment variables are set.
+        
+        Returns:
+            True if all PRISMA variables are set, False otherwise
+        """
+        missing_vars = []
+        
+        # Check PRISMA-specific variables
+        if not cls.OPENAI_API_KEY:
+            missing_vars.append("OPENAI_API_KEY")
+        
+        if not FlowiseConfig.API_KEY:
+            missing_vars.append("FLOWISE_API_KEY")
+        
+        if not cls.PPLX_API_KEY:
+            missing_vars.append("PPLX_API_KEY")
+        
+        if not cls.XAI_API_KEY:
+            missing_vars.append("XAI_API")
+        
+        if missing_vars:
+            print("❌ Error: Missing PRISMA-specific environment variables:")
+            for var in missing_vars:
+                print(f"   - {var}")
+            print("\n📝 Please configure all required API keys for PRISMA functionality.")
+            print("   PRISMA requires: OpenAI, Flowise, Perplexity, and Grok API keys.")
             return False
         
         return True
