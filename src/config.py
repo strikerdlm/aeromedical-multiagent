@@ -38,14 +38,14 @@ class OpenAIModelsConfig:
     
     # Enhanced OpenAI Models
     O3_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="o3-deep-research-2025-06-26",
+        model_name="o3-mini",  # Use available o3-mini model
         max_tokens=8000,
         temperature=0.4,
         reasoning_effort="high"
     )
     
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o3-mini-2024-01-20",
+        model_name="o3-mini",  # Use available o3-mini model
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
@@ -202,7 +202,7 @@ class AppConfig:
     
     # PRISMA-specific API configurations
     PPLX_API_KEY: str = os.getenv("PPLX_API_KEY", "")  # Perplexity API key
-    XAI_API_KEY: str = os.getenv("XAI_API", "")  # Grok API key
+    XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")  # Grok API key
     
     # Application settings
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
@@ -270,7 +270,7 @@ class AppConfig:
             missing_vars.append("PPLX_API_KEY")
         
         if not cls.XAI_API_KEY:
-            missing_vars.append("XAI_API")
+            missing_vars.append("XAI_API_KEY")
         
         if missing_vars:
             print("❌ Error: Missing PRISMA-specific environment variables:")

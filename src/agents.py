@@ -75,7 +75,7 @@ class AgentOrchestrator:
         self.client = client or OpenAI(api_key=AppConfig.OPENAI_API_KEY)
         self.flowise_client = MedicalFlowiseRouter()
 
-    async def _run_agent_async(self, agent: Agent, input_prompt: str) -> any:
+    async def _run_agent_async(self, agent: Agent, input_prompt: str) -> Any:
         """Async helper to run the agent using the SDK's Runner."""
         # Convert our Pydantic Agent to an SDK Agent
         sdk_agent = SdkAgent(
