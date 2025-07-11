@@ -105,7 +105,7 @@ class PRISMAOrchestrator:
         additional_context: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Create a complete PRISMA systematic review using code-based orchestration.
+        Create a complete PRISMA systematic review using LLM-based orchestration with handoffs.
         
         Args:
             research_question: Primary research question
@@ -132,52 +132,42 @@ class PRISMAOrchestrator:
                 research_question, search_strategy, inclusion_criteria, exclusion_criteria
             )
 
-            # --- Code-based Agent Orchestration ---
+            # Get the orchestrator agent
+            orchestrator_agent = self.prisma_system.create_prisma_orchestrator_agent()
             
-            # 1. Searcher Agent
-            searcher_agent = self.prisma_system.create_searcher_agent()
-            search_task = self.agent_orchestrator.run_full_turn(
-                agent=searcher_agent,
-                messages=[{"role": "user", "content": "Conduct a systematic literature search based on the initialized workflow."}]
-            )
+            # Prepare initial message with all parameters
+            initial_message = f"""
+            Please orchestrate a PRISMA systematic review with the following parameters:
+            Research Question: {research_question}
+            Search Keywords: {', '.join(search_keywords)}
+            Inclusion Criteria: {', '.join(inclusion_criteria)}
+            Exclusion Criteria: {', '.join(exclusion_criteria)}
+            Additional Context: {additional_context or 'None'}
+            """
             
-            # 2. Reviewer Agent
-            reviewer_agent = self.prisma_system.create_reviewer_agent()
-            review_task = self.agent_orchestrator.run_full_turn(
-                agent=reviewer_agent,
-                messages=search_task.messages + [{"role": "user", "content": "Screen the search results and then extract and analyze the data."}]
-            )
-
-            # 3. Writer Agent
-            writer_agent = self.prisma_system.create_writer_agent()
-            write_task = self.agent_orchestrator.run_full_turn(
-                agent=writer_agent,
-                messages=review_task.messages + [{"role": "user", "content": "Generate the complete systematic review document."}]
+            # Run the full conversation through the orchestrator agent
+            # We'll use run_conversation with a higher max_turns to allow for multiple handoffs
+            final_response = self.agent_orchestrator.run_conversation(
+                agent=orchestrator_agent,
+                messages=[{"role": "user", "content": initial_message}],
+                max_turns=20  # Allow enough turns for all handoffs and back-and-forth
             )
             
-            # 4. Validator Agent
-            validator_agent = self.prisma_system.create_validator_agent()
-            validation_task = self.agent_orchestrator.run_full_turn(
-                agent=validator_agent,
-                messages=write_task.messages + [{"role": "user", "content": "Validate the final review, generate the PRISMA flow diagram, and then export the final review document to a markdown file."}]
-            )
-
-            # --- End Orchestration ---
-
-            # Extract final outputs from the entire workflow
-            final_validation_summary = validation_task.messages[-1].get("content", "")
-            systematic_review = ""
-            for msg in reversed(write_task.messages):
-                if msg.get("role") == "assistant":
-                    systematic_review = msg.get("content", "")
-                    break
-
-            flow_diagram = self.prisma_system.tools.generate_prisma_flow_diagram()
-
-            final_report = f"{systematic_review}\n\n# PRISMA Flow Diagram\n\n{flow_diagram}"
-
-            # The export path will be in the validation summary
-            export_path_message = final_validation_summary
+            # Extract the final output from the conversation
+            final_report = ""
+            export_path_message = ""
+            flow_diagram = ""
+            for msg in reversed(final_response.messages):
+                if msg["role"] == "assistant":
+                    content = msg["content"]
+                    if "exported to" in content.lower():
+                        export_path_message = content
+                    elif "mermaid" in content.lower():
+                        flow_diagram = content
+                    else:
+                        final_report += content + "\n\n"
+            
+            final_report += f"\n\n# PRISMA Flow Diagram\n\n{flow_diagram}"
             
             # Compile workflow results
             workflow_results = {
@@ -188,8 +178,8 @@ class PRISMAOrchestrator:
                 "inclusion_criteria": inclusion_criteria,
                 "exclusion_criteria": exclusion_criteria,
                 "workflow_metadata": {
-                    "total_messages": len(validation_task.messages),
-                    "agents_used": ["Searcher", "Reviewer", "Writer", "Validator"],
+                    "total_messages": len(final_response.messages),
+                    "agents_used": ["Orchestrator", "Searcher", "Reviewer", "Writer", "Validator"],
                     "completion_time": time.time(),
                     "word_count": len(final_report.split()),
                     "estimated_citations": final_report.count("(") + final_report.count("[")

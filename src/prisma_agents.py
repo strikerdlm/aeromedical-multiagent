@@ -793,6 +793,32 @@ class PRISMAAgentSystem:
             model=AppConfig.OPENAI_MODEL
         )
 
+    def create_prisma_orchestrator_agent(self) -> Agent:
+        """Create the main PRISMA orchestrator agent with handoffs to specialized agents."""
+        instructions = """
+        You are the PRISMA Orchestrator Agent. Your role is to manage the entire PRISMA systematic review workflow by handing off tasks to specialized agents in the correct sequence.
+        
+        Workflow Steps:
+        1. Hand off to the Literature Searcher Agent to conduct the search.
+        2. Once search is complete, hand off to the Study Reviewer Agent for screening and analysis.
+        3. Then, hand off to the Review Writer Agent to generate the review.
+        4. Finally, hand off to the Validation Agent to validate and export.
+        
+        Use the handoffs to delegate each phase. Monitor the progress and ensure the workflow completes.
+        """
+        
+        return Agent(
+            name="PRISMA Orchestrator Agent",
+            instructions=instructions,
+            handoffs=[
+                self.create_searcher_agent(),
+                self.create_reviewer_agent(),
+                self.create_writer_agent(),
+                self.create_validator_agent()
+            ],
+            model=AppConfig.OPENAI_MODEL
+        )
+
 
 def create_prisma_agent_system() -> Dict[str, Agent]:
     """
@@ -804,6 +830,7 @@ def create_prisma_agent_system() -> Dict[str, Agent]:
     system = PRISMAAgentSystem()
     
     agents = {
+        "orchestrator": system.create_prisma_orchestrator_agent(),
         "searcher": system.create_searcher_agent(),
         "reviewer": system.create_reviewer_agent(),
         "writer": system.create_writer_agent(),
