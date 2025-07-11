@@ -28,6 +28,7 @@ from .flowise_agents import create_flowise_enhancement_system
 from .flowise_client import FlowiseAPIError
 from .multiline_input import MultilineInputHandler, detect_paste_input, format_large_text_preview
 from .markdown_exporter import MarkdownExporter
+from .prisma_orchestrator import create_prisma_orchestrator, PRISMAOrchestrator
 
 
 # Set up logging with proper Unicode support
@@ -85,10 +86,20 @@ class EnhancedPromptEnhancerApp:
         self.o3_agents = create_o3_enhancement_system()
         self.flowise_agents = create_flowise_enhancement_system()
         
+        # Initialize PRISMA orchestrator (optional, depends on API availability)
+        self.prisma_orchestrator: Optional[PRISMAOrchestrator] = None
+        try:
+            if AppConfig.validate_prisma_environment():
+                self.prisma_orchestrator = create_prisma_orchestrator()
+                logger.info("PRISMA orchestrator initialized successfully")
+        except Exception as e:
+            logger.warning(f"PRISMA orchestrator initialization failed: {e}")
+            self.prisma_orchestrator = None
+        
         self.messages: List[Dict[str, Any]] = []
         
         # Current processing mode and agent
-        self.current_mode: str = "smart"  # "smart", "o3", "flowise", "deepresearch_flowise", "aeromedical_risk"
+        self.current_mode: str = "smart"  # "smart", "o3", "flowise", "deepresearch_flowise", "aeromedical_risk", "prisma"
         self.current_agent = None
         self.user_preferences = {
             "auto_suggest": True,
@@ -191,6 +202,11 @@ class EnhancedPromptEnhancerApp:
         self.console.print()
         self.console.print("[yellow]🚁 Aero Risk[/yellow]           [magenta]🎯 Smart Mode[/magenta]")
         self.console.print("Flight safety               Auto-detection")
+        self.console.print()
+        if self.prisma_orchestrator:
+            self.console.print("[bright_blue]📊 PRISMA Review[/bright_blue]")
+            self.console.print("Systematic reviews          Meta-analyses")
+            self.console.print("Evidence synthesis          Research workflows")
         self.console.print("Pilot fitness               Best AI selection")
         self.console.print("Risk assessment             Seamless routing")
         self.console.print()
@@ -417,12 +433,20 @@ class EnhancedPromptEnhancerApp:
             "o3": self.o3_agents["o3_enhancer"],
             "flowise": self.flowise_agents["flowise_enhancer"],
             "deepresearch_flowise": self.flowise_agents["deep_research"],
-            "aeromedical_risk": self.flowise_agents["aeromedical_risk"]
+            "aeromedical_risk": self.flowise_agents["aeromedical_risk"],
+            "prisma": None  # Special handling for PRISMA
         }
         
         if new_mode not in mode_agents:
             self.console.print(f"[red]❌ Unknown mode: {new_mode}[/red]")
             return False
+        
+        # Special handling for PRISMA mode
+        if new_mode == "prisma":
+            if not self.prisma_orchestrator:
+                self.console.print("[red]❌ PRISMA mode unavailable - missing API keys or configuration[/red]")
+                self.console.print("[yellow]💡 PRISMA requires: OpenAI, Flowise, Perplexity, and Grok API keys[/yellow]")
+                return False
         
         old_mode = self.current_mode
         self.current_mode = new_mode
@@ -433,7 +457,8 @@ class EnhancedPromptEnhancerApp:
             "o3": "🔬 O3 Deep Research",
             "flowise": "🌐 Flowise Medical RAG",
             "deepresearch_flowise": "🔬 DeepResearch RAG",
-            "aeromedical_risk": "🚁 Aeromedical Risk Assessment"
+            "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
+            "prisma": "📊 PRISMA Systematic Review"
         }
         
         if old_mode != new_mode:
@@ -483,6 +508,9 @@ class EnhancedPromptEnhancerApp:
             elif command in ['aero', 'aeromedical', 'risk', 'a']:
                 self.switch_mode("aeromedical_risk")
                 return True
+            elif command in ['prisma', 'systematic', 'review', 'p']:
+                self.switch_mode("prisma")
+                return True
             
             # Information commands
             elif command in ['modes', 'mode', 'm']:
@@ -521,6 +549,14 @@ class EnhancedPromptEnhancerApp:
                 self.list_exported_files()
                 return True
             
+            # PRISMA-specific commands
+            elif command in ['prisma-status', 'prisma-info']:
+                self.display_prisma_status()
+                return True
+            elif command in ['prisma-reviews', 'prisma-history']:
+                self.display_prisma_reviews()
+                return True
+            
             else:
                 self.console.print(f"[red]❌ Unknown command: /{command}[/red]")
                 self.console.print("[yellow]💡 Type ? for help or /modes to see available modes[/yellow]")
@@ -555,6 +591,10 @@ class EnhancedPromptEnhancerApp:
             # Default to flowise for medical content, o3 for general
             suggested_mode, _ = self.detect_optimal_mode(user_input)
             self.switch_mode(suggested_mode)
+        
+        # Special handling for PRISMA mode
+        if self.current_mode == "prisma":
+            return self.handle_prisma_request(user_input)
         
         if not self.current_agent:
             self.console.print("❌ [red]No processing agent available. Please select a mode first.[/red]")
@@ -644,6 +684,80 @@ class EnhancedPromptEnhancerApp:
             self.console.print("• Check the logs for more details")
             self.console.print("• Try a different processing mode")
             self.console.print()
+        
+        return True
+    
+    def handle_prisma_request(self, user_input: str) -> bool:
+        """
+        Handle PRISMA systematic review requests.
+        
+        Args:
+            user_input: The user's research question or topic
+            
+        Returns:
+            True to continue, False to exit
+        """
+        try:
+            if not self.prisma_orchestrator:
+                self.console.print("[red]❌ PRISMA orchestrator not available[/red]")
+                return True
+            
+            # Add user message to conversation
+            self.messages.append({"role": "user", "content": user_input})
+            
+            # Enhanced processing feedback
+            self.console.print(f"\n📊 [cyan]Initiating PRISMA systematic review for:[/cyan] {user_input[:100]}...")
+            self.console.print("[dim]Using multi-agent framework with O3, Perplexity, Grok, and Flowise...[/dim]")
+            
+            # Create systematic review using the orchestrator
+            with self.console.status("[bold green]Conducting comprehensive systematic review..."):
+                review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
+            
+            # Handle the response
+            if "error" in review_results:
+                self.console.print(f"[red]❌ PRISMA review failed: {review_results['error']}[/red]")
+                return True
+            
+            # Extract and display the systematic review
+            systematic_review = review_results.get("systematic_review", "")
+            if systematic_review:
+                # Add assistant response to conversation
+                self.messages.append({"role": "assistant", "content": systematic_review})
+                
+                # Display the systematic review
+                self.console.print(f"\n📊 PRISMA Systematic Review")
+                self.console.print("─" * 60)
+                self.console.print(systematic_review)
+                self.console.print("─" * 60)
+                
+                # Display metadata
+                metadata = review_results.get("workflow_metadata", {})
+                word_count = metadata.get("word_count", 0)
+                citations = metadata.get("estimated_citations", 0)
+                
+                self.console.print(f"\n[green]✅ PRISMA systematic review completed![/green]")
+                self.console.print(f"📝 Word count: {word_count}")
+                self.console.print(f"📚 Estimated citations: {citations}")
+                
+                # Validation status
+                validation = review_results.get("validation_status", {})
+                if validation.get("meets_minimum_requirements", False):
+                    self.console.print("[green]✅ Meets PRISMA 2020 requirements[/green]")
+                else:
+                    self.console.print("[yellow]⚠️ May need additional work to meet all PRISMA requirements[/yellow]")
+                
+                # Show export options
+                self.show_export_options()
+                self.console.print("📊 /prisma-status - Check PRISMA system status")
+                self.console.print("📋 /prisma-reviews - List recent reviews")
+                
+            else:
+                self.console.print("[red]❌ No systematic review content generated[/red]")
+            
+        except Exception as e:
+            logger.error(f"Error in PRISMA request: {e}")
+            self.console.print(f"[red]❌ PRISMA processing error: {e}[/red]")
+            self.console.print("[yellow]💡 Try a simpler research question or check API configurations[/yellow]")
         
         return True
     
