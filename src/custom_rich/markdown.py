@@ -1,2 +1,0 @@
-class Markdown(str):
-    pass

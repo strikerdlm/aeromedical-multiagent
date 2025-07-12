@@ -10,11 +10,13 @@ from __future__ import annotations
 import json
 import time
 import logging
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
+from functools import lru_cache
 import requests
 from requests.exceptions import RequestException
 
 from .config import AppConfig, PRISMAConfig
+from .utils import retry_with_exponential_backoff
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,11 @@ logger = logging.getLogger(__name__)
 
 class PerplexityAPIError(Exception):
     """Custom exception for Perplexity API errors."""
+    pass
+
+
+class ConfigurationError(Exception):
+    """Custom exception for configuration errors."""
     pass
 
 
@@ -41,6 +48,9 @@ class PerplexityClient:
             api_key: Perplexity API key (optional, uses config default)
         """
         self.api_key = api_key or AppConfig.PPLX_API_KEY
+        if not self.api_key:
+            raise ConfigurationError("Perplexity API key is not configured. Please set the PPLX_API_KEY environment variable.")
+
         self.base_url = PRISMAConfig.PERPLEXITY_BASE_URL
         self.model = PRISMAConfig.PERPLEXITY_MODEL
         
@@ -285,6 +295,7 @@ class PerplexityClient:
         
         return prompt
     
+    @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
     def _make_api_request(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Make API request with retry logic and error handling.
@@ -301,35 +312,28 @@ class PerplexityClient:
         """
         url = f"{self.base_url}{endpoint}"
         
-        for attempt in range(AppConfig.MAX_RETRIES):
-            try:
-                response = self.session.post(
-                    url,
-                    json=payload,
-                    timeout=AppConfig.TIMEOUT
-                )
-                
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 429:  # Rate limit
-                    logger.warning(f"Rate limited, attempt {attempt + 1}/{AppConfig.MAX_RETRIES}")
-                    time.sleep(AppConfig.RETRY_DELAY * (2 ** attempt))
-                    continue
-                elif response.status_code == 401:
-                    raise PerplexityAPIError("Authentication failed - check API key")
-                elif response.status_code == 400:
-                    raise PerplexityAPIError(f"Bad request: {response.text}")
-                else:
-                    logger.error(f"API error: {response.status_code}, {response.text}")
-                    raise PerplexityAPIError(f"API error: {response.status_code}")
-                    
-            except RequestException as e:
-                logger.error(f"Request exception on attempt {attempt + 1}: {e}")
-                if attempt == AppConfig.MAX_RETRIES - 1:
-                    raise PerplexityAPIError(f"Request failed after {AppConfig.MAX_RETRIES} attempts: {e}")
-                time.sleep(AppConfig.RETRY_DELAY * (2 ** attempt))
+        response = self.session.post(
+            url,
+            json=payload,
+            timeout=AppConfig.TIMEOUT
+        )
         
-        raise PerplexityAPIError("Max retries exceeded")
+        if response.status_code == 200:
+            return response.json()
+
+        # For retryable errors, raise an exception that the decorator will catch.
+        if response.status_code == 429 or response.status_code >= 500:
+            logger.warning(f"Retryable error: {response.status_code}. Decorator will handle retry.")
+            response.raise_for_status()
+
+        # For non-retryable client errors, raise a specific exception.
+        elif response.status_code == 401:
+            raise PerplexityAPIError("Authentication failed - check API key")
+        elif response.status_code == 400:
+            raise PerplexityAPIError(f"Bad request: {response.text}")
+        else:
+            logger.error(f"API error: {response.status_code}, {response.text}")
+            raise PerplexityAPIError(f"API error: {response.status_code}")
     
     def _parse_literature_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """Parse literature search response."""
@@ -422,10 +426,11 @@ class PRISMAPerplexityRouter:
         """
         self.client = client or PerplexityClient()
     
-    def search_phase(self, research_question: str, keywords: List[str]) -> Dict[str, Any]:
+    @lru_cache(maxsize=32)
+    def search_phase(self, research_question: str, keywords: Tuple[str, ...]) -> Dict[str, Any]:
         """Conduct literature search phase for PRISMA."""
         search_strategy = {
-            "keywords": keywords,
+            "keywords": list(keywords),
             "databases": ["PubMed", "Google Scholar", "Cochrane Library", "Web of Science"],
             "date_range": "2010-2024",
             "language": "English"
@@ -448,7 +453,8 @@ class PRISMAPerplexityRouter:
             ]
         )
     
-    def screening_phase(self, abstracts: List[str]) -> Dict[str, Any]:
+    @lru_cache(maxsize=32)
+    def screening_phase(self, abstracts: Tuple[str, ...]) -> Dict[str, Any]:
         """Conduct screening phase for PRISMA."""
         template = {
             "study_id": "unique identifier",
@@ -463,7 +469,7 @@ class PRISMAPerplexityRouter:
             "include_exclude": "decision with rationale"
         }
         
-        return self.client.extract_study_data(abstracts, template)
+        return self.client.extract_study_data(list(abstracts), template)
     
     def quality_assessment_phase(self, included_studies: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Conduct quality assessment phase for PRISMA."""

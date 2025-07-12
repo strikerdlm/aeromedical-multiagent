@@ -186,8 +186,12 @@ class AppConfig:
     # Application settings
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
     RETRY_DELAY: float = float(os.getenv("RETRY_DELAY", "1.0"))
+    RETRY_BACKOFF_FACTOR: float = float(os.getenv("RETRY_BACKOFF_FACTOR", "2.0"))
     TIMEOUT: int = int(os.getenv("TIMEOUT", "60"))  # Increased for reasoning models
     
+    # UI settings
+    PROGRESS_STAGE_DURATION: int = int(os.getenv("PROGRESS_STAGE_DURATION", "20"))
+
     # Logging configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

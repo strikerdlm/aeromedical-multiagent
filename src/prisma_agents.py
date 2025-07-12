@@ -48,6 +48,7 @@ class PRISMAWorkflow:
     results: Dict[str, Any] = None
     word_count: int = 0
     citation_count: int = 0
+    flow_diagram_stats: Dict[str, int] = None
     
     def __post_init__(self):
         if self.progress is None:
@@ -62,6 +63,19 @@ class PRISMAWorkflow:
             }
         if self.results is None:
             self.results = {}
+        if self.flow_diagram_stats is None:
+            self.flow_diagram_stats = {
+                "db_records": 0,
+                "register_records": 0,
+                "duplicates_removed": 0,
+                "screened_records": 0,
+                "excluded_records": 0,
+                "reports_sought": 0,
+                "reports_not_retrieved": 0,
+                "reports_assessed": 0,
+                "reports_excluded": 0,
+                "studies_included": 0,
+            }
 
 
 class PRISMAAgentTools:
@@ -137,7 +151,7 @@ class PRISMAAgentTools:
             # Phase 1: Perplexity deep research
             keywords = self.workflow.search_strategy.keywords
             perplexity_results = self.perplexity_router.search_phase(
-                self.workflow.research_question, keywords
+                self.workflow.research_question, tuple(keywords)
             )
             
             # Phase 2: Flowise chatflow consultation
@@ -170,8 +184,11 @@ class PRISMAAgentTools:
                 len(result.get("citations", [])) if isinstance(result, dict) else 0
                 for result in flowise_results.values()
             )
-            
             total_citations = perplexity_citations + flowise_citations
+            
+            # Update flow diagram stats
+            self.workflow.flow_diagram_stats["db_records"] = perplexity_citations
+            self.workflow.flow_diagram_stats["register_records"] = flowise_citations
             
             logger.info(f"Literature search completed with {total_citations} citations")
             return f"✅ Literature search completed. Found {total_citations} potential citations."
@@ -209,7 +226,7 @@ class PRISMAAgentTools:
                     abstracts.append(result["text"])
             
             # Conduct screening using Perplexity
-            screening_results = self.perplexity_router.screening_phase(abstracts)
+            screening_results = self.perplexity_router.screening_phase(tuple(abstracts))
             
             # Critical analysis using Grok
             grok_analysis = self.grok_router.review_search_strategy(
@@ -372,24 +389,21 @@ class PRISMAAgentTools:
             if not self.workflow or not self.workflow.results.get("search_results"):
                 return "```mermaid\nflowchart TD\n    A[Error: Search results not available]\n```"
 
-            # This is a simplified example; in a real scenario, these numbers
-            # would be meticulously tracked throughout the workflow.
-            # For this implementation, we'll use placeholder numbers based on search results.
+            stats = self.workflow.flow_diagram_stats
             
-            search_results = self.workflow.results.get("search_results", {})
-            
-            # Placeholder numbers
-            db_records = len(search_results.get("perplexity", {}).get("citations", []))
-            register_records = sum(len(r.get("citations", [])) for r in search_results.get("flowise", {}).values() if isinstance(r, dict))
+            # Use real numbers where available, and estimate the rest
+            db_records = stats.get("db_records", 0)
+            register_records = stats.get("register_records", 0)
             total_identified = db_records + register_records
             
-            duplicates_removed = int(total_identified * 0.1)  # Estimate
+            # Estimates based on the identified records
+            duplicates_removed = stats.get("duplicates_removed") or int(total_identified * 0.1)
             screened = total_identified - duplicates_removed
-            excluded = int(screened * 0.8) # Estimate
+            excluded = stats.get("excluded_records") or int(screened * 0.8)
             reports_sought = screened - excluded
-            reports_not_retrieved = int(reports_sought * 0.05) # Estimate
+            reports_not_retrieved = stats.get("reports_not_retrieved") or int(reports_sought * 0.05)
             reports_assessed = reports_sought - reports_not_retrieved
-            reports_excluded = int(reports_assessed * 0.5) # Estimate
+            reports_excluded = stats.get("reports_excluded") or int(reports_assessed * 0.5)
             studies_included = reports_assessed - reports_excluded
 
             return f"""

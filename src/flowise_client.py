@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional, Union
 import requests
 
 from .config import FlowiseConfig
+from .utils import retry_with_exponential_backoff
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,11 @@ logger = logging.getLogger(__name__)
 
 class FlowiseAPIError(Exception):
     """Custom exception for Flowise API errors."""
+    pass
+
+
+class ConfigurationError(Exception):
+    """Custom exception for configuration errors."""
     pass
 
 
@@ -43,9 +49,13 @@ class FlowiseClient:
         self.base_url = base_url or FlowiseConfig.BASE_URL
         self.api_key = api_key or FlowiseConfig.API_KEY
         
+        if not self.api_key:
+            raise ConfigurationError("Flowise API key is not configured. Please set the FLOWISE_API_KEY environment variable.")
+
         # Create headers exactly like the working examples
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
     
+    @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
     def query_chatflow(self, chatflow_id: str, question: str) -> Dict[str, Any]:
         """
         Query a specific Flowise chatflow.
@@ -66,24 +76,25 @@ class FlowiseClient:
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
         payload = {"question": question}
         
-        try:
-            logger.info(f"Querying Flowise chatflow {chatflow_id}")
-            response = requests.post(api_url, headers=self.headers, json=payload)
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.info("Flowise query completed successfully")
-                return result
-            elif response.status_code == 401:
-                raise FlowiseAPIError("Authentication failed - check API key")
-            elif response.status_code == 404:
-                raise FlowiseAPIError("Chatflow not found - check chatflow ID")
-            else:
-                raise FlowiseAPIError(f"API error: {response.status_code} - {response.text}")
-                
-        except requests.RequestException as e:
-            logger.error(f"Request failed: {e}")
-            raise FlowiseAPIError(f"Request failed: {e}")
+        logger.info(f"Querying Flowise chatflow {chatflow_id}")
+        response = requests.post(api_url, headers=self.headers, json=payload, timeout=20) # Add timeout
+        
+        if response.status_code == 200:
+            result = response.json()
+            logger.info("Flowise query completed successfully")
+            return result
+        
+        # For server-side errors, rely on the decorator to retry
+        if response.status_code >= 500:
+            response.raise_for_status()
+
+        # For client-side errors, fail immediately
+        elif response.status_code == 401:
+            raise FlowiseAPIError("Authentication failed - check API key")
+        elif response.status_code == 404:
+            raise FlowiseAPIError(f"Chatflow not found - check chatflow ID: {chatflow_id}")
+        else:
+            raise FlowiseAPIError(f"API error: {response.status_code} - {response.text}")
 
 
 class MedicalFlowiseRouter(FlowiseClient):

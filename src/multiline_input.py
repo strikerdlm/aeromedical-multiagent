@@ -9,29 +9,25 @@ from __future__ import annotations
 
 import sys
 from typing import Optional, List
-# The Rich library provides advanced console formatting. It may not be
-# installed in very minimal environments used for unit tests, so we fall
-# back to simple stub implementations if the import fails.
+
 try:
-    from .custom_rich import Console, Panel, Text, Prompt
-except Exception:  # pragma: no cover - allow missing dependency
-    class Console:  # type: ignore
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.prompt import Prompt
+except ImportError:
+    # Define fallback classes if rich is not installed
+    class Console:
         def print(self, *args, **kwargs):
             print(*args)
-
     class Panel:
-        def __init__(self, renderable, title=None, border_style=None):
-            self.renderable = renderable
-            self.title = title
-            self.border_style = border_style
-
-    class Text(str):
-        pass
-
-    class Prompt:  # type: ignore
+        def __init__(self, content, **kwargs):
+            print(content)
+    class Text(str): pass
+    class Prompt:
         @staticmethod
-        def ask(prompt, choices=None, default=None):
-            return input(f"{prompt} ")
+        def ask(prompt, **kwargs):
+            return input(prompt)
 
 
 class MultilineInputHandler:
@@ -50,6 +46,7 @@ class MultilineInputHandler:
             console: Rich console instance (creates default if None)
         """
         self.console = console or Console()
+        self.MAX_INPUT_CHARS = 50000 # Max characters for multiline input
     
     def get_multiline_input(
         self, 
@@ -77,6 +74,7 @@ class MultilineInputHandler:
         
         lines = []
         line_count = 0
+        char_count = 0
         
         try:
             while True:
@@ -96,6 +94,11 @@ class MultilineInputHandler:
                     
                     lines.append(line)
                     line_count += 1
+                    char_count += len(line)
+
+                    if char_count > self.MAX_INPUT_CHARS:
+                        self.console.print(f"[bold yellow]Warning: Input limit of {self.MAX_INPUT_CHARS} characters reached. Input has been truncated.[/bold yellow]")
+                        break
                     
                     # Show progress for large inputs
                     if line_count > 0 and line_count % 10 == 0:

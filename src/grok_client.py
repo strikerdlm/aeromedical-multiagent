@@ -15,6 +15,7 @@ import requests
 from requests.exceptions import RequestException
 
 from .config import AppConfig, PRISMAConfig
+from .utils import retry_with_exponential_backoff
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,11 @@ logger = logging.getLogger(__name__)
 
 class GrokAPIError(Exception):
     """Custom exception for Grok API errors."""
+    pass
+
+
+class ConfigurationError(Exception):
+    """Custom exception for configuration errors."""
     pass
 
 
@@ -41,6 +47,9 @@ class GrokClient:
             api_key: Grok API key (optional, uses config default)
         """
         self.api_key = api_key or AppConfig.XAI_API_KEY
+        if not self.api_key:
+            raise ConfigurationError("Grok API key is not configured. Please set the XAI_API_KEY environment variable.")
+
         self.base_url = PRISMAConfig.GROK_BASE_URL
         self.model = PRISMAConfig.GROK_MODEL
         
@@ -348,6 +357,7 @@ class GrokClient:
         
         return prompt
     
+    @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
     def _make_api_request(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Make API request with retry logic and error handling.
@@ -364,35 +374,26 @@ class GrokClient:
         """
         url = f"{self.base_url}{endpoint}"
         
-        for attempt in range(AppConfig.MAX_RETRIES):
-            try:
-                response = self.session.post(
-                    url,
-                    json=payload,
-                    timeout=AppConfig.TIMEOUT
-                )
-                
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 429:  # Rate limit
-                    logger.warning(f"Rate limited, attempt {attempt + 1}/{AppConfig.MAX_RETRIES}")
-                    time.sleep(AppConfig.RETRY_DELAY * (2 ** attempt))
-                    continue
-                elif response.status_code == 401:
-                    raise GrokAPIError("Authentication failed - check API key")
-                elif response.status_code == 400:
-                    raise GrokAPIError(f"Bad request: {response.text}")
-                else:
-                    logger.error(f"API error: {response.status_code}, {response.text}")
-                    raise GrokAPIError(f"API error: {response.status_code}")
-                    
-            except RequestException as e:
-                logger.error(f"Request exception on attempt {attempt + 1}: {e}")
-                if attempt == AppConfig.MAX_RETRIES - 1:
-                    raise GrokAPIError(f"Request failed after {AppConfig.MAX_RETRIES} attempts: {e}")
-                time.sleep(AppConfig.RETRY_DELAY * (2 ** attempt))
+        response = self.session.post(
+            url,
+            json=payload,
+            timeout=AppConfig.TIMEOUT
+        )
         
-        raise GrokAPIError("Max retries exceeded")
+        if response.status_code == 200:
+            return response.json()
+
+        if response.status_code == 429 or response.status_code >= 500:
+            logger.warning(f"Retryable error: {response.status_code}. Decorator will handle retry.")
+            response.raise_for_status()
+
+        elif response.status_code == 401:
+            raise GrokAPIError("Authentication failed - check API key")
+        elif response.status_code == 400:
+            raise GrokAPIError(f"Bad request: {response.text}")
+        else:
+            logger.error(f"API error: {response.status_code}, {response.text}")
+            raise GrokAPIError(f"API error: {response.status_code}")
     
     def _parse_analysis_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """Parse critical analysis response."""
