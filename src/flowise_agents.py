@@ -73,8 +73,9 @@ class FlowiseAgentSystem:
         """
         self.flowise_client = flowise_client or MedicalFlowiseRouter()
     
+    @staticmethod
     @function_tool
-    def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
+    def query_aerospace_medicine_rag(enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
         
@@ -86,7 +87,8 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise aerospace medicine RAG chatflow")
-            result = self.flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
+            flowise_client = MedicalFlowiseRouter()  # Create instance
+            result = flowise_client.consult_aerospace_medicine_rag(enhanced_prompt)
             
             # Extract response text using the helper function
             response_text = _extract_flowise_response_text(result)
@@ -100,8 +102,9 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
             return f"Unexpected error: {str(e)}"
     
+    @staticmethod
     @function_tool
-    def query_flowise_deep_research(self, enhanced_prompt: str) -> str:
+    def query_flowise_deep_research(enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise deep research chatflow.
         
@@ -113,7 +116,8 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise deep research chatflow")
-            result = self.flowise_client.consult_deep_research(enhanced_prompt)
+            flowise_client = MedicalFlowiseRouter()  # Create instance
+            result = flowise_client.consult_deep_research(enhanced_prompt)
             
             # Extract response text using the helper function
             response_text = _extract_flowise_response_text(result)
@@ -127,8 +131,9 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise deep research: {e}")
             return f"Unexpected error: {str(e)}"
     
+    @staticmethod
     @function_tool
-    def query_aeromedical_risk(self, enhanced_prompt: str) -> str:
+    def query_aeromedical_risk(enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aeromedical risk chatflow.
         
@@ -140,7 +145,8 @@ class FlowiseAgentSystem:
         """
         try:
             logger.info("Querying Flowise aeromedical risk chatflow")
-            result = self.flowise_client.consult_aeromedical_risk(enhanced_prompt)
+            flowise_client = MedicalFlowiseRouter()  # Create instance
+            result = flowise_client.consult_aeromedical_risk(enhanced_prompt)
 
             # Extract response text using the helper function
             response_text = _extract_flowise_response_text(result)
@@ -232,11 +238,11 @@ class FlowiseAgentSystem:
         using the most appropriate Flowise chatflow for the specific question type.
         """
         
-        # Create tools list with instance methods
+        # Create tools list with static methods
         tools = [
-            self.query_flowise_deep_research,
-            self.query_aeromedical_risk,
-            self.query_aerospace_medicine_rag,
+            FlowiseAgentSystem.query_flowise_deep_research,
+            FlowiseAgentSystem.query_aeromedical_risk,
+            FlowiseAgentSystem.query_aerospace_medicine_rag,
         ]
         
         agent = Agent(
@@ -298,7 +304,7 @@ class FlowiseAgentSystem:
         
         # Create tools list with the deep research method
         tools = [
-            self.query_flowise_deep_research,
+            FlowiseAgentSystem.query_flowise_deep_research,
         ]
         
         agent = Agent(
@@ -363,7 +369,7 @@ class FlowiseAgentSystem:
         
         # Create tools list with the aeromedical risk method
         tools = [
-            self.query_aeromedical_risk,
+            FlowiseAgentSystem.query_aeromedical_risk,
         ]
         
         agent = Agent(
@@ -427,7 +433,7 @@ class FlowiseAgentSystem:
         
         # Create tools list with the aerospace medicine RAG method
         tools = [
-            self.query_aerospace_medicine_rag,
+            FlowiseAgentSystem.query_aerospace_medicine_rag,
         ]
         
         agent = Agent(
@@ -454,13 +460,18 @@ def create_flowise_enhancement_system() -> Dict[str, Agent]:
     analyzer_agent = flowise_system.create_flowise_analyzer(processor_agent)
     enhancer_agent = flowise_system.create_flowise_enhancer(analyzer_agent)
 
+    # We need to get the static methods for the standalone agents
+    deep_research_agent = flowise_system.create_deepresearch_agent()
+    aeromedical_risk_agent = flowise_system.create_aeromedical_risk_agent()
+    aerospace_medicine_rag_agent = flowise_system.create_aerospace_medicine_rag_agent()
+
     return {
         "flowise_enhancer": enhancer_agent,
         "flowise_analyzer": analyzer_agent,
         "flowise_processor": processor_agent,
-        "deep_research": flowise_system.create_deepresearch_agent(),
-        "aeromedical_risk": flowise_system.create_aeromedical_risk_agent(),
-        "aerospace_medicine_rag": flowise_system.create_aerospace_medicine_rag_agent(),
+        "deep_research": deep_research_agent,
+        "aeromedical_risk": aeromedical_risk_agent,
+        "aerospace_medicine_rag": aerospace_medicine_rag_agent,
     }
 
 

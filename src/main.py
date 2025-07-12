@@ -385,7 +385,8 @@ class EnhancedPromptEnhancerApp:
         # This loop is now synchronous and will call asyncio.run for each input.
         while True:
             try:
-                user_input = self.ui.get_user_input_enhanced()
+                # Use the multiline handler directly for input
+                user_input = self.multiline_handler.get_input()
                 if not self.handle_enhanced_user_input(user_input):
                     break
             except KeyboardInterrupt:
