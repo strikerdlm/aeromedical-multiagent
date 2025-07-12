@@ -291,6 +291,7 @@ class EnhancedPromptEnhancerApp:
             self.prisma_system = None
         
         self.messages: List[Dict[str, Any]] = []
+        self.last_user_query: Optional[str] = None
         
         # Current processing mode and agent
         self.current_mode: str = "smart"  # "smart", "prompt", "flowise", "prisma"
@@ -380,41 +381,67 @@ class EnhancedPromptEnhancerApp:
     def display_enhanced_welcome(self) -> None:
         """Display an enhanced welcome message with better onboarding."""
         
-        # Title - simple text with emoticon
-        self.console.print("\n🚀 [bold blue]Advanced Aeromedical Evidence Review System[/bold blue]\n")
-        
-        # Quick start guide
-        self.console.print("🎯 [bold]How to Get Started[/bold]")
-        self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
-        self.console.print()
-        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge")
-        self.console.print("• [bold]Research/Analysis[/bold] → Prompt with web search or Flowise deep research")
-        self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
-        self.console.print()
-        self.console.print("[bold]Pro Tips:[/bold]")
-        self.console.print("• Type [bold]?[/bold] for quick help  • [bold]/modes[/bold] to see all modes  • [bold]>>>[/bold] for multiline input")
-        self.console.print("• [bold]/history[/bold] to review conversation  • [bold]/clear[/bold] to start fresh")
-        self.console.print("• [bold]/fallback[/bold] to toggle auto-fallback to Prompt when Flowise times out")
-        self.console.print("• [bold]Progress tracking[/bold] shows completion percentage and time estimates")
-        self.console.print()
-        
-        # Available modes - simple text layout
-        self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
-        self.console.print()
-        self.console.print("[cyan]🔬 Prompt Research[/cyan]          [green]🔬 Deep Research[/green]")
-        self.console.print("Complex analysis            Comprehensive analysis")
-        self.console.print("Latest research             Multiple sources")  
-        self.console.print("Technology reviews          Literature synthesis")
-        self.console.print()
-        self.console.print("[yellow]🚁 Aero Risk[/yellow]           [blue]🚀 Aerospace Medicine[/blue]")
-        self.console.print("Flight safety               Scientific articles")
-        self.console.print("Risk assessment             Medical textbooks")
-        self.console.print("Aviation medicine           Evidence-based care")
-        self.console.print()
-        self.console.print("[magenta]🎯 Smart Mode[/magenta]")
-        self.console.print("Auto-detection")
-        self.console.print("Best AI selection")
-        self.console.print("Seamless routing")
+        # Main Title Panel
+        title_panel = Panel(
+            Text("Advanced Aeromedical Evidence Review System", justify="center", style="bold blue"),
+            title="🚀 Welcome",
+            border_style="green",
+            padding=(1, 2)
+        )
+        self.console.print(title_panel)
+
+        # Quick Start Guide Panel
+        quick_start_text = """
+[bold]Just ask your question![/bold] The system will automatically detect the best processing method:
+
+• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge
+• [bold]Research/Analysis[/bold] → Prompt Research with web search or Flowise deep research
+• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation
+        """
+        quick_start_panel = Panel(
+            Markdown(quick_start_text.strip()),
+            title="🎯 Quick Start",
+            border_style="cyan",
+            padding=(1, 2)
+        )
+        self.console.print(quick_start_panel)
+
+        # Pro Tips Panel
+        pro_tips_text = """
+• **`?`** for quick help
+• **`/modes`** to see all modes
+• **`/history`** to review conversation
+• **`/clear`** to start fresh
+• **`>>>`** for multiline input
+• **`/transfer <mode>`** to re-run last query in a new mode
+        """
+        pro_tips_panel = Panel(
+            Markdown(pro_tips_text.strip()),
+            title="💡 Pro Tips",
+            border_style="yellow",
+            padding=(1, 2)
+        )
+        self.console.print(pro_tips_panel)
+
+        # Available Modes Table
+        modes_table = Table(title="🛠️ Available Processing Modes", show_header=True, header_style="bold magenta")
+        modes_table.add_column("Mode", style="cyan", no_wrap=True)
+        modes_table.add_column("Description", style="green")
+        modes_table.add_column("Command", style="yellow")
+
+        modes_data = {
+            "Smart Auto-Detection": ("System automatically selects best AI", "/smart"),
+            "Prompt Research": ("Complex analysis and reasoning", "/prompt"),
+            "Flowise Deep Research": ("Comprehensive research synthesis", "/deep"),
+            "Aeromedical Risk": ("Aviation medicine assessment", "/aero"),
+            "Aerospace Medicine RAG": ("Scientific articles and textbooks", "/aerospace"),
+            "PRISMA Systematic Review": ("PRISMA-compliant reviews", "/prisma")
+        }
+
+        for mode, (desc, cmd) in modes_data.items():
+            modes_table.add_row(mode, desc, cmd)
+
+        self.console.print(modes_table)
         self.console.print()
     
     def display_current_status(self) -> None:
@@ -425,7 +452,7 @@ class EnhancedPromptEnhancerApp:
             "deep_research": ("🔬", "Deep Research", "Comprehensive research synthesis"),
             "aeromedical_risk": ("🚁", "Aeromedical Risk", "Aviation medicine assessment"),
             "aerospace_medicine_rag": ("🚀", "Aerospace Medicine RAG", "Scientific articles and textbooks"),
-            "prisma": ("📊", "PRISMA Systematic Review", "Systematic reviews, meta-analyses, evidence synthesis")
+            "prisma": ("📊", "PRISMA Systematic Review", "PRISMA-compliant reviews")
         }
         
         emoji, mode_name, description = mode_info.get(self.current_mode, ("❓", "Unknown", "Unknown mode"))
@@ -744,6 +771,15 @@ class EnhancedPromptEnhancerApp:
             elif command in ['prisma', 'systematic', 'review', 'p']:
                 self.switch_mode("prisma")
                 return True
+            elif command.startswith('transfer'):
+                parts = command.split()
+                if len(parts) > 1:
+                    target_mode = parts[1]
+                    return self.handle_transfer_request(target_mode)
+                else:
+                    self.console.print("[red]❌ Usage: /transfer <mode>[/red]")
+                    self.display_mode_selection()
+                    return True
             
             # Information commands
             elif command in ['modes', 'mode', 'm']:
@@ -803,6 +839,9 @@ class EnhancedPromptEnhancerApp:
             self.console.print("[yellow]💬 Please enter a question or command. Type ? for help.[/yellow]")
             return True
         
+        # It's a query, not a command. Store it.
+        self.last_user_query = user_input
+        
         # Smart mode detection
         mode_changed = self.handle_smart_mode_detection(user_input)
         
@@ -852,6 +891,7 @@ class EnhancedPromptEnhancerApp:
             
             self.console.print(f"\n[green]✅ Response generated successfully![/green]")
             self.show_export_options()
+            self.provide_contextual_tip()
             
         except Exception as e:
             logger.error(f"Error processing request with agent {agent_name}: {e}", exc_info=True)
@@ -968,6 +1008,67 @@ class EnhancedPromptEnhancerApp:
             self.current_agent = original_agent
             
             return False
+
+    def handle_transfer_request(self, target_mode: str) -> bool:
+        """Handles the /transfer command."""
+        if not self.last_user_query:
+            self.console.print("[yellow]⚠️ No previous query to transfer. Please ask a question first.[/yellow]")
+            return True
+
+        self.console.print(f"🔄 [cyan]Transferring last query to [bold]{target_mode}[/bold] mode...[/cyan]")
+        
+        # Switch to the new mode
+        if not self.switch_mode(target_mode):
+            self.console.print(f"[red]❌ Could not switch to mode '{target_mode}'.[/red]")
+            return True
+
+        # Re-process the last query
+        self.console.print(f"Reprocessing query: \"{self.last_user_query[:100].replace(os.linesep, ' ')}...\"")
+        return asyncio.run(self.process_user_request_enhanced(self.last_user_query))
+
+    async def handle_prisma_request(self, user_input: str) -> bool:
+        """
+        Handle PRISMA systematic review requests.
+        Now async to properly call the agent system.
+        """
+        try:
+            if not self.prisma_system:
+                self.console.print("[red]❌ PRISMA agent system not available[/red]")
+                return True
+            
+            # Add user message to conversation
+            self.messages.append({"role": "user", "content": user_input})
+            
+            # Get the entry-point agent for the PRISMA system
+            prisma_agent = self.prisma_system.get_initial_agent()
+            
+            # Create the initial prompt for the orchestrator
+            # The agent will ask for more details if needed.
+            initial_prompt = f"Start a PRISMA systematic review for the following research question: {user_input}"
+
+            self.console.print(f"\n📊 [cyan]Initiating PRISMA systematic review for:[/cyan] {user_input[:100]}...")
+            self.console.print("[dim]Using multi-agent framework...[/dim]")
+            
+            # Run the PRISMA agent system
+            response = await Runner.run(prisma_agent, initial_prompt)
+            final_output = response.final_output if response else "PRISMA agent did not produce a final output."
+
+            # Handle the response
+            self.messages.append({"role": "assistant", "content": final_output})
+            self.console.print(f"\n📊 PRISMA System Response")
+            self.console.print("─" * 60)
+            self.console.print(Markdown(final_output))
+            self.console.print("─" * 60)
+            
+            self.console.print(f"\n[green]✅ PRISMA process step completed![/green]")
+            self.show_export_options()
+            self.provide_contextual_tip()
+            
+        except Exception as e:
+            logger.error(f"Error in PRISMA request: {e}", exc_info=True)
+            self.console.print(f"[red]❌ PRISMA processing error: {e}[/red]")
+        
+        return True
 
     def display_prisma_status(self) -> None:
         """Display PRISMA system status and capabilities."""
@@ -1188,6 +1289,21 @@ class EnhancedPromptEnhancerApp:
         self.console.print()
         self.console.print("💡 Use /settings to view all preferences or /fallback to toggle this setting again.")
         self.console.print()
+
+    def provide_contextual_tip(self) -> None:
+        """Provide a random, helpful tip to the user after a response."""
+        import random
+        tips = [
+            "Type `/modes` to see all available AI models.",
+            "Use `/history` to review your conversation.",
+            "You can export this response with `/export`.",
+            "To start over, just type `/clear`.",
+            f"Try switching to another mode, like `/transfer prompt` to re-run your last query.",
+            "Use `>>>` at the start of your message for multiline input."
+        ]
+        
+        tip = random.choice(tips)
+        self.console.print(f"\n[dim]💡 Tip: {tip}[/dim]")
 
     def export_latest_response(self) -> None:
         """Export the latest response to a markdown file."""
