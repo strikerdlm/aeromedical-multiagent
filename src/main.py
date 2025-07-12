@@ -811,6 +811,7 @@ class EnhancedPromptEnhancerApp:
             self.console.print("[dim]📋 Large content detected - processing with enhanced context handling...[/dim]")
         
         # Since the main loop is now async, we can await this directly
+        # The process_user_request_enhanced method will handle all modes, including prisma.
         return asyncio.run(self.process_user_request_enhanced(user_input))
     
     async def process_user_request_enhanced(self, user_input: str) -> bool:
@@ -822,11 +823,6 @@ class EnhancedPromptEnhancerApp:
         if self.current_mode == "smart":
             suggested_mode, _ = self.detect_optimal_mode(user_input)
             self.switch_mode(suggested_mode)
-
-        # Special handling for PRISMA mode is now also async
-        if self.current_mode == "prisma":
-            await self.handle_prisma_request(user_input)
-            return True
 
         if not self.current_agent:
             self.console.print("❌ [red]No processing agent available for this mode. Please select another mode.[/red]")
@@ -972,50 +968,6 @@ class EnhancedPromptEnhancerApp:
             self.current_agent = original_agent
             
             return False
-
-    async def handle_prisma_request(self, user_input: str) -> bool:
-        """
-        Handle PRISMA systematic review requests.
-        Now async to properly call the agent system.
-        """
-        try:
-            if not self.prisma_system:
-                self.console.print("[red]❌ PRISMA agent system not available[/red]")
-                return True
-            
-            # Add user message to conversation
-            self.messages.append({"role": "user", "content": user_input})
-            
-            # Get the entry-point agent for the PRISMA system
-            prisma_agent = self.prisma_system.get_initial_agent()
-            
-            # Create the initial prompt for the orchestrator
-            # Since the new prisma_agents doesn't take all params at once, we start with the research question.
-            # The agent will have to ask for more details if needed.
-            initial_prompt = f"Start a PRISMA systematic review for the following research question: {user_input}"
-
-            self.console.print(f"\n📊 [cyan]Initiating PRISMA systematic review for:[/cyan] {user_input[:100]}...")
-            self.console.print("[dim]Using multi-agent framework...[/dim]")
-            
-            # Run the PRISMA agent system
-            response = await Runner.run(prisma_agent, initial_prompt)
-            final_output = response.final_output if response else "PRISMA agent did not produce a final output."
-
-            # Handle the response
-            self.messages.append({"role": "assistant", "content": final_output})
-            self.console.print(f"\n📊 PRISMA System Response")
-            self.console.print("─" * 60)
-            self.console.print(Markdown(final_output))
-            self.console.print("─" * 60)
-            
-            self.console.print(f"\n[green]✅ PRISMA process step completed![/green]")
-            self.show_export_options()
-            
-        except Exception as e:
-            logger.error(f"Error in PRISMA request: {e}", exc_info=True)
-            self.console.print(f"[red]❌ PRISMA processing error: {e}[/red]")
-        
-        return True
 
     def display_prisma_status(self) -> None:
         """Display PRISMA system status and capabilities."""

@@ -13,6 +13,7 @@ import time
 from typing import Dict, Any, List, Optional, Generator, Union
 from dataclasses import dataclass
 from openai import OpenAI
+from pydantic import BaseModel
 
 from agents import Agent, function_tool
 from .config import AppConfig, PRISMAConfig
@@ -25,12 +26,21 @@ from .markdown_exporter import MarkdownExporter
 logger = logging.getLogger(__name__)
 
 
+class SearchStrategy(BaseModel):
+    """Data model for the PRISMA search strategy."""
+    keywords: List[str]
+    databases: List[str]
+    date_range: str
+    language: str
+    additional_context: Optional[str] = None
+
+
 @dataclass
 class PRISMAWorkflow:
     """Data class for PRISMA workflow state and progress."""
     
     research_question: str
-    search_strategy: Dict[str, Any]
+    search_strategy: SearchStrategy
     inclusion_criteria: List[str]
     exclusion_criteria: List[str]
     current_phase: str = "planning"
@@ -79,7 +89,7 @@ class PRISMAAgentTools:
     def initialize_workflow(
         self,
         research_question: str,
-        search_strategy: Dict[str, Any],
+        search_strategy: SearchStrategy,
         inclusion_criteria: List[str],
         exclusion_criteria: List[str]
     ) -> str:
@@ -125,7 +135,7 @@ class PRISMAAgentTools:
             logger.info("Starting systematic literature search...")
             
             # Phase 1: Perplexity deep research
-            keywords = self.workflow.search_strategy.get("keywords", [])
+            keywords = self.workflow.search_strategy.keywords
             perplexity_results = self.perplexity_router.search_phase(
                 self.workflow.research_question, keywords
             )
@@ -781,18 +791,21 @@ class PRISMAAgentSystem:
         instructions = """
         You are the PRISMA Orchestrator Agent. Your role is to manage the entire PRISMA systematic review workflow by handing off tasks to specialized agents in the correct sequence.
         
-        Workflow Steps:
+        Your first step is to gather the necessary information from the user and initialize the workflow using the `initialize_workflow` tool. You will need: a research question, a search strategy (keywords, databases, date range, language), inclusion criteria, and exclusion criteria.
+
+        Once initialized, you will hand off tasks to specialized agents in the correct sequence:
         1. Hand off to the Literature Searcher Agent to conduct the search.
         2. Once search is complete, hand off to the Study Reviewer Agent for screening and analysis.
         3. Then, hand off to the Review Writer Agent to generate the review.
         4. Finally, hand off to the Validation Agent to validate and export.
         
-        Use the handoffs to delegate each phase. Monitor the progress and ensure the workflow completes.
+        Use your tool to start, then use handoffs to delegate each phase.
         """
         
         return Agent(
             name="PRISMA Orchestrator Agent",
             instructions=instructions,
+            tools=[self.tools.initialize_workflow],
             handoffs=[self._searcher_agent],
             model=AppConfig.OPENAI_MODEL
         )
