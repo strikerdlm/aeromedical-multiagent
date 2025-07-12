@@ -41,6 +41,8 @@ except Exception:  # pragma: no cover - fallback for missing dependency
 from .config import AppConfig
 from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
 
+from pydantic import BaseModel
+
 
 logger = logging.getLogger(__name__)
 
