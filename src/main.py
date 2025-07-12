@@ -21,16 +21,15 @@ from rich.console import Console as RichConsole
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
 from rich.live import Live
 from pydantic import BaseModel
-# Remove problematic imports and use simpler Rich components
+from agents import Runner
 
 from .config import AppConfig
-from .agent_orchestrator import AgentOrchestrator
-from .o3_agents import create_o3_enhancement_system
+from .prompt_agents import create_prompt_enhancement_system
 from .flowise_agents import create_flowise_enhancement_system
 from .flowise_client import FlowiseAPIError
 from .multiline_input import MultilineInputHandler, detect_paste_input, format_large_text_preview
 from .markdown_exporter import MarkdownExporter
-from .prisma_orchestrator import create_prisma_orchestrator, PRISMAOrchestrator
+from .prisma_agents import PRISMAAgentSystem, create_prisma_agent_system
 
 
 class ProgressTracker:
@@ -274,28 +273,27 @@ class EnhancedPromptEnhancerApp:
         """Initialize the enhanced prompt enhancer application."""
         self.console = Console()
         self.multiline_handler = MultilineInputHandler(self.console)
-        self.orchestrator = AgentOrchestrator()
         self.markdown_exporter = MarkdownExporter()
         self.progress_handler = AsyncProgressHandler(self.console)
         
         # Create both agent systems
-        self.o3_agents = create_o3_enhancement_system()
+        self.prompt_agents = create_prompt_enhancement_system()
         self.flowise_agents = create_flowise_enhancement_system()
         
         # Initialize PRISMA orchestrator (optional, depends on API availability)
-        self.prisma_orchestrator: Optional[PRISMAOrchestrator] = None
+        self.prisma_system: Optional[PRISMAAgentSystem] = None
         try:
             if AppConfig.validate_prisma_environment():
-                self.prisma_orchestrator = create_prisma_orchestrator()
-                logger.info("PRISMA orchestrator initialized successfully")
+                self.prisma_system = PRISMAAgentSystem()
+                logger.info("PRISMA agent system initialized successfully")
         except Exception as e:
-            logger.warning(f"PRISMA orchestrator initialization failed: {e}")
-            self.prisma_orchestrator = None
+            logger.warning(f"PRISMA system initialization failed: {e}")
+            self.prisma_system = None
         
         self.messages: List[Dict[str, Any]] = []
         
         # Current processing mode and agent
-        self.current_mode: str = "smart"  # "smart", "o3", "deep_research", "aeromedical_risk", "aerospace_medicine_rag"
+        self.current_mode: str = "smart"  # "smart", "prompt", "flowise", "prisma"
         self.current_agent = None
         self.user_preferences = {
             "auto_suggest": True,
@@ -306,7 +304,7 @@ class EnhancedPromptEnhancerApp:
         
         # Smart mode detection patterns
         self.mode_patterns = {
-            "o3": [
+            "prompt": [
                 r"quantum|technology|latest|recent|current|compare|analysis|research|explain.*how",
                 r"artificial intelligence|AI|machine learning|deep learning",
                 r"what.*latest|recent.*development|current.*state",
@@ -329,6 +327,9 @@ class EnhancedPromptEnhancerApp:
                 r"scientific.*article|textbook|medical.*literature",
                 r"physiology|clinical|health|treatment|therapy|diagnosis",
                 r"medical.*research|clinical.*guideline|evidence.*based"
+            ],
+            "prisma": [
+                r"prisma|systematic.*review|meta.*analysis"
             ]
         }
         
@@ -374,7 +375,7 @@ class EnhancedPromptEnhancerApp:
         if any(term in query_lower for term in ["medical", "health", "physiology", "clinical", "aerospace", "aviation"]):
             return "aerospace_medicine_rag", 0.6
         else:
-            return "o3", 0.5
+            return "prompt", 0.5
     
     def display_enhanced_welcome(self) -> None:
         """Display an enhanced welcome message with better onboarding."""
@@ -387,20 +388,20 @@ class EnhancedPromptEnhancerApp:
         self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
         self.console.print()
         self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge")
-        self.console.print("• [bold]Research/Analysis[/bold] → O3 deep research with web search or Flowise deep research")
+        self.console.print("• [bold]Research/Analysis[/bold] → Prompt with web search or Flowise deep research")
         self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
         self.console.print()
         self.console.print("[bold]Pro Tips:[/bold]")
         self.console.print("• Type [bold]?[/bold] for quick help  • [bold]/modes[/bold] to see all modes  • [bold]>>>[/bold] for multiline input")
         self.console.print("• [bold]/history[/bold] to review conversation  • [bold]/clear[/bold] to start fresh")
-        self.console.print("• [bold]/fallback[/bold] to toggle auto-fallback to O3 when Flowise times out")
+        self.console.print("• [bold]/fallback[/bold] to toggle auto-fallback to Prompt when Flowise times out")
         self.console.print("• [bold]Progress tracking[/bold] shows completion percentage and time estimates")
         self.console.print()
         
         # Available modes - simple text layout
         self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
         self.console.print()
-        self.console.print("[cyan]🔬 O3 Research[/cyan]          [green]🔬 Deep Research[/green]")
+        self.console.print("[cyan]🔬 Prompt Research[/cyan]          [green]🔬 Deep Research[/green]")
         self.console.print("Complex analysis            Comprehensive analysis")
         self.console.print("Latest research             Multiple sources")  
         self.console.print("Technology reviews          Literature synthesis")
@@ -420,10 +421,11 @@ class EnhancedPromptEnhancerApp:
         """Display current system status and available options."""
         mode_info = {
             "smart": ("🎯", "Smart Auto-Detection", "System automatically selects best AI"),
-            "o3": ("🔬", "O3 Deep Research", "Complex analysis and reasoning"),
+            "prompt": ("🔬", "Prompt Research", "Complex analysis and reasoning"),
             "deep_research": ("🔬", "Deep Research", "Comprehensive research synthesis"),
             "aeromedical_risk": ("🚁", "Aeromedical Risk", "Aviation medicine assessment"),
             "aerospace_medicine_rag": ("🚀", "Aerospace Medicine RAG", "Scientific articles and textbooks"),
+            "prisma": ("📊", "PRISMA Systematic Review", "Systematic reviews, meta-analyses, evidence synthesis")
         }
         
         emoji, mode_name, description = mode_info.get(self.current_mode, ("❓", "Unknown", "Unknown mode"))
@@ -445,9 +447,9 @@ class EnhancedPromptEnhancerApp:
         self.console.print("   Quick Switch: [green]/smart[/green]")
         self.console.print()
         
-        self.console.print("[cyan]🔬 O3 Deep Research[/cyan]")
+        self.console.print("[cyan]🔬 Prompt Research[/cyan]")
         self.console.print("   Complex analysis, latest research, technology reviews")
-        self.console.print("   Quick Switch: [green]/o3[/green]")
+        self.console.print("   Quick Switch: [green]/prompt[/green]")
         self.console.print()
         
         self.console.print("[cyan]🔬 Deep Research[/cyan]")
@@ -465,12 +467,10 @@ class EnhancedPromptEnhancerApp:
         self.console.print("   Quick Switch: [green]/aerospace[/green]")
         self.console.print()
         
-        # Show PRISMA option if available
-        if self.prisma_orchestrator:
-            self.console.print("[cyan]📊 PRISMA Systematic Review[/cyan]")
-            self.console.print("   Systematic reviews, meta-analyses, evidence synthesis")
-            self.console.print("   Quick Switch: [green]/prisma[/green]")
-            self.console.print()
+        self.console.print("[cyan]📊 PRISMA Systematic Review[/cyan]")
+        self.console.print("   Systematic reviews, meta-analyses, evidence synthesis")
+        self.console.print("   Quick Switch: [green]/prisma[/green]")
+        self.console.print()
     
     def display_contextual_help(self) -> None:
         """Display contextual help based on current mode."""
@@ -486,7 +486,7 @@ class EnhancedPromptEnhancerApp:
             ("/report", "Export structured research report"),
             ("/exports", "List all exported files"),
             ("/clear", "Clear conversation history"),
-            ("/fallback", "Toggle automatic fallback to O3 when Flowise times out"),
+            ("/fallback", "Toggle automatic fallback to Prompt when Flowise times out"),
             ("/quit", "Exit the application")
         ]
         
@@ -494,12 +494,12 @@ class EnhancedPromptEnhancerApp:
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
                 ("Progress tracking", "Shows completion percentage and time estimates"),
-                ("Auto-fallback", "Automatically switches to O3 if Flowise times out"),
-                ("Override", "Use /o3, /deep, /aero, /aerospace, /prisma to force specific mode")
+                ("Auto-fallback", "Automatically switches to Prompt if Flowise times out"),
+                ("Override", "Use /prompt, /deep, /aero, /aerospace, /prisma to force specific mode")
             ],
-            "o3": [
+            "prompt": [
                 ("Best for", "Scientific research, complex analysis, current events"),
-                ("Features", "o3-deep-research model with web search capabilities")
+                ("Features", "Prompt model with web search capabilities")
             ],
             "deep_research": [
                 ("Best for", "Comprehensive research, literature synthesis, multiple sources"),
@@ -515,7 +515,7 @@ class EnhancedPromptEnhancerApp:
             ],
             "prisma": [
                 ("Best for", "Systematic reviews, meta-analyses, comprehensive research"),
-                ("Features", "Multi-agent workflow with O3, Perplexity, Grok, and Flowise")
+                ("Features", "Multi-agent workflow with Prompt, Flowise, and Perplexity")
             ]
         }
         
@@ -541,7 +541,7 @@ class EnhancedPromptEnhancerApp:
                 "Latest developments in AI for medical diagnosis",
                 "Risk factors for pilots with diabetes"
             ],
-            "o3": [
+            "prompt": [
                 "Explain quantum computing applications in cryptography",
                 "Compare latest renewable energy technologies",
                 "Analyze current developments in space exploration"
@@ -585,7 +585,7 @@ class EnhancedPromptEnhancerApp:
         # Dynamic prompt based on mode
         mode_prompts = {
             "smart": "🎯 Ask your question (auto-detection enabled)",
-            "o3": "🔬 Enter your research question",
+            "prompt": "🔬 Enter your research question",
             "deep_research": "🔬 Enter your research query",
             "aeromedical_risk": "🚁 Enter your aeromedical question",
             "aerospace_medicine_rag": "🚀 Enter your aerospace medicine question",
@@ -624,7 +624,7 @@ class EnhancedPromptEnhancerApp:
         if confidence > 0.6 and self.user_preferences["auto_suggest"]:
             # High confidence - suggest mode switch
             mode_names = {
-                "o3": "🔬 O3 Deep Research",
+                "prompt": "🔬 Prompt Research",
                 "deep_research": "🔬 Deep Research", 
                 "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
                 "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG",
@@ -663,11 +663,11 @@ class EnhancedPromptEnhancerApp:
         """
         mode_agents = {
             "smart": None,
-            "o3": self.o3_agents["o3_enhancer"],
+            "prompt": self.prompt_agents,
             "deep_research": self.flowise_agents["deep_research"],
             "aeromedical_risk": self.flowise_agents["aeromedical_risk"],
             "aerospace_medicine_rag": self.flowise_agents["aerospace_medicine_rag"],
-            "prisma": None  # Special handling for PRISMA
+            "prisma": self.prisma_system
         }
         
         if new_mode not in mode_agents:
@@ -676,7 +676,7 @@ class EnhancedPromptEnhancerApp:
         
         # Special handling for PRISMA mode
         if new_mode == "prisma":
-            if not self.prisma_orchestrator:
+            if not self.prisma_system:
                 self.console.print("[red]❌ PRISMA mode unavailable - missing API keys or configuration[/red]")
                 self.console.print("[yellow]💡 PRISMA requires: OpenAI, Flowise, Perplexity, and Grok API keys[/yellow]")
                 return False
@@ -687,7 +687,7 @@ class EnhancedPromptEnhancerApp:
         
         mode_names = {
             "smart": "🎯 Smart Auto-Detection",
-            "o3": "🔬 O3 Deep Research",
+            "prompt": "🔬 Prompt Research",
             "deep_research": "🔬 Deep Research",
             "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
             "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG",
@@ -729,8 +729,8 @@ class EnhancedPromptEnhancerApp:
             elif command in ['smart', 's']:
                 self.switch_mode("smart")
                 return True
-            elif command in ['o3', 'research']:
-                self.switch_mode("o3")
+            elif command in ['prompt', 'p']:
+                self.switch_mode("prompt")
                 return True
             elif command in ['deep', 'deepresearch', 'd']:
                 self.switch_mode("deep_research")
@@ -810,158 +810,62 @@ class EnhancedPromptEnhancerApp:
         if detect_paste_input(user_input):
             self.console.print("[dim]📋 Large content detected - processing with enhanced context handling...[/dim]")
         
-        return self.process_user_request_enhanced(user_input)
+        # Since the main loop is now async, we can await this directly
+        return asyncio.run(self.process_user_request_enhanced(user_input))
     
-    def process_user_request_enhanced(self, user_input: str) -> bool:
+    async def process_user_request_enhanced(self, user_input: str) -> bool:
         """
         Enhanced request processing with better feedback and error handling.
-        
-        Args:
-            user_input: The user's request
-            
-        Returns:
-            True to continue, False to exit
+        This method is now async to properly use the agents.Runner.
         """
-        # If in smart mode and no agent selected, use default
-        if self.current_mode == "smart" and not self.current_agent:
-            # Default to flowise for medical content, o3 for general
+        # If in smart mode and no agent selected, determine agent now
+        if self.current_mode == "smart":
             suggested_mode, _ = self.detect_optimal_mode(user_input)
             self.switch_mode(suggested_mode)
-        
-        # Special handling for PRISMA mode
+
+        # Special handling for PRISMA mode is now also async
         if self.current_mode == "prisma":
-            return self.handle_prisma_request(user_input)
-        
+            await self.handle_prisma_request(user_input)
+            return True
+
         if not self.current_agent:
-            self.console.print("❌ [red]No processing agent available. Please select a mode first.[/red]")
+            self.console.print("❌ [red]No processing agent available for this mode. Please select another mode.[/red]")
             self.display_mode_selection()
             return True
+
+        self.messages.append({"role": "user", "content": user_input})
+        
+        agent_name = self.current_agent.name
+        self.console.print(f"\n🤖 [cyan]Processing your request with[/cyan] [bold]{agent_name}[/bold]...")
         
         try:
-            # Add user message to conversation
-            self.messages.append({"role": "user", "content": user_input})
+            # Use the official agents.Runner.run coroutine
+            response = await Runner.run(self.current_agent, user_input)
+
+            final_output = response.final_output if response else "Agent did not produce a final output."
             
-            # Enhanced processing feedback
-            agent_name = self.current_agent.name
-            mode_emoji = {
-                "o3": "🔬",
-                "deep_research": "🔬",
-                "aeromedical_risk": "🚁",
-                "aerospace_medicine_rag": "🚀"
-            }.get(self.current_mode, "🤖")
+            # Add assistant message to conversation history
+            assistant_message = {"role": "assistant", "content": final_output}
+            self.messages.append(assistant_message)
             
-            if len(user_input) > 500:
-                lines = len(user_input.split('\n'))
-                words = len(user_input.split())
-                self.console.print(f"\n{mode_emoji} [cyan]Processing your request[/cyan] ({lines} lines, {words} words) with [bold]{agent_name}[/bold]...")
-            else:
-                self.console.print(f"\n{mode_emoji} [cyan]Processing your request with[/cyan] [bold]{agent_name}[/bold]...")
+            # Display the response
+            self.console.print(f"\n🤖 [bold]{agent_name} Response:[/bold]")
+            self.console.print("─" * 60)
+            self.console.print(Markdown(final_output))
+            self.console.print("─" * 60)
             
-            # Execute the current agent with async progress tracking
-            try:
-                # Create async operation
-                async_operation = lambda: self.async_orchestrator_run(self.current_agent, self.messages)
-                
-                # Run with progress tracking
-                response = self.run_async_operation(
-                    async_operation,
-                    f"{agent_name} Processing",
-                    timeout_seconds=120
-                )
-                
-                # Fallback to synchronous if async failed
-                if response is None:
-                    self.console.print("🔄 [yellow]Falling back to synchronous processing...[/yellow]")
-                    with self.console.status("[bold green]Analyzing and generating response..."):
-                        response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
-                        
-            except asyncio.TimeoutError:
-                self.console.print("⏰ [red]Operation timed out after 120 seconds[/red]")
-                # Attempt fallback if this is a Flowise operation
-                if self.current_mode in ["deep_research", "aeromedical_risk", "aerospace_medicine_rag"]:
-                    if self.user_preferences["auto_fallback"] and self.attempt_flowise_fallback(user_input):
-                        return True
-                else:
-                    self.console.print("🔄 [yellow]Trying one more time with extended timeout...[/yellow]")
-                    try:
-                        with self.console.status("[bold green]Retrying with extended timeout..."):
-                            response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
-                    except Exception as retry_error:
-                        self.console.print(f"❌ [red]Retry failed: {retry_error}[/red]")
-                        return True
-            except Exception as async_error:
-                self.console.print(f"🔄 [yellow]Async processing failed, using standard method: {async_error}[/yellow]")
-                with self.console.status("[bold green]Analyzing and generating response..."):
-                    response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
-            
-            # Update current agent and messages
-            if response.agent:
-                self.current_agent = response.agent
-            self.messages.extend(response.messages)
-            
-            # Display the response with enhanced formatting
-            if response.messages:
-                last_message = response.messages[-1]
-                if last_message.get("role") == "assistant" and last_message.get("content"):
-                    response_content = last_message["content"]
-                    
-                    # Simple response display without borders
-                    mode_info = {
-                        "o3": "🔬 O3 Deep Research",
-                        "deep_research": "🔬 Deep Research",
-                        "aeromedical_risk": "🚁 Aeromedical Risk Assessment",
-                        "aerospace_medicine_rag": "🚀 Aerospace Medicine RAG"
-                    }
-                    
-                    title = mode_info.get(self.current_mode, f"🤖 {agent_name}")
-                    
-                    self.console.print(f"\n{title}")
-                    self.console.print("─" * 60)
-                    self.console.print(response_content)
-                    self.console.print("─" * 60)
-            
-            # Show success message with helpful next steps
             self.console.print(f"\n[green]✅ Response generated successfully![/green]")
-            
-            # Show export options
             self.show_export_options()
             
-            if self.current_mode == "smart":
-                self.console.print("💡 Ask another question or type /modes to explore different processing options")
-            else:
-                self.console.print(f"💡 Continue in {self.current_mode} mode or type /smart for auto-detection")
-            
-        except FlowiseAPIError as e:
-            logger.error(f"Flowise API error: {e}")
-            
-            # Check if this is a timeout error and attempt automatic fallback
-            if self.user_preferences["auto_fallback"] and self.is_timeout_error(str(e)) and self.attempt_flowise_fallback(user_input):
-                return True
-            
-            # If fallback failed or not applicable, show error
-            self.console.print()
-            self.console.print("❌ [red]Flowise API Error[/red]")
-            self.console.print(f"[red]{e}[/red]")
-            self.console.print()
-            self.console.print("[yellow]Suggestions:[/yellow]")
-            self.console.print("• Check your Flowise API configuration")
-            self.console.print("• Verify your internet connection")
-            self.console.print("• Try switching to O3 mode with /o3")
-            self.console.print()
         except Exception as e:
-            logger.error(f"Unexpected error processing request: {e}")
-            self.console.print()
-            self.console.print("❌ [red]Processing Error[/red]")
-            self.console.print(f"[red]{e}[/red]")
-            self.console.print()
-            self.console.print("[yellow]Suggestions:[/yellow]")
-            self.console.print("• Try rephrasing your question")
-            self.console.print("• Check the logs for more details")
-            self.console.print("• Try a different processing mode")
-            self.console.print()
-        
+            logger.error(f"Error processing request with agent {agent_name}: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error during processing: {e}[/red]")
+            # Attempt fallback for Flowise errors
+            if "flowise" in self.current_mode and self.user_preferences["auto_fallback"]:
+                await self.attempt_flowise_fallback(user_input)
+
         return True
-    
+
     def is_timeout_error(self, error_message: str) -> bool:
         """
         Check if the error is a timeout error that should trigger fallback.
@@ -986,7 +890,7 @@ class EnhancedPromptEnhancerApp:
         error_lower = error_message.lower()
         return any(indicator.lower() in error_lower for indicator in timeout_indicators)
     
-    def attempt_flowise_fallback(self, user_input: str) -> bool:
+    async def attempt_flowise_fallback(self, user_input: str) -> bool:
         """
         Attempt to fallback to O3 agents when Flowise fails.
         
@@ -1008,12 +912,12 @@ class EnhancedPromptEnhancerApp:
             
             # Show fallback notification
             self.console.print()
-            self.console.print("⚡ [yellow]Flowise API timeout detected - automatically switching to O3 fallback[/yellow]")
-            self.console.print("🔄 [cyan]Retrying your request with O3 Deep Research...[/cyan]")
+            self.console.print("⚡ [yellow]Flowise API timeout detected - automatically switching to Prompt fallback[/yellow]")
+            self.console.print("🔄 [cyan]Retrying your request with Prompt Research...[/cyan]")
             self.console.print()
             
             # Switch to O3 mode temporarily
-            self.switch_mode("o3")
+            self.switch_mode("prompt")
             
             # Remove the failed user message from history (it was already added)
             if self.messages and self.messages[-1].get("role") == "user":
@@ -1023,7 +927,7 @@ class EnhancedPromptEnhancerApp:
             self.messages.append({"role": "user", "content": user_input})
             
             # Process with O3 agent
-            with self.console.status("[bold green]Processing with O3 fallback..."):
+            with self.console.status("[bold green]Processing with Prompt fallback..."):
                 response = self.orchestrator.run_full_turn(self.current_agent, self.messages)
             
             # Update current agent and messages
@@ -1037,189 +941,88 @@ class EnhancedPromptEnhancerApp:
                 if last_message.get("role") == "assistant" and last_message.get("content"):
                     response_content = last_message["content"]
                     
-                    self.console.print(f"\n🔬 O3 Deep Research (Fallback)")
+                    self.console.print(f"\n🔬 Prompt Research (Fallback)")
                     self.console.print("─" * 60)
                     self.console.print(response_content)
                     self.console.print("─" * 60)
             
             # Show success message
-            self.console.print(f"\n[green]✅ Fallback successful! Response generated with O3 Deep Research.[/green]")
+            self.console.print(f"\n[green]✅ Fallback successful! Response generated with Prompt Research.[/green]")
             
             # Offer to stay in O3 mode or return to original mode
-            if original_mode != "o3":
+            if original_mode != "prompt":
                 self.console.print()
-                self.console.print(f"[yellow]💡 Note: Switched from {original_mode} to O3 mode due to Flowise timeout.[/yellow]")
-                self.console.print("• Type /o3 to stay in O3 mode")
+                self.console.print(f"[yellow]💡 Note: Switched from {original_mode} to Prompt mode due to Flowise timeout.[/yellow]")
+                self.console.print("• Type /prompt to stay in Prompt mode")
                 self.console.print(f"• Type /{original_mode} to return to {original_mode} mode")
                 self.console.print("• Type /smart for automatic mode selection")
             
             # Show export options
             self.show_export_options()
             
-            logger.info(f"Fallback successful: {original_mode} -> O3")
+            logger.info(f"Fallback successful: {original_mode} -> Prompt")
             return True
             
         except Exception as fallback_error:
-            logger.error(f"Fallback to O3 failed: {fallback_error}")
-            self.console.print(f"[red]❌ Fallback to O3 also failed: {fallback_error}[/red]")
+            logger.error(f"Fallback to Prompt failed: {fallback_error}")
+            self.console.print(f"[red]❌ Fallback to Prompt also failed: {fallback_error}[/red]")
             
             # Restore original mode and agent
             self.current_mode = original_mode
             self.current_agent = original_agent
             
             return False
-    
-    async def async_orchestrator_run(self, agent, messages):
-        """Async wrapper for orchestrator.run_full_turn."""
-        # Run the synchronous operation in a thread pool
-        import concurrent.futures
-        
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(self.orchestrator.run_full_turn, agent, messages)
-            return future.result()
-    
-    async def async_prisma_review(self, user_input: str):
-        """Async wrapper for PRISMA review."""
-        import concurrent.futures
-        
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(self.prisma_orchestrator.quick_prisma_review, user_input)
-            return future.result()
-    
-    def run_async_operation(self, async_func, operation_name: str, timeout_seconds: int = 120):
-        """Run an async operation with progress tracking."""
-        try:
-            # Always try to create a new event loop for clean execution
-            try:
-                # Check if there's a running loop
-                current_loop = asyncio.get_running_loop()
-                # If we get here, there's a running loop, so we need to use threading
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        self._run_async_in_new_loop,
-                        async_func, operation_name, timeout_seconds
-                    )
-                    return future.result()
-            except RuntimeError:
-                # No running loop, we can use asyncio.run
-                return self._run_async_in_new_loop(async_func, operation_name, timeout_seconds)
-        except Exception as e:
-            # Fallback to synchronous execution if async fails
-            logging.warning(f"Async operation failed, falling back to sync: {e}")
-            return None
-    
-    def _run_async_in_new_loop(self, async_func, operation_name: str, timeout_seconds: int):
-        """Run async operation in a new event loop."""
-        return asyncio.run(
-            self.progress_handler.execute_with_progress(
-                async_func, operation_name, timeout_seconds
-            )
-        )
-    
-    def handle_prisma_request(self, user_input: str) -> bool:
+
+    async def handle_prisma_request(self, user_input: str) -> bool:
         """
         Handle PRISMA systematic review requests.
-        
-        Args:
-            user_input: The user's research question or topic
-            
-        Returns:
-            True to continue, False to exit
+        Now async to properly call the agent system.
         """
         try:
-            if not self.prisma_orchestrator:
-                self.console.print("[red]❌ PRISMA orchestrator not available[/red]")
+            if not self.prisma_system:
+                self.console.print("[red]❌ PRISMA agent system not available[/red]")
                 return True
             
             # Add user message to conversation
             self.messages.append({"role": "user", "content": user_input})
             
-            # Enhanced processing feedback
+            # Get the entry-point agent for the PRISMA system
+            prisma_agent = self.prisma_system.get_initial_agent()
+            
+            # Create the initial prompt for the orchestrator
+            # Since the new prisma_agents doesn't take all params at once, we start with the research question.
+            # The agent will have to ask for more details if needed.
+            initial_prompt = f"Start a PRISMA systematic review for the following research question: {user_input}"
+
             self.console.print(f"\n📊 [cyan]Initiating PRISMA systematic review for:[/cyan] {user_input[:100]}...")
-            self.console.print("[dim]Using multi-agent framework with O3, Perplexity, Grok, and Flowise...[/dim]")
+            self.console.print("[dim]Using multi-agent framework...[/dim]")
             
-            # Create systematic review using the orchestrator with progress tracking
-            try:
-                # Create async operation for PRISMA review
-                async_operation = lambda: self.async_prisma_review(user_input)
-                
-                # Run with progress tracking
-                review_results = self.run_async_operation(
-                    async_operation,
-                    "PRISMA Systematic Review",
-                    timeout_seconds=180  # Extended timeout for PRISMA
-                )
-                
-                # Fallback to synchronous if async failed
-                if review_results is None:
-                    self.console.print("🔄 [yellow]Falling back to synchronous PRISMA processing...[/yellow]")
-                    with self.console.status("[bold green]Conducting comprehensive systematic review..."):
-                        review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
-                        
-            except asyncio.TimeoutError:
-                self.console.print("⏰ [red]PRISMA review timed out after 180 seconds[/red]")
-                self.console.print("💡 [yellow]PRISMA reviews can take time due to multi-agent processing. Please try again or use a simpler query.[/yellow]")
-                return True
-            except Exception as async_error:
-                self.console.print(f"🔄 [yellow]Async PRISMA processing failed, using standard method: {async_error}[/yellow]")
-                with self.console.status("[bold green]Conducting comprehensive systematic review..."):
-                    review_results = self.prisma_orchestrator.quick_prisma_review(user_input)
-            
+            # Run the PRISMA agent system
+            response = await Runner.run(prisma_agent, initial_prompt)
+            final_output = response.final_output if response else "PRISMA agent did not produce a final output."
+
             # Handle the response
-            if "error" in review_results:
-                self.console.print(f"[red]❌ PRISMA review failed: {review_results['error']}[/red]")
-                return True
+            self.messages.append({"role": "assistant", "content": final_output})
+            self.console.print(f"\n📊 PRISMA System Response")
+            self.console.print("─" * 60)
+            self.console.print(Markdown(final_output))
+            self.console.print("─" * 60)
             
-            # Extract and display the systematic review
-            systematic_review = review_results.get("systematic_review", "")
-            if systematic_review:
-                # Add assistant response to conversation
-                self.messages.append({"role": "assistant", "content": systematic_review})
-                
-                # Display the systematic review
-                self.console.print(f"\n📊 PRISMA Systematic Review")
-                self.console.print("─" * 60)
-                self.console.print(systematic_review)
-                self.console.print("─" * 60)
-                
-                # Display metadata
-                metadata = review_results.get("workflow_metadata", {})
-                word_count = metadata.get("word_count", 0)
-                citations = metadata.get("estimated_citations", 0)
-                
-                self.console.print(f"\n[green]✅ PRISMA systematic review completed![/green]")
-                self.console.print(f"📝 Word count: {word_count}")
-                self.console.print(f"📚 Estimated citations: {citations}")
-                
-                # Validation status
-                validation = review_results.get("validation_status", {})
-                if validation.get("meets_minimum_requirements", False):
-                    self.console.print("[green]✅ Meets PRISMA 2020 requirements[/green]")
-                else:
-                    self.console.print("[yellow]⚠️ May need additional work to meet all PRISMA requirements[/yellow]")
-                
-                # Show export options
-                self.show_export_options()
-                self.console.print("📊 /prisma-status - Check PRISMA system status")
-                self.console.print("📋 /prisma-reviews - List recent reviews")
-                
-            else:
-                self.console.print("[red]❌ No systematic review content generated[/red]")
+            self.console.print(f"\n[green]✅ PRISMA process step completed![/green]")
+            self.show_export_options()
             
         except Exception as e:
-            logger.error(f"Error in PRISMA request: {e}")
+            logger.error(f"Error in PRISMA request: {e}", exc_info=True)
             self.console.print(f"[red]❌ PRISMA processing error: {e}[/red]")
-            self.console.print("[yellow]💡 Try a simpler research question or check API configurations[/yellow]")
         
         return True
-    
+
     def display_prisma_status(self) -> None:
         """Display PRISMA system status and capabilities."""
         try:
-            if not self.prisma_orchestrator:
+            if not self.prisma_system:
                 self.console.print("📊 [bold]PRISMA System Status[/bold]")
-                self.console.print("[red]❌ PRISMA orchestrator not initialized[/red]")
+                self.console.print("[red]❌ PRISMA agent system not initialized[/red]")
                 self.console.print()
                 self.console.print("PRISMA requires the following API keys:")
                 self.console.print("• OpenAI API key (OPENAI_API_KEY)")
@@ -1230,7 +1033,7 @@ class EnhancedPromptEnhancerApp:
                 return
             
             # Get system status
-            status = self.prisma_orchestrator.get_prisma_status()
+            status = self.prisma_system.get_prisma_status()
             
             self.console.print("📊 [bold]PRISMA System Status[/bold]")
             self.console.print()
@@ -1308,12 +1111,12 @@ class EnhancedPromptEnhancerApp:
     def display_prisma_reviews(self) -> None:
         """Display recent PRISMA reviews."""
         try:
-            if not self.prisma_orchestrator:
-                self.console.print("[red]❌ PRISMA orchestrator not available[/red]")
+            if not self.prisma_system:
+                self.console.print("[red]❌ PRISMA agent system not available[/red]")
                 return
             
             # Get recent reviews
-            reviews = self.prisma_orchestrator.list_recent_reviews(limit=10)
+            reviews = self.prisma_system.list_recent_reviews(limit=10)
             
             if not reviews:
                 self.console.print("📋 [bold]Recent PRISMA Reviews[/bold]")
@@ -1371,7 +1174,7 @@ class EnhancedPromptEnhancerApp:
                 # Show preview for long content
                 if len(content) > 200:
                     preview = format_large_text_preview(content, max_lines=3, max_chars=200)
-                    self.console.print(f"[bold blue]�� You:[/bold blue] {preview}")
+                    self.console.print(f"[bold blue]🧑 You:[/bold blue] {preview}")
                 else:
                     self.console.print(f"[bold blue]🧑 You:[/bold blue] {content}")
             elif role == "assistant":
@@ -1409,7 +1212,7 @@ class EnhancedPromptEnhancerApp:
         
         self.console.print("[cyan]Auto fallback[/cyan]")
         self.console.print(f"  Current: {'✅ Enabled' if self.user_preferences['auto_fallback'] else '❌ Disabled'}")
-        self.console.print("  Description: Automatically fallback to O3 when Flowise encounters timeout errors")
+        self.console.print("  Description: Automatically fallback to Prompt when Flowise encounters timeout errors")
         self.console.print()
         
         self.console.print("Settings modification coming in future update. Type /help for available commands.")
@@ -1426,7 +1229,7 @@ class EnhancedPromptEnhancerApp:
         self.console.print()
         
         if self.user_preferences["auto_fallback"]:
-            self.console.print("🔄 [green]Auto-fallback enabled[/green] - System will automatically switch to O3 when Flowise times out")
+            self.console.print("🔄 [green]Auto-fallback enabled[/green] - System will automatically switch to Prompt when Flowise times out")
         else:
             self.console.print("⏸️ [yellow]Auto-fallback disabled[/yellow] - System will show error messages instead of falling back")
         
@@ -1585,41 +1388,27 @@ class EnhancedPromptEnhancerApp:
         self.console.print()
 
     def run_enhanced(self) -> None:
-        """Run the enhanced application with improved user experience."""
-        try:
-            # Show enhanced welcome
-            self.display_enhanced_welcome()
-            
-            # Main interaction loop
-            while True:
-                try:
-                    user_input = self.get_user_input_enhanced()
-                except (KeyboardInterrupt, EOFError):
-                    self.console.print("\n👋 [yellow]Goodbye! Thanks for using the Aeromedical Evidence Review System![/yellow]")
+        """Main application loop for the enhanced interface."""
+        self.display_enhanced_welcome()
+        
+        # This loop is now synchronous and will call asyncio.run for each input.
+        while True:
+            try:
+                user_input = self.get_user_input_enhanced()
+                if not self.handle_enhanced_user_input(user_input):
                     break
-                
-                # Handle the input
-                should_continue = self.handle_enhanced_user_input(user_input)
-                if not should_continue:
-                    break
-            
-        except Exception as e:
-            logger.error(f"Fatal error in enhanced main loop: {e}")
-            self.console.print()
-            self.console.print("💥 [red]Critical Error[/red]")
-            self.console.print(f"[red]Fatal Error:[/red] {e}")
-            self.console.print()
-            self.console.print("The application encountered an unexpected error and needs to close.")
-            self.console.print("Please check the logs for more details.")
-            self.console.print()
-        finally:
-            self.console.print("\n✨ [bold blue]Thank you for using the Enhanced Aeromedical Evidence Review System![/bold blue]")
-            self.console.print("Your research makes aviation safer. Keep up the great work!")
+            except KeyboardInterrupt:
+                self.console.print("\n\n[bold yellow]Exiting application.[/bold yellow]")
+                break
+            except Exception as e:
+                logger.error(f"An unexpected error occurred in the main loop: {e}", exc_info=True)
+                self.console.print(f"\n[bold red]An unexpected error occurred: {e}[/bold red]")
+                self.console.print("[dim]Please check the logs for more details.[/dim]")
 
 
 # Keep original class for compatibility
 class PromptEnhancerApp(EnhancedPromptEnhancerApp):
-    """Compatibility wrapper for the original class name."""
+    """Legacy compatibility class. Will be removed."""
     pass
 
 

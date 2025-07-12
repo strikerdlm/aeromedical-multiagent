@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, Any, List, Optional
 
-from agents import Agent, tool
+from agents import Agent, function_tool
 from .flowise_client import FlowiseClient, MedicalFlowiseRouter, FlowiseAPIError
 from .config import OpenAIModelsConfig, AppConfig
 
@@ -56,126 +56,6 @@ def _extract_flowise_response_text(response: Any) -> str:
     return str(response)
 
 
-class FlowisePromptTools:
-    """
-    Tools for prompt enhancement using only Flowise API.
-    
-    This class provides tools that agents can use to enhance prompts
-    and route them to appropriate Flowise chatflows.
-    """
-    
-    def __init__(self, flowise_client: Optional[FlowiseClient] = None):
-        """
-        Initialize the tools with a Flowise client.
-        
-        Args:
-            flowise_client: FlowiseClient instance for API calls
-        """
-        self.flowise_client = flowise_client or MedicalFlowiseRouter()
-    
-    @tool
-    def analyze_prompt_for_flowise(self, user_prompt: str) -> str:
-        """
-        Analyze the user prompt to determine the best Flowise chatflow.
-        
-        Args:
-            user_prompt: The original user prompt
-            
-        Returns:
-            Analysis of the prompt for Flowise routing
-        """
-        try:
-            # Use GPT-4o-mini for quick analysis focused on Flowise routing
-            analysis_prompt = f"""
-            Analyze this user prompt specifically for Flowise chatflow routing and provide:
-            
-            1. **Domain Classification**: Aeromedical Risk, Deep Research, Aerospace Medicine
-            2. **Best Flowise Chatflow**: Which chatflow would handle this best?
-               - aeromedical_risk: Aviation medicine risk assessment and analysis
-               - deep_research: Comprehensive research analysis with multiple sources
-               - aerospace_medicine_rag: Scientific articles and textbooks in aerospace medicine
-            3. **Query Type**: research, aeromedical, aerospace_medicine
-            4. **Enhancement Needs**: What context would improve Flowise processing?
-            5. **Streaming Preference**: Should this use streaming response?
-            
-            User prompt to analyze: "{user_prompt}"
-            
-            Provide a clear analysis for optimal Flowise chatflow selection and enhancement.
-            """
-            
-            # Use a simple completion for analysis
-            from openai import OpenAI
-            
-            client = OpenAI(api_key=AppConfig.OPENAI_API_KEY)
-            response = client.chat.completions.create(
-                model=OpenAIModelsConfig.GPT4_MINI.model_name,
-                messages=[{"role": "user", "content": analysis_prompt}],
-                max_tokens=800,
-                temperature=0.2
-            )
-            
-            analysis = response.choices[0].message.content
-            logger.info(f"Flowise prompt analysis completed for: {user_prompt[:50]}...")
-            return analysis or "Flowise analysis completed successfully."
-            
-        except Exception as e:
-            logger.error(f"Error analyzing prompt for Flowise: {e}")
-            return f"Error analyzing prompt for Flowise: {str(e)}"
-    
-    @tool
-    def enhance_prompt_for_flowise(self, original_prompt: str, flowise_analysis: str) -> str:
-        """
-        Enhance the original prompt specifically for Flowise chatflows.
-        
-        Args:
-            original_prompt: The user's original prompt
-            flowise_analysis: Analysis of the prompt for Flowise routing
-            
-        Returns:
-            Enhanced prompt optimized for Flowise chatflows
-        """
-        try:
-            enhancement_prompt = f"""
-            Based on the original user prompt and Flowise analysis, create an enhanced version 
-            optimized specifically for Flowise chatflow processing.
-            
-            **Original user prompt:** "{original_prompt}"
-            
-            **Flowise Analysis:** {flowise_analysis}
-            
-            **Your task:** Create an enhanced prompt that:
-            1. Adds relevant domain-specific context for the identified Flowise chatflow
-            2. Includes medical/research terminology that Flowise RAG systems understand
-            3. Structures the query for optimal retrieval from Flowise knowledge bases
-            4. Adds specific details that leverage Flowise's specialized datasets
-            5. Maintains the original intent while optimizing for Flowise processing
-            6. Includes context that helps Flowise's RAG systems find relevant documents
-            7. Formats the request for the specific chatflow type identified
-            8. Adds background information that Flowise systems can build upon
-            
-            **Flowise-Optimized Enhanced Prompt:**
-            """
-            
-            # Use GPT-4o-mini for enhancement
-            from openai import OpenAI
-            
-            client = OpenAI(api_key=AppConfig.OPENAI_API_KEY)
-            response = client.chat.completions.create(
-                model=OpenAIModelsConfig.GPT4_MINI.model_name,
-                messages=[{"role": "user", "content": enhancement_prompt}],
-                max_tokens=1500,
-                temperature=0.3
-            )
-            
-            enhanced = response.choices[0].message.content
-            logger.info(f"Flowise prompt enhanced successfully")
-            return enhanced or f"Flowise-enhanced version of: {original_prompt}"
-            
-        except Exception as e:
-            logger.error(f"Error enhancing prompt for Flowise: {e}")
-            return f"Error enhancing prompt for Flowise: {str(e)}"
-
-
 class FlowiseAgentSystem:
     """
     Factory class for creating Flowise-only prompt enhancement agents.
@@ -192,69 +72,8 @@ class FlowiseAgentSystem:
             flowise_client: Optional Flowise client (creates default if None)
         """
         self.flowise_client = flowise_client or MedicalFlowiseRouter()
-        self.tools = FlowisePromptTools(self.flowise_client)
-        
-        # Store agents for handoffs
-        self._flowise_enhancer: Optional[Agent] = None
-        self._flowise_processor: Optional[Agent] = None
-        
-        # Store original question and analysis for routing
-        self._original_question: str = ""
-        self._flowise_analysis: str = ""
     
-    def set_original_question(self, question: str) -> None:
-        """Store the original question for routing decisions."""
-        self._original_question = question
-    
-    def set_flowise_analysis(self, analysis: str) -> None:
-        """Store the Flowise analysis for routing decisions."""
-        self._flowise_analysis = analysis
-    
-    @tool
-    def transfer_to_flowise_processor(self) -> Agent:
-        """Transfer to the Flowise processor agent."""
-        if not self._flowise_processor:
-            self._flowise_processor = self.create_flowise_processor()
-        return self._flowise_processor
-    
-    @tool
-    def transfer_to_flowise_enhancer(self) -> Agent:
-        """Transfer back to the Flowise enhancer agent."""
-        if not self._flowise_enhancer:
-            self._flowise_enhancer = self.create_flowise_enhancer()
-        return self._flowise_enhancer
-    
-    @tool
-    def analyze_and_enhance_for_flowise(self, user_prompt: str) -> str:
-        """
-        Analyze the user prompt and create an enhanced version for Flowise.
-        
-        Args:
-            user_prompt: The original user prompt
-            
-        Returns:
-            Enhanced prompt optimized for Flowise chatflows
-        """
-        try:
-            # Store the original question for routing
-            self.set_original_question(user_prompt)
-            
-            # Step 1: Analyze the prompt for Flowise routing
-            analysis = self.tools.analyze_prompt_for_flowise(user_prompt)
-            self.set_flowise_analysis(analysis)
-            logger.info(f"Flowise prompt analysis completed: {analysis[:100]}...")
-            
-            # Step 2: Enhance the prompt for Flowise
-            enhanced = self.tools.enhance_prompt_for_flowise(user_prompt, analysis)
-            logger.info(f"Flowise prompt enhanced: {enhanced[:100]}...")
-            
-            return enhanced
-            
-        except Exception as e:
-            logger.error(f"Error in Flowise prompt enhancement: {e}")
-            return f"Error enhancing prompt for Flowise: {str(e)}"
-    
-    @tool
+    @function_tool
     def query_aerospace_medicine_rag(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aerospace medicine RAG chatflow.
@@ -281,7 +100,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aerospace medicine RAG: {e}")
             return f"Unexpected error: {str(e)}"
     
-    @tool
+    @function_tool
     def query_flowise_deep_research(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise deep research chatflow.
@@ -308,7 +127,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise deep research: {e}")
             return f"Unexpected error: {str(e)}"
     
-    @tool
+    @function_tool
     def query_aeromedical_risk(self, enhanced_prompt: str) -> str:
         """
         Send the enhanced prompt to Flowise aeromedical risk chatflow.
@@ -335,35 +154,7 @@ class FlowiseAgentSystem:
             logger.error(f"Unexpected error in Flowise aeromedical risk: {e}")
             return f"Unexpected error: {str(e)}"
     
-    @tool
-    def route_to_flowise_specialist(self, query_type: str, enhanced_prompt: str) -> str:
-        """
-        Route the enhanced prompt to a specialist Flowise chatflow.
-        
-        Args:
-            query_type: Type of specialist query ('research', 'aeromedical', 'aerospace_medicine')
-            enhanced_prompt: The enhanced prompt to send
-            
-        Returns:
-            Response from the specialist Flowise chatflow
-        """
-        try:
-            logger.info(f"Routing to Flowise specialist: {query_type}")
-            result = self.flowise_client.route_medical_query(query_type, enhanced_prompt)
-            
-            # Extract response text using the helper function
-            response_text = _extract_flowise_response_text(result)
-            logger.info(f"Flowise {query_type} specialist query completed successfully")
-            return response_text
-                
-        except FlowiseAPIError as e:
-            logger.error(f"Flowise routing error: {e}")
-            return f"Error routing to Flowise specialist: {str(e)}"
-        except Exception as e:
-            logger.error(f"Unexpected error in Flowise specialist routing: {e}")
-            return f"Unexpected error: {str(e)}"
-    
-    def create_flowise_enhancer(self) -> Agent:
+    def create_flowise_enhancer(self, analyzer_agent: Agent) -> Agent:
         """
         Create the Flowise Prompt Enhancer Agent.
         
@@ -374,66 +165,36 @@ class FlowiseAgentSystem:
             Configured Flowise PromptEnhancer agent
         """
         instructions = """
-        You are a Flowise Prompt Enhancement Specialist AI Agent. Your primary role is to take user requests 
-        and transform them into comprehensive, detailed prompts optimized specifically for Flowise chatflows 
-        and RAG (Retrieval-Augmented Generation) systems.
-
-        CORE RESPONSIBILITIES:
-        1. Analyze the user's original request for Flowise chatflow compatibility
-        2. Identify the best Flowise chatflow for the request type
-        3. Enhance the prompt with domain-specific context that Flowise systems understand
-        4. Optimize for Flowise's RAG retrieval and knowledge base systems
-        5. Transfer the enhanced prompt to the Flowise Processor for chatflow execution
-
-        FLOWISE CHATFLOW SPECIALIZATIONS:
-        - **aeromedical_risk**: Aviation medicine risk assessment and analysis
-        - **deep_research**: Comprehensive research analysis with multiple sources
-        - **aerospace_medicine_rag**: Scientific articles and textbooks in aerospace medicine
-
-        FLOWISE OPTIMIZATION STRATEGY:
-        - Add medical/scientific terminology that Flowise RAG systems recognize
-        - Include domain-specific context that helps document retrieval
-        - Structure queries for optimal knowledge base search
-        - Add background information that Flowise can build upon
-        - Format requests to leverage Flowise's specialized datasets
-        - Include relevant keywords for better RAG performance
-        - Specify the type of information needed from Flowise knowledge bases
-
-        ENHANCEMENT STRATEGY:
-        - Add domain-specific context and medical/research terminology
-        - Include relevant background that helps Flowise document retrieval
-        - Clarify medical/scientific terms for better RAG matching
-        - Expand scope to include related concepts Flowise can find
-        - Add structure that works well with Flowise's knowledge organization
-        - Include examples or case studies when relevant for Flowise processing
-        - Specify desired depth that matches Flowise capabilities
-
-        WORKFLOW:
-        1. First, analyze the user's prompt using analyze_and_enhance_for_flowise()
-        2. Create an enhanced version specifically optimized for Flowise chatflows
-        3. When ready, transfer to the Flowise Processor using transfer_to_flowise_processor()
-        4. The processor will route to the most appropriate Flowise chatflow
-
-        Always optimize for Flowise's RAG capabilities and specialized knowledge bases 
-        while maintaining the user's original intent.
-        """
+        You are a Flowise Prompt Enhancement Specialist AI Agent. Your primary role is to take user requests and hand them off to the Analyzer agent for transformation into comprehensive, detailed prompts optimized specifically for Flowise chatflows.
         
-        # Create tools list with instance methods
-        tools = [
-            self.analyze_and_enhance_for_flowise,
-            self.transfer_to_flowise_processor,
-        ]
+        Your only job is to hand off the user's prompt to the Analyzer Agent. Do not try to answer or do anything else.
+        """
         
         agent = Agent(
             name="Flowise Prompt Enhancer",
             instructions=instructions,
-            tools=tools,
+            handoffs=[analyzer_agent],
             model=AppConfig.OPENAI_MODEL
         )
-        
-        self._flowise_enhancer = agent
         return agent
-    
+        
+    def create_flowise_analyzer(self, processor_agent: Agent) -> Agent:
+        """Creates the agent responsible for analyzing and enhancing the prompt."""
+        instructions = """
+        You are a prompt analysis and enhancement expert. You will receive a user prompt.
+        Your job is to perform two steps:
+        1.  **Analyze the prompt**: Determine the domain (Aeromedical Risk, Deep Research, Aerospace Medicine), the best Flowise chatflow, and the query type.
+        2.  **Enhance the prompt**: Rewrite the prompt to be optimized for the chosen Flowise chatflow, adding domain-specific context, keywords, and structure.
+
+        Once you have the enhanced prompt, you must hand it off to the Flowise Processor agent for execution.
+        """
+        return Agent(
+            name="Flowise Prompt Analyzer",
+            instructions=instructions,
+            handoffs=[processor_agent],
+            model=OpenAIModelsConfig.GPT4_MINI.model_name, # Use a powerful model for this
+        )
+
     def create_flowise_processor(self) -> Agent:
         """
         Create the Flowise Prompt Processor Agent.
@@ -446,34 +207,26 @@ class FlowiseAgentSystem:
         """
         instructions = """
         You are a Flowise Prompt Processing Specialist AI Agent. You receive enhanced prompts from the 
-        Flowise Prompt Enhancer and execute them through the most appropriate Flowise chatflows 
+        Flowise Prompt Analyzer and execute them through the most appropriate Flowise chatflows 
         to generate comprehensive, knowledge-rich responses.
 
         CORE RESPONSIBILITIES:
         1. Receive enhanced prompts optimized for Flowise chatflows
-        2. Route to the best Flowise chatflow based on domain and question type
+        2. Route to the best Flowise chatflow based on domain and question type by calling the appropriate tool.
         3. Execute queries through Flowise's specialized knowledge bases
         4. Provide comprehensive responses leveraging Flowise's RAG capabilities
-        5. Handle streaming responses and API errors gracefully
+        5. Handle API errors gracefully
 
         AVAILABLE FLOWISE CHATFLOWS:
         - **Deep Research**: Comprehensive research analysis with multiple sources
         - **Aeromedical Risk**: Aviation medicine risk assessment and analysis
         - **Aerospace Medicine RAG**: Scientific articles and textbooks in aerospace medicine
 
-        FLOWISE PROCESSING STRATEGY:
-        1. Use query_flowise_deep_research() for comprehensive research questions
-        2. Use query_aeromedical_risk() for aviation medicine risk assessment
-        3. Use query_aerospace_medicine_rag() for aerospace medicine knowledge
-        4. Use route_to_flowise_specialist() for domain-specific questions
-        5. Leverage Flowise's streaming capabilities for better user experience
-        6. Handle Flowise API errors and provide meaningful feedback
-
         CHATFLOW SELECTION LOGIC:
-        - Aviation medicine risk questions → aeromedical_risk chatflow
-        - Aerospace medicine/scientific questions → aerospace_medicine_rag chatflow
-        - Comprehensive research → deep_research chatflow
-        - General medical questions → aerospace_medicine_rag chatflow
+        - Aviation medicine risk questions → query_aeromedical_risk()
+        - Aerospace medicine/scientific questions → query_aerospace_medicine_rag()
+        - Comprehensive research → query_flowise_deep_research()
+        - General medical questions → query_aerospace_medicine_rag()
 
         Always aim to provide the most comprehensive and knowledge-rich response possible 
         using the most appropriate Flowise chatflow for the specific question type.
@@ -484,8 +237,6 @@ class FlowiseAgentSystem:
             self.query_flowise_deep_research,
             self.query_aeromedical_risk,
             self.query_aerospace_medicine_rag,
-            self.route_to_flowise_specialist,
-            self.transfer_to_flowise_enhancer,
         ]
         
         agent = Agent(
@@ -494,8 +245,6 @@ class FlowiseAgentSystem:
             tools=tools,
             model=AppConfig.OPENAI_MODEL
         )
-        
-        self._flowise_processor = agent
         return agent
 
     def create_deepresearch_agent(self) -> Agent:
@@ -700,9 +449,15 @@ def create_flowise_enhancement_system() -> Dict[str, Agent]:
     """
     flowise_system = FlowiseAgentSystem()
     
+    # Create the agents in order for handoffs
+    processor_agent = flowise_system.create_flowise_processor()
+    analyzer_agent = flowise_system.create_flowise_analyzer(processor_agent)
+    enhancer_agent = flowise_system.create_flowise_enhancer(analyzer_agent)
+
     return {
-        "flowise_enhancer": flowise_system.create_flowise_enhancer(),
-        "flowise_processor": flowise_system.create_flowise_processor(),
+        "flowise_enhancer": enhancer_agent,
+        "flowise_analyzer": analyzer_agent,
+        "flowise_processor": processor_agent,
         "deep_research": flowise_system.create_deepresearch_agent(),
         "aeromedical_risk": flowise_system.create_aeromedical_risk_agent(),
         "aerospace_medicine_rag": flowise_system.create_aerospace_medicine_rag_agent(),

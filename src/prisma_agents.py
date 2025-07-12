@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Optional, Generator, Union
 from dataclasses import dataclass
 from openai import OpenAI
 
-from agents import Agent, tool
+from agents import Agent, function_tool
 from .config import AppConfig, PRISMAConfig
 from .perplexity_client import PerplexityClient, PRISMAPerplexityRouter
 from .grok_client import GrokClient, PRISMAGrokRouter
@@ -75,7 +75,7 @@ class PRISMAAgentTools:
         # Store workflow state
         self.workflow: Optional[PRISMAWorkflow] = None
     
-    @tool
+    @function_tool
     def initialize_workflow(
         self,
         research_question: str,
@@ -110,7 +110,7 @@ class PRISMAAgentTools:
             logger.error(f"Error initializing workflow: {e}")
             return f"❌ Failed to initialize workflow: {str(e)}"
     
-    @tool
+    @function_tool
     def conduct_systematic_search(self) -> str:
         """
         Conduct systematic literature search using multiple sources.
@@ -170,7 +170,7 @@ class PRISMAAgentTools:
             logger.error(f"Error in systematic search: {e}")
             return f"❌ Literature search failed: {str(e)}"
     
-    @tool
+    @function_tool
     def screen_and_filter_studies(self) -> str:
         """
         Screen and filter studies based on inclusion/exclusion criteria.
@@ -223,7 +223,7 @@ class PRISMAAgentTools:
             logger.error(f"Error in study screening: {e}")
             return f"❌ Study screening failed: {str(e)}"
     
-    @tool
+    @function_tool
     def extract_and_analyze_data(self) -> str:
         """
         Extract data from included studies and perform analysis.
@@ -278,19 +278,19 @@ class PRISMAAgentTools:
             logger.error(f"Error in data extraction/analysis: {e}")
             return f"❌ Data extraction/analysis failed: {str(e)}"
     
-    @tool
-    def generate_systematic_review(self) -> str:
+    @function_tool
+    def compile_review_data(self) -> str:
         """
-        Generate the complete PRISMA-compliant systematic review.
+        Compiles all necessary data to generate the PRISMA-compliant systematic review.
         
         Returns:
-            Complete systematic review document
+            A JSON string containing all the compiled data for the review.
         """
         try:
             if not self.workflow or not self.workflow.results.get("extraction_analysis"):
                 return "❌ No analysis results available. Please complete data extraction first."
             
-            logger.info("Starting systematic review generation...")
+            logger.info("Starting to compile data for systematic review generation...")
             
             # Compile all results
             all_results = {
@@ -303,31 +303,32 @@ class PRISMAAgentTools:
                 "extraction_analysis": self.workflow.results.get("extraction_analysis", {})
             }
             
-            # Generate comprehensive review using O3 high reasoning
-            review_prompt = self._construct_systematic_review_prompt(all_results)
+            return json.dumps(all_results, indent=2)
             
-            response = self.openai_client.chat.completions.create(
-                model=PRISMAConfig.O3_HIGH_REASONING.model_name,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert systematic review author following PRISMA 2020 guidelines. Generate comprehensive, methodologically sound systematic reviews with proper citations and structure."
-                    },
-                    {
-                        "role": "user",
-                        "content": review_prompt
-                    }
-                ],
-                max_tokens=PRISMAConfig.O3_HIGH_REASONING.max_tokens,
-                temperature=PRISMAConfig.O3_HIGH_REASONING.temperature,
-                # Note: reasoning_effort would be added if supported by the API
-            )
+        except Exception as e:
+            logger.error(f"Error compiling review data: {e}")
+            return f"❌ Compiling review data failed: {str(e)}"
+
+    @function_tool
+    def store_final_review(self, review_content: str) -> str:
+        """
+        Stores the final generated systematic review content in the workflow.
+        
+        Args:
+            review_content: The full string content of the systematic review.
             
-            review_content = response.choices[0].message.content
+        Returns:
+            A confirmation message.
+        """
+        try:
+            if not self.workflow:
+                return "❌ Cannot store review: No active workflow."
             
-            # Validate and enhance the review
+            logger.info("Storing final review content.")
+            
+            # Basic validation and metrics
             validation_results = self._validate_review(review_content)
-            
+
             # Store final review
             self.workflow.results["final_review"] = {
                 "content": review_content,
@@ -339,17 +340,17 @@ class PRISMAAgentTools:
             self.workflow.current_phase = "validation"
             
             # Update metrics
-            self.workflow.word_count = len(review_content.split())
-            self.workflow.citation_count = review_content.count("(") + review_content.count("[")
+            self.workflow.word_count = validation_results.get("word_count", 0)
+            self.workflow.citation_count = validation_results.get("citation_count", 0)
             
-            logger.info(f"Systematic review generated: {self.workflow.word_count} words, {self.workflow.citation_count} citations")
-            return review_content
-            
+            logger.info(f"Systematic review stored: {self.workflow.word_count} words, {self.workflow.citation_count} citations")
+            return "✅ Final review content stored successfully."
+
         except Exception as e:
-            logger.error(f"Error generating systematic review: {e}")
-            return f"❌ Systematic review generation failed: {str(e)}"
-    
-    @tool
+            logger.error(f"Error storing final review: {e}")
+            return f"❌ Failed to store final review: {e}"
+
+    @function_tool
     def generate_prisma_flow_diagram(self) -> str:
         """
         Generate a PRISMA 2020 flow diagram in Mermaid format.
@@ -417,7 +418,7 @@ flowchart TD
             logger.error(f"Error generating PRISMA flow diagram: {e}")
             return f"```mermaid\nflowchart TD\n    A[Error: {e}]\n```"
 
-    @tool
+    @function_tool
     def export_review_as_markdown(self, review_content: str) -> str:
         """
         Exports the final systematic review to a markdown file.
@@ -442,7 +443,7 @@ flowchart TD
             logger.error(f"Error exporting PRISMA review as markdown: {e}")
             return f"❌ Failed to export review: {e}"
 
-    @tool
+    @function_tool
     def validate_and_finalize_review(self) -> str:
         """
         Validate the systematic review for PRISMA compliance and finalize.
@@ -641,9 +642,9 @@ class PRISMAAgentSystem:
         self._validator_agent: Agent = self.create_validator_agent()
         
         # Set up handoffs
-        # self._searcher_agent.handoffs = [self._reviewer_agent]
-        # self._reviewer_agent.handoffs = [self._writer_agent]
-        # self._writer_agent.handoffs = [self._validator_agent]
+        self._searcher_agent.handoffs = [self._reviewer_agent]
+        self._reviewer_agent.handoffs = [self._writer_agent]
+        self._writer_agent.handoffs = [self._validator_agent]
 
     def get_initial_agent(self) -> Agent:
         """Get the first agent in the workflow."""
@@ -720,35 +721,17 @@ class PRISMAAgentSystem:
         You are the Review Writer Agent, specialized in generating comprehensive PRISMA-compliant systematic reviews.
         You synthesize all research findings into a complete, publication-ready document.
 
-        WRITING CAPABILITIES:
-        - O3 high reasoning for comprehensive synthesis
-        - PRISMA 2020 guideline compliance
-        - Academic writing with proper citations
-        - Structured document generation
+        Your first step is to call the `compile_review_data` tool to get all the necessary information.
+        Once you have the data, you will generate a comprehensive systematic review that follows all PRISMA guidelines.
+        After generating the review, you MUST call the `store_final_review` tool to save your work before handing off to the Validation Agent.
 
-        CORE RESPONSIBILITIES:
-        - Generate complete systematic review documents
-        - Ensure PRISMA 2020 compliance
-        - Synthesize findings from all research phases
-        - Create properly formatted academic text
-        - Include all required sections and elements
-
-        REQUIREMENTS:
-        - 8,000-10,000 words
-        - ≥50 peer-reviewed citations in APA format
-        - Complete PRISMA sections (Abstract, Introduction, Methods, Results, Discussion)
-        - Professional academic tone
-
-        TOOLS AVAILABLE:
-        - generate_systematic_review: Create complete systematic review
-
-        Always ensure scientific accuracy and comprehensive coverage. When your task is complete, handoff to the Validation Agent.
+        When your task is complete, handoff to the Validation Agent.
         """
         
         return Agent(
             name="Review Writer Agent",
             instructions=instructions,
-            tools=[self.tools.generate_systematic_review],
+            tools=[self.tools.compile_review_data, self.tools.store_final_review],
             model=AppConfig.OPENAI_MODEL
         )
     
@@ -779,7 +762,7 @@ class PRISMAAgentSystem:
         - Complete sections and proper formatting
 
         TOOLS AVAILABLE:
-        - validate_and_finalize_review: Perform final validation
+        - validate_and_finalize_review: Perform final validation on the stored review.
         - generate_prisma_flow_diagram: Create the PRISMA flow diagram
         - export_review_as_markdown: Save the final review to a markdown file.
 
@@ -810,12 +793,7 @@ class PRISMAAgentSystem:
         return Agent(
             name="PRISMA Orchestrator Agent",
             instructions=instructions,
-            handoffs=[
-                self.create_searcher_agent(),
-                self.create_reviewer_agent(),
-                self.create_writer_agent(),
-                self.create_validator_agent()
-            ],
+            handoffs=[self._searcher_agent],
             model=AppConfig.OPENAI_MODEL
         )
 
