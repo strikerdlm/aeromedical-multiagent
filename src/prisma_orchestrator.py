@@ -13,7 +13,7 @@ import time
 from typing import Dict, Any, List, Optional, Union
 from dataclasses import asdict
 
-from .agents import AgentOrchestrator
+from .agent_orchestrator import AgentOrchestrator
 from .config import AppConfig, PRISMAConfig
 from .prisma_agents import PRISMAAgentSystem, PRISMAWorkflow, create_prisma_agent_system
 from .perplexity_client import PerplexityClient

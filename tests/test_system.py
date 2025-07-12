@@ -21,7 +21,8 @@ def test_imports():
     try:
         # Core modules
         from src.config import AppConfig, OpenAIModelsConfig, FlowiseConfig
-        from src.agents import Agent, AgentOrchestrator
+        from agents import Agent
+        from src.agent_orchestrator import AgentOrchestrator
         from src.main import PromptEnhancerApp
         
         # Specialized agent modules

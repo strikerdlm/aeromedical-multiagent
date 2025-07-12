@@ -190,6 +190,12 @@ tmp/
 Docs/Flowise/FLOWISE_API_RULES.md
 Docs/Flowise/FLOWISE_STATUS_REPORT.md
 
+# Flowise documentation folder
+Docs/Flowise/
+
+# OpenAI Agents documentation folder
+Docs/OpenAI\ Agents/
+
 # =============================================================================
 # SECURITY REMINDER
 # =============================================================================

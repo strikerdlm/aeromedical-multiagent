@@ -13,7 +13,7 @@ import os
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from src.agents import safe_log_info
+from src.agent_orchestrator import safe_log_info
 from src.main import setup_logging
 import logging
 

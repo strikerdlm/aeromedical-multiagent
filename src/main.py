@@ -24,7 +24,7 @@ from pydantic import BaseModel
 # Remove problematic imports and use simpler Rich components
 
 from .config import AppConfig
-from .agents import AgentOrchestrator
+from .agent_orchestrator import AgentOrchestrator
 from .o3_agents import create_o3_enhancement_system
 from .flowise_agents import create_flowise_enhancement_system
 from .flowise_client import FlowiseAPIError
@@ -1371,7 +1371,7 @@ class EnhancedPromptEnhancerApp:
                 # Show preview for long content
                 if len(content) > 200:
                     preview = format_large_text_preview(content, max_lines=3, max_chars=200)
-                    self.console.print(f"[bold blue]🧑 You:[/bold blue] {preview}")
+                    self.console.print(f"[bold blue]�� You:[/bold blue] {preview}")
                 else:
                     self.console.print(f"[bold blue]🧑 You:[/bold blue] {content}")
             elif role == "assistant":

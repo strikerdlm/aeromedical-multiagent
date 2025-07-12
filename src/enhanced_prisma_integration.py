@@ -15,7 +15,8 @@ from dataclasses import dataclass
 
 from .prisma_orchestrator import PRISMAOrchestrator
 from .prisma_agents import PRISMAAgentSystem, PRISMAWorkflow
-from .agents import Agent, AgentOrchestrator
+from agents import Agent
+from .agent_orchestrator import AgentOrchestrator
 from .config import AppConfig, PRISMAConfig
 
 
