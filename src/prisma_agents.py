@@ -304,7 +304,52 @@ class PRISMAAgentTools:
         except Exception as e:
             logger.error(f"Error in data extraction/analysis: {e}")
             return f"❌ Data extraction/analysis failed: {str(e)}"
-    
+
+    @function_tool
+    def update_flow_diagram_stats(
+        self,
+        duplicates_removed: int,
+        records_excluded: int,
+        reports_not_retrieved: int,
+        reports_excluded: int,
+    ) -> str:
+        """
+        Updates the PRISMA flow diagram statistics with screening and eligibility results.
+
+        Args:
+            duplicates_removed: The number of duplicate records removed.
+            records_excluded: The number of records excluded during screening.
+            reports_not_retrieved: The number of reports sought but not retrieved.
+            reports_excluded: The number of reports excluded during eligibility assessment.
+        
+        Returns:
+            A confirmation that the stats have been updated.
+        """
+        if not self.workflow:
+            return "❌ No workflow initialized."
+        
+        stats = self.workflow.flow_diagram_stats
+        stats["duplicates_removed"] = duplicates_removed
+        stats["excluded_records"] = records_excluded
+        
+        # Calculate next steps based on new data
+        screened = stats.get("db_records", 0) + stats.get("register_records", 0) - duplicates_removed
+        stats["screened_records"] = screened
+        
+        reports_sought = screened - records_excluded
+        stats["reports_sought"] = reports_sought
+        stats["reports_not_retrieved"] = reports_not_retrieved
+        
+        reports_assessed = reports_sought - reports_not_retrieved
+        stats["reports_assessed"] = reports_assessed
+        stats["reports_excluded"] = reports_excluded
+        
+        studies_included = reports_assessed - reports_excluded
+        stats["studies_included"] = studies_included
+        
+        logger.info(f"Flow diagram stats updated: {studies_included} studies included.")
+        return "✅ PRISMA flow diagram statistics have been updated."
+
     @function_tool
     def compile_review_data(self) -> str:
         """
@@ -397,13 +442,13 @@ class PRISMAAgentTools:
             total_identified = db_records + register_records
             
             # Estimates based on the identified records
-            duplicates_removed = stats.get("duplicates_removed") or int(total_identified * 0.1)
+            duplicates_removed = stats.get("duplicates_removed", 0)
             screened = total_identified - duplicates_removed
-            excluded = stats.get("excluded_records") or int(screened * 0.8)
+            excluded = stats.get("excluded_records", 0)
             reports_sought = screened - excluded
-            reports_not_retrieved = stats.get("reports_not_retrieved") or int(reports_sought * 0.05)
+            reports_not_retrieved = stats.get("reports_not_retrieved", 0)
             reports_assessed = reports_sought - reports_not_retrieved
-            reports_excluded = stats.get("reports_excluded") or int(reports_assessed * 0.5)
+            reports_excluded = stats.get("reports_excluded", 0)
             studies_included = reports_assessed - reports_excluded
 
             return f"""
@@ -712,6 +757,8 @@ class PRISMAAgentSystem:
         You are the Study Reviewer Agent, specialized in screening, filtering, and quality assessment of studies.
         You use advanced reasoning models to evaluate study quality and relevance.
 
+        After screening the studies, you MUST call the `update_flow_diagram_stats` tool to provide the counts for duplicates, excluded records, and other screening results. This is critical for generating an accurate PRISMA flow diagram later.
+
         REVIEW CAPABILITIES:
         - Perplexity-based study screening and filtering
         - Grok-powered critical analysis and bias detection
@@ -728,6 +775,7 @@ class PRISMAAgentSystem:
         TOOLS AVAILABLE:
         - screen_and_filter_studies: Screen studies for inclusion
         - extract_and_analyze_data: Extract and analyze study data
+        - update_flow_diagram_stats: Update the PRISMA flow diagram statistics.
 
         Always maintain rigorous scientific standards and thorough documentation. When your task is complete, handoff to the Review Writer Agent.
         """
@@ -735,7 +783,7 @@ class PRISMAAgentSystem:
         return Agent(
             name="Study Reviewer Agent",
             instructions=instructions,
-            tools=[self.tools.screen_and_filter_studies, self.tools.extract_and_analyze_data],
+            tools=[self.tools.screen_and_filter_studies, self.tools.extract_and_analyze_data, self.tools.update_flow_diagram_stats],
             model=AppConfig.OPENAI_MODEL
         )
     

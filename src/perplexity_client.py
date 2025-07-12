@@ -62,6 +62,7 @@ class PerplexityClient:
         
         self.session = requests.Session()
         self.session.headers.update(self.headers)
+        self.last_request_time = 0
     
     def search_literature(
         self,
@@ -310,6 +311,11 @@ class PerplexityClient:
         Raises:
             PerplexityAPIError: If request fails after retries
         """
+        # Rate limiting
+        elapsed = time.time() - self.last_request_time
+        if elapsed < PRISMAConfig.PERPLEXITY_RATE_LIMIT_DELAY:
+            time.sleep(PRISMAConfig.PERPLEXITY_RATE_LIMIT_DELAY - elapsed)
+
         url = f"{self.base_url}{endpoint}"
         
         response = self.session.post(
@@ -318,6 +324,8 @@ class PerplexityClient:
             timeout=AppConfig.TIMEOUT
         )
         
+        self.last_request_time = time.time()
+
         if response.status_code == 200:
             return response.json()
 

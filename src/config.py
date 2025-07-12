@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 # The python-dotenv package is optional for basic operation. If it is not
 # installed (as may be the case in restricted test environments) fall back to
 # a no-op implementation so the module can still be imported.
@@ -106,6 +106,9 @@ class PRISMAConfig:
     GROK_BASE_URL: str = "https://api.x.ai/v1"
     GROK_MODEL: str = "grok-beta"
     
+    # Perplexity rate limiting
+    PERPLEXITY_RATE_LIMIT_DELAY: float = 1.0 # 1 second delay between requests
+
     # PRISMA-specific settings
     TARGET_WORD_COUNT: int = 8000  # Minimum target word count
     MAX_WORD_COUNT: int = 10000  # Maximum target word count
@@ -191,6 +194,16 @@ class AppConfig:
     
     # UI settings
     PROGRESS_STAGE_DURATION: int = int(os.getenv("PROGRESS_STAGE_DURATION", "20"))
+    UI_TIMEOUT_WARNING_THRESHOLD: int = 60
+    UI_OPERATION_TIMEOUT_SECONDS: int = 120
+    UI_PROGRESS_STAGES: list = [
+        "Initializing connection...",
+        "Sending request...",
+        "Processing query...",
+        "Analyzing content...",
+        "Generating response...",
+        "Finalizing results..."
+    ]
 
     # Logging configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
@@ -204,6 +217,36 @@ class AppConfig:
         "genetic", "medical", "clinical", "pharmaceutical", "biomedical",
         "space", "astronomy", "aerospace", "environmental", "climate"
     ]
+
+    MODE_PATTERNS: Dict[str, List[str]] = {
+        "prompt": [
+            r"\b(quantum|technology|latest|recent|current|compare|analysis|research|explain\s+how)\b",
+            r"\b(artificial\s+intelligence|AI|machine\s+learning|deep\s+learning)\b",
+            r"\b(what\s+is\s+the\s+latest|recent\s+development|current\s+state)\b",
+            r"\b(explain\s+in\s+detail|comprehensive\s+analysis|in-depth)\b"
+        ],
+        "deep_research": [
+            r"\b(research|study|analysis|comprehensive|literature\s+review)\b",
+            r"\b(scientific|academic|peer\s+review|publication|journal)\b",
+            r"\b(systematic\s+review|meta-analysis|evidence\s+based)\b",
+            r"\b(multiple\s+sources|research\s+synthesis|knowledge\s+base)\b"
+        ],
+        "aeromedical_risk": [
+            r"\b(pilot|flight\s+safety|aviation\s+medicine|aeromedical)\b",
+            r"\b(risk\s+assessment|medical\s+fitness|flight\s+physical)\b",
+            r"\b(commercial\s+pilot|airline|FAA|aviation\s+regulation)\b",
+            r"\b(altitude\s+sickness|hypoxia|G-force|aerospace\s+physiology)\b"
+        ],
+        "aerospace_medicine_rag": [
+            r"\b(aerospace\s+medicine|space\s+medicine|aviation\s+medicine)\b",
+            r"\b(scientific\s+article|textbook|medical\s+literature)\b",
+            r"\b(physiology|clinical|health|treatment|therapy|diagnosis)\b",
+            r"\b(medical\s+research|clinical\s+guideline|evidence\s+based)\b"
+        ],
+        "prisma": [
+            r"\b(prisma|systematic\s+review|meta-analysis)\b"
+        ]
+    }
     
     @classmethod
     def validate_environment(cls) -> bool:

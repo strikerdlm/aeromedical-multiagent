@@ -1,120 +1,121 @@
-#!/usr/bin/env python3
 """
-Test script to verify Unicode logging fixes work correctly.
-
-This script tests the Unicode encoding fixes implemented to resolve
-the UnicodeEncodeError that occurred when logging Flowise API responses
-containing academic citations with special characters.
+Tests for Unicode logging and the logging setup.
 """
-
-import sys
-import os
-
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-
-from src.agent_orchestrator import safe_log_info
-from src.main import setup_logging
+import pytest
 import logging
+import os
+from unittest.mock import patch, MagicMock
 
-def test_unicode_logging():
-    """Test Unicode logging with various problematic characters."""
-    
-    print("🧪 Testing Unicode Logging Fixes")
-    print("=" * 50)
-    
-    # Test cases with Unicode characters that caused the original error
-    test_cases = [
-        "Miller AL et al., Acta Astronáut 2024",
-        "Young LR et al., NPJ Microgravity 2023",  
-        "Díaz Artiles A et al., Front Physiol 2022",
-        "Mathematical symbols: π ∑ ∂ ∫ √ α β γ",
-        "Accented characters: café résumé naïve",
-        "German umlauts: Müller, Bäcker, Köln",
-        "Mixed: Smith & Jones (2024) → \"Advanced μ-gravity effects\"",
-        "Citation with em-dash: Research findings — comprehensive analysis",
-    ]
-    
-    print("Testing safe_log_info function...")
-    success_count = 0
-    
-    for i, test_message in enumerate(test_cases, 1):
-        try:
-            print(f"Test {i}: {test_message[:50]}...")
-            safe_log_info(f"Test {i}: {test_message}")
-            print("  ✅ Success")
-            success_count += 1
-        except Exception as e:
-            print(f"  ❌ Failed: {e}")
-    
-    print("\n" + "=" * 50)
-    print(f"Results: {success_count}/{len(test_cases)} tests passed")
-    
-    if success_count == len(test_cases):
-        print("🎉 All Unicode logging tests PASSED!")
-        print("\nThe fix successfully handles:")
-        print("  • Academic citations with accented characters")
-        print("  • Mathematical symbols")
-        print("  • International character sets")
-        print("  • Mixed Unicode content")
-        return True
-    else:
-        print("❌ Some tests failed. Check logging configuration.")
-        return False
+from src.main import setup_logging
 
-def test_file_logging():
-    """Test that file logging works with UTF-8 encoding."""
+# A diverse set of Unicode strings for testing
+UNICODE_STRINGS = [
+    "Miller AL et al., Acta Astronáut 2024",
+    "Young LR et al., NPJ Microgravity 2023",
+    "Díaz Artiles A et al., Front Physiol 2022",
+    "Mathematical symbols: π ∑ ∂ ∫ √ α β γ",
+    "Accented characters: café résumé naïve",
+    "German umlauts: Müller, Bäcker, Köln",
+    "Mixed: Smith & Jones (2024) → \"Advanced μ-gravity effects\"",
+    "Citation with em-dash: Research findings — comprehensive analysis",
+    "Emoji: 🚀🧪📊",
+]
+
+@pytest.fixture(scope="function")
+def configured_logging(tmp_path):
+    """Fixture to set up and tear down logging for a test."""
+    log_file = tmp_path / "test.log"
     
-    print("\n🗂️  Testing File Logging")
-    print("=" * 50)
+    # We patch os.system to avoid actually trying to change the console codepage
+    with patch('os.system') as mock_os_system:
+        # We need to get a fresh logger for each test
+        logging.shutdown()
+        reload(logging)
+        
+        # Now set it up
+        with patch('logging.FileHandler', lambda path, encoding: logging.FileHandler(str(log_file), encoding=encoding)):
+            setup_logging()
     
-    log_file = "test_unicode.log"
+    yield log_file
     
+    # Teardown
+    logging.getLogger().handlers.clear()
+
+def test_setup_logging_creates_handlers(configured_logging):
+    """Test that setup_logging correctly adds handlers to the root logger."""
+    logger = logging.getLogger()
+    assert len(logger.handlers) == 2
+    assert isinstance(logger.handlers[0], logging.StreamHandler)
+    assert isinstance(logger.handlers[1], logging.FileHandler)
+    assert logger.handlers[1].encoding == 'utf-8'
+
+@pytest.mark.parametrize("message", UNICODE_STRINGS)
+def test_logging_unicode_to_file(configured_logging, message):
+    """Test that Unicode strings are correctly written to the log file."""
+    log_file = configured_logging
+    
+    logger = logging.getLogger("test_unicode_file")
+    logger.warning(message)
+    
+    # Check that the file was written with the correct encoding
+    with open(log_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    assert message in content
+
+def test_logging_dict_with_unicode(configured_logging):
+    """Test logging a dictionary containing Unicode characters."""
+    log_file = configured_logging
+    test_dict = {
+        "author": "Díaz Artiles",
+        "symbol": "π",
+        "year": 2022
+    }
+    
+    logger = logging.getLogger("test_dict")
+    logger.info(test_dict)
+    
+    with open(log_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    assert "Díaz Artiles" in content
+    assert "π" in content
+
+def test_logging_exception_with_unicode(configured_logging):
+    """Test logging an exception that has a Unicode message."""
+    log_file = configured_logging
+    error_message = "An error occurred with symbol: α"
+    
+    logger = logging.getLogger("test_exception")
     try:
-        # Test direct file writing with UTF-8
-        with open(log_file, 'w', encoding='utf-8') as f:
-            f.write('Test Unicode: Café résumé naïve π∑∂\n')
+        raise ValueError(error_message)
+    except ValueError as e:
+        logger.exception("Caught an exception with Unicode.")
+    
+    with open(log_file, 'r', encoding='utf-8') as f:
+        content = f.read()
         
-        # Read it back
-        with open(log_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        print(f"File content: {content.strip()}")
-        print("✅ File logging with UTF-8 works correctly")
-        
-        # Clean up
-        os.remove(log_file)
-        return True
-        
-    except Exception as e:
-        print(f"❌ File logging failed: {e}")
-        return False
+    assert "ValueError" in content
+    assert error_message in content
+    assert "Caught an exception with Unicode" in content
 
-if __name__ == "__main__":
-    print("🔍 Unicode Logging Fix Verification")
-    print("This script tests the fixes for UnicodeEncodeError in Flowise API logging")
-    print()
+@patch('sys.platform', 'win32')
+@patch('os.system')
+def test_windows_chcp_command_is_called(mock_os_system):
+    """Test that the 'chcp' command is called on Windows."""
+    # We need to reload logging to clear its internal state
+    logging.shutdown()
+    reload(logging)
     
-    # Test 1: Safe logging function
-    test1_passed = test_unicode_logging()
+    setup_logging()
+    mock_os_system.assert_called_once_with('chcp 65001 >nul 2>&1')
+
+@patch('sys.platform', 'linux')
+@patch('os.system')
+def test_windows_chcp_command_not_called_on_linux(mock_os_system):
+    """Test that the 'chcp' command is NOT called on non-Windows systems."""
+    logging.shutdown()
+    reload(logging)
     
-    # Test 2: File logging 
-    test2_passed = test_file_logging()
-    
-    print("\n" + "=" * 60)
-    print("FINAL RESULTS:")
-    print(f"  Safe Logging Test: {'✅ PASSED' if test1_passed else '❌ FAILED'}")
-    print(f"  File Logging Test: {'✅ PASSED' if test2_passed else '❌ FAILED'}")
-    
-    if test1_passed and test2_passed:
-        print("\n🎉 ALL TESTS PASSED!")
-        print("The Unicode encoding error in Flowise API logging has been FIXED!")
-        print("\nChanges made:")
-        print("  1. Updated logging configuration with UTF-8 encoding")
-        print("  2. Added safe_log_info() function for Unicode handling")
-        print("  3. Windows console encoding improvements")
-        print("  4. Error handling for remaining edge cases")
-    else:
-        print("\n❌ Some tests failed. Please check the implementation.")
-    
-    print("\nYou can now safely use the Flowise API without Unicode errors!") 
+    setup_logging()
+    mock_os_system.assert_not_called() 

@@ -5,18 +5,8 @@ from __future__ import annotations
 import re
 from typing import Tuple, Optional, Any, Dict, List
 
-try:
-    from rich.prompt import Confirm
-    from rich.console import Console
-except ImportError:
-    class Confirm:
-        @staticmethod
-        def ask(prompt, **kwargs):
-            response = input(f"{prompt} [y/n]: ").lower()
-            return response == 'y'
-    class Console:
-        def print(self, *args, **kwargs):
-            print(*args)
+from .custom_rich.stubs import Confirm, Console
+from .config import AppConfig
 
 
 class ModeManager:
@@ -98,7 +88,7 @@ class ModeManager:
         query_lower = query.lower()
         mode_scores = {}
         
-        for mode, patterns in self.app.mode_patterns.items():
+        for mode, patterns in AppConfig.MODE_PATTERNS.items():
             score = 0
             for pattern in patterns:
                 matches = len(re.findall(pattern, query_lower))

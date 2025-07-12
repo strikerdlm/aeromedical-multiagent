@@ -18,37 +18,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
 import argparse
 
-try:
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.table import Table
-    from rich.text import Text
-    from rich.prompt import Prompt, Confirm
-    from rich.markdown import Markdown
-except ImportError:
-    # Define fallback classes if rich is not installed
-    class Console:
-        def print(self, *args, **kwargs):
-            print(*args)
-    class Panel:
-        def __init__(self, content, **kwargs):
-            print(content)
-    class Table:
-        def __init__(self, **kwargs): pass
-        def add_column(self, *args, **kwargs): pass
-        def add_row(self, *args, **kwargs): pass
-    class Text(str): pass
-    class Prompt:
-        @staticmethod
-        def ask(prompt, **kwargs):
-            return input(prompt)
-    class Confirm:
-        @staticmethod
-        def ask(prompt, **kwargs):
-            response = input(f"{prompt} [y/n]: ").lower()
-            return response == 'y'
-    class Markdown(str): pass
-
+from .custom_rich.stubs import Console, Panel, Table, Text, Prompt, Confirm, Markdown
 
 from rich.console import Console as RichConsole
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
@@ -146,37 +116,6 @@ class EnhancedPromptEnhancerApp:
             "show_tips": True,
             "confirm_mode_switch": False,
             "auto_fallback": True
-        }
-        
-        # Smart mode detection patterns with word boundaries for robustness
-        self.mode_patterns = {
-            "prompt": [
-                r"\b(quantum|technology|latest|recent|current|compare|analysis|research|explain\s+how)\b",
-                r"\b(artificial\s+intelligence|AI|machine\s+learning|deep\s+learning)\b",
-                r"\b(what\s+is\s+the\s+latest|recent\s+development|current\s+state)\b",
-                r"\b(explain\s+in\s+detail|comprehensive\s+analysis|in-depth)\b"
-            ],
-            "deep_research": [
-                r"\b(research|study|analysis|comprehensive|literature\s+review)\b",
-                r"\b(scientific|academic|peer\s+review|publication|journal)\b",
-                r"\b(systematic\s+review|meta-analysis|evidence\s+based)\b",
-                r"\b(multiple\s+sources|research\s+synthesis|knowledge\s+base)\b"
-            ],
-            "aeromedical_risk": [
-                r"\b(pilot|flight\s+safety|aviation\s+medicine|aeromedical)\b",
-                r"\b(risk\s+assessment|medical\s+fitness|flight\s+physical)\b",
-                r"\b(commercial\s+pilot|airline|FAA|aviation\s+regulation)\b",
-                r"\b(altitude\s+sickness|hypoxia|G-force|aerospace\s+physiology)\b"
-            ],
-            "aerospace_medicine_rag": [
-                r"\b(aerospace\s+medicine|space\s+medicine|aviation\s+medicine)\b",
-                r"\b(scientific\s+article|textbook|medical\s+literature)\b",
-                r"\b(physiology|clinical|health|treatment|therapy|diagnosis)\b",
-                r"\b(medical\s+research|clinical\s+guideline|evidence\s+based)\b"
-            ],
-            "prisma": [
-                r"\b(prisma|systematic\s+review|meta-analysis)\b"
-            ]
         }
         
         logger.info("Enhanced Prompt Enhancer App initialized successfully")
@@ -353,6 +292,7 @@ class EnhancedPromptEnhancerApp:
             
             # Attempt fallback for Flowise errors
             if "flowise" in self.current_mode and self.user_preferences["auto_fallback"]:
+                logger.warning(f"Flowise error triggered fallback. Original error: {e}")
                 self.console.print("⚡ [yellow]Flowise API error detected - switching to Prompt fallback.[/yellow]")
                 self.mode_manager.switch_mode("prompt")
                 if self.current_agent:

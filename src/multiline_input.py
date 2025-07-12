@@ -9,26 +9,9 @@ from __future__ import annotations
 
 import sys
 from typing import Optional, List
+import re
 
-try:
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.text import Text
-    from rich.prompt import Prompt
-except ImportError:
-    # Define fallback classes if rich is not installed
-    class Console:
-        def print(self, *args, **kwargs):
-            print(*args)
-    class Panel:
-        def __init__(self, content, **kwargs):
-            print(content)
-    class Text(str): pass
-    class Prompt:
-        @staticmethod
-        def ask(prompt, **kwargs):
-            return input(prompt)
-
+from .custom_rich.stubs import Console, Panel, Text, Prompt
 
 class MultilineInputHandler:
     """
@@ -123,7 +106,7 @@ class MultilineInputHandler:
         if full_input:
             self._display_input_summary(full_input)
         
-        return full_input
+        return self._sanitize_input(full_input)
     
     def get_single_or_multiline_input(
         self, 
@@ -167,15 +150,31 @@ class MultilineInputHandler:
                 elif choice == "cancel":
                     return ""
                 else:
-                    return input(">>> ").strip()
+                    return self._sanitize_input(input(">>> ").strip())
             else:
                 # Regular single-line input
-                return initial_input
+                return self._sanitize_input(initial_input)
                 
         except (KeyboardInterrupt, EOFError):
             self.console.print("\n[yellow]Input cancelled.[/yellow]")
             return ""
-    
+
+    def _sanitize_input(self, text: str) -> str:
+        """
+        Sanitizes input text to remove potentially malicious content like script tags.
+        
+        Args:
+            text: The input text to sanitize.
+            
+        Returns:
+            The sanitized text.
+        """
+        # A simple regex to remove <script>...</script> blocks, case-insensitive.
+        sanitized_text = re.sub(r'<script.*?>.*?</script>', '', text, flags=re.IGNORECASE | re.DOTALL)
+        if len(sanitized_text) < len(text):
+            self.console.print("[yellow]⚠️ Potential script content was removed from the input.[/yellow]")
+        return sanitized_text
+
     def _display_multiline_instructions(self) -> None:
         """Display instructions for multiline input."""
         self.console.print()
