@@ -261,6 +261,24 @@ class EnhancedPromptEnhancerApp:
             self.ui.display_mode_selection()
             return True
 
+        # Check for long-running Flowise agents
+        flowise_modes = ["deep_research", "aeromedical_risk", "aerospace_medicine_rag"]
+        if self.current_mode in flowise_modes:
+            self.console.print("\n[bold yellow]⚠️ This request uses a powerful Flowise agent, which may take up to 5 minutes.[/bold yellow]")
+            
+            choice = Prompt.ask(
+                "What would you like to do?",
+                choices=["wait", "fast_research"],
+                default="wait"
+            )
+
+            if choice == "fast_research":
+                self.console.print("🔄 [cyan]Switching to fast research mode...[/cyan]")
+                self.mode_manager.switch_mode("prompt")
+                # The agent is now switched, so the rest of the function will use the new agent.
+            else:
+                self.console.print("\n[cyan]🚀 Your request has been sent. Please wait for the response...[/cyan]")
+        
         self.messages.append({"role": "user", "content": user_input})
         
         agent_name = self.current_agent.name
@@ -268,7 +286,18 @@ class EnhancedPromptEnhancerApp:
         
         try:
             # Use the official agents.Runner.run coroutine
-            response = await Runner.run(self.current_agent, user_input)
+            if self.current_mode in flowise_modes:
+                with self.progress_handler.get_progress() as progress:
+                    task = progress.add_task("[cyan]Processing...", total=None)
+                    try:
+                        response = await asyncio.wait_for(
+                            Runner.run(self.current_agent, user_input),
+                            timeout=300.0
+                        )
+                    finally:
+                        progress.update(task, completed=True, visible=False)
+            else:
+                response = await Runner.run(self.current_agent, user_input)
 
             final_output = response.final_output if response else "Agent did not produce a final output."
             
