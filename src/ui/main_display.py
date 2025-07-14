@@ -32,50 +32,26 @@ class UserInterface:
     def display_enhanced_welcome(self) -> None:
         """Display an enhanced welcome message with better onboarding."""
         
-        title_panel = Panel(
-            Text("Advanced Aeromedical Evidence Review System", justify="center", style="bold blue"),
-            title="🚀 Welcome",
-            border_style="green",
-            padding=(1, 2)
-        )
-        self.console.print(title_panel)
+        self.console.print("🚀 [bold blue]Welcome to the Advanced Aeromedical Evidence Review System[/bold blue]")
+        self.console.print()
 
-        quick_start_text = """
-[bold]Just ask your question![/bold] The system will automatically detect the best processing method:
+        self.console.print("🎯 [bold]Quick Start[/bold]")
+        self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
+        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge")
+        self.console.print("• [bold]Research/Analysis[/bold] → Prompt Research with web search or Flowise deep research")
+        self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
+        self.console.print()
 
-• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge
-• [bold]Research/Analysis[/bold] → Prompt Research with web search or Flowise deep research
-• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation
-        """
-        quick_start_panel = Panel(
-            Markdown(quick_start_text.strip()),
-            title="🎯 Quick Start",
-            border_style="cyan",
-            padding=(1, 2)
-        )
-        self.console.print(quick_start_panel)
+        self.console.print("💡 [bold]Pro Tips[/bold]")
+        self.console.print("• **`?`** for quick help")
+        self.console.print("• **`/modes`** to see all modes")
+        self.console.print("• **`/history`** to review conversation")
+        self.console.print("• **`/clear`** to start fresh")
+        self.console.print("• **`>>>`** for multiline input")
+        self.console.print("• **`/transfer <mode>`** to re-run last query in a new mode")
+        self.console.print()
 
-        pro_tips_text = """
-• **`?`** for quick help
-• **`/modes`** to see all modes
-• **`/history`** to review conversation
-• **`/clear`** to start fresh
-• **`>>>`** for multiline input
-• **`/transfer <mode>`** to re-run last query in a new mode
-        """
-        pro_tips_panel = Panel(
-            Markdown(pro_tips_text.strip()),
-            title="💡 Pro Tips",
-            border_style="yellow",
-            padding=(1, 2)
-        )
-        self.console.print(pro_tips_panel)
-
-        modes_table = Table(title="🛠️ Available Processing Modes", show_header=True, header_style="bold magenta")
-        modes_table.add_column("Mode", style="cyan", no_wrap=True)
-        modes_table.add_column("Description", style="green")
-        modes_table.add_column("Command", style="yellow")
-
+        self.console.print("🛠️ [bold magenta]Available Processing Modes[/bold magenta]")
         modes_data = {
             "Smart Auto-Detection": ("System automatically selects best AI", "/smart"),
             "Prompt Research": ("Complex analysis and reasoning", "/prompt"),
@@ -86,9 +62,8 @@ class UserInterface:
         }
 
         for mode, (desc, cmd) in modes_data.items():
-            modes_table.add_row(mode, desc, cmd)
+            self.console.print(f"  [cyan]• {mode}[/cyan]: {desc} ([yellow]{cmd}[/yellow])")
 
-        self.console.print(modes_table)
         self.console.print()
 
     def display_current_status(self) -> None:
@@ -116,35 +91,20 @@ class UserInterface:
         self.console.print("🛠️ [bold]Available Processing Modes[/bold]")
         self.console.print()
         
-        self.console.print("[cyan]🎯 Smart Auto-Detection[/cyan]")
-        self.console.print("   Let the system choose the best AI (Recommended)")
-        self.console.print("   Quick Switch: [green]/smart[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]🔬 Prompt Research[/cyan]")
-        self.console.print("   Complex analysis, latest research, technology reviews")
-        self.console.print("   Quick Switch: [green]/prompt[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]🔬 Deep Research[/cyan]")
-        self.console.print("   Comprehensive research analysis with multiple sources")
-        self.console.print("   Quick Switch: [green]/deep[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]🚁 Aeromedical Risk[/cyan]")
-        self.console.print("   Aviation medicine, flight safety, risk assessment")
-        self.console.print("   Quick Switch: [green]/aero[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]🚀 Aerospace Medicine RAG[/cyan]")
-        self.console.print("   Scientific articles and textbooks in aerospace medicine")
-        self.console.print("   Quick Switch: [green]/aerospace[/green]")
-        self.console.print()
-        
-        self.console.print("[cyan]📊 PRISMA Systematic Review[/cyan]")
-        self.console.print("   Systematic reviews, meta-analyses, evidence synthesis")
-        self.console.print("   Quick Switch: [green]/prisma[/green]")
-        self.console.print()
+        modes_data = {
+            "Smart Auto-Detection": ("Let the system choose the best AI (Recommended)", "/smart", "🎯"),
+            "Prompt Research": ("Complex analysis, latest research, technology reviews", "/prompt", "🔬"),
+            "Deep Research": ("Comprehensive research analysis with multiple sources", "/deep", "🔬"),
+            "Aeromedical Risk": ("Aviation medicine, flight safety, risk assessment", "/aero", "🚁"),
+            "Aerospace Medicine RAG": ("Scientific articles and textbooks in aerospace medicine", "/aerospace", "🚀"),
+            "PRISMA Systematic Review": ("Systematic reviews, meta-analyses, evidence synthesis", "/prisma", "📊")
+        }
+
+        for mode, (desc, cmd, emoji) in modes_data.items():
+            self.console.print(f"{emoji} [bold cyan]{mode}[/bold cyan]")
+            self.console.print(f"   {desc}")
+            self.console.print(f"   Quick Switch: [green]{cmd}[/green]")
+            self.console.print()
 
     def display_contextual_help(self) -> None:
         """Display contextual help based on current mode."""
