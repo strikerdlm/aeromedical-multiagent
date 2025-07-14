@@ -386,7 +386,7 @@ class EnhancedPromptEnhancerApp:
         while True:
             try:
                 # Use the multiline handler directly for input
-                user_input = self.multiline_handler.get_input()
+                user_input = self.multiline_handler.get_single_or_multiline_input()
                 if not self.handle_enhanced_user_input(user_input):
                     break
             except KeyboardInterrupt:
