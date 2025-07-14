@@ -336,6 +336,36 @@ class UserInterface:
         self.console.print("📊 /report - Create structured research report")
         self.console.print()
 
+    def display_jobs(self) -> None:
+        """Display the status of all submitted jobs."""
+        self.console.print("\n[bold]📦 Submitted Jobs[/bold]")
+        
+        # First, check for updated statuses
+        self.app.check_job_statuses()
+
+        jobs = self.app.job_store.get_all_jobs()
+        if not jobs:
+            self.console.print("No jobs submitted yet. Use a Flowise mode to start one.")
+            return
+
+        for job in sorted(jobs, key=lambda j: j.job_id, reverse=True):
+            status_colors = {
+                "pending": "yellow",
+                "completed": "green",
+                "failed": "red"
+            }
+            color = status_colors.get(job.status, "white")
+            self.console.print(f"\n[bold]Job ID:[/bold] {job.job_id}")
+            self.console.print(f"  [bold]Query:[/bold] {job.query[:80]}...")
+            self.console.print(f"  [bold]Status:[/bold] [{color}]{job.status.title()}[/{color}]")
+
+            if job.status == "completed":
+                self.console.print(f"  [bold]Result:[/bold] Report saved to `exports/{job.job_id}.md`")
+            elif job.status == "pending":
+                self.console.print("  [dim]This job is still processing. Check back later.[/dim]")
+
+        self.console.print()
+
     # Delegate to handlers
     def export_latest_response(self) -> None:
         self.exporter.export_latest_response()

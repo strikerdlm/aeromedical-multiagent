@@ -96,6 +96,33 @@ class FlowiseClient:
         else:
             raise FlowiseAPIError(f"API error: {response.status_code} - {response.text}")
 
+    def submit_job(self, chatflow_id: str, question: str) -> bool:
+        """
+        Submit a job to a Flowise chatflow without waiting for completion.
+        
+        Args:
+            chatflow_id: The ID of the chatflow to query
+            question: The question to ask
+            
+        Returns:
+            True if the job was submitted successfully, False otherwise
+        """
+        api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
+        payload = {"question": question}
+        
+        try:
+            # Use a short timeout to fire and forget
+            response = requests.post(api_url, headers=self.headers, json=payload, timeout=2)
+            # If we get a quick success, that's great
+            return response.status_code == 200
+        except requests.exceptions.Timeout:
+            # A timeout is expected and indicates the job is running
+            logger.info(f"Job submitted to Flowise chatflow {chatflow_id} (timeout expected).")
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to submit job to Flowise: {e}")
+            return False
+
 
 class MedicalFlowiseRouter(FlowiseClient):
     """

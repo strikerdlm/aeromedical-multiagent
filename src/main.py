@@ -26,15 +26,16 @@ from rich.live import Live
 from pydantic import BaseModel
 from agents import Runner
 
-from .config import AppConfig
+from .config import AppConfig, FlowiseConfig
 from .prompt_agents import create_prompt_enhancement_system
-from .flowise_agents import create_flowise_enhancement_system
+from .flowise_agents import create_flowise_enhancement_system, _extract_flowise_response_text
 from .flowise_client import FlowiseAPIError
 from .multiline_input import MultilineInputHandler, detect_paste_input
 from .markdown_exporter import MarkdownExporter
 from .prisma_agents import PRISMAAgentSystem, create_prisma_agent_system
 from .ui import AsyncProgressHandler, UserInterface
 from .mode_manager import ModeManager
+from .jobs import JobStore
 
 
 # Set up logging with proper Unicode support
@@ -89,6 +90,7 @@ class EnhancedPromptEnhancerApp:
         self.progress_handler = AsyncProgressHandler(self.console)
         self.ui = UserInterface(self)
         self.mode_manager = ModeManager(self)
+        self.job_store = JobStore()
         
         # Create both agent systems
         self.prompt_agents = create_prompt_enhancement_system()
@@ -120,6 +122,38 @@ class EnhancedPromptEnhancerApp:
         
         logger.info("Enhanced Prompt Enhancer App initialized successfully")
     
+    def check_job_statuses(self) -> None:
+        """Check the status of pending jobs and process completed ones."""
+        pending_jobs = [job for job in self.job_store.get_all_jobs() if job.status == "pending"]
+        if not pending_jobs:
+            return
+
+        self.console.print("[dim]Checking for completed jobs...[/dim]")
+        for job in pending_jobs:
+            try:
+                # Re-querying with the original question. Flowise should return the cached result instantly if done.
+                result = self.flowise_agents.flowise_client.query_chatflow(job.chatflow_id, job.query)
+                
+                if result:
+                    response_text = _extract_flowise_response_text(result)
+                    self.job_store.update_job_status(job.job_id, "completed", response_text)
+                    
+                    # Export the result to a markdown file
+                    filename = f"exports/{job.job_id}.md"
+                    self.markdown_exporter.export_to_markdown(
+                        content=response_text,
+                        filename=filename,
+                        metadata={"job_id": job.job_id, "query": job.query}
+                    )
+                    self.console.print(f"✅ [green]Job `{job.job_id}` is complete! Report saved to `{filename}`[/green]")
+
+            except FlowiseAPIError as e:
+                # This could be a timeout if the job is still running, which is expected.
+                logger.info(f"Job {job.job_id} is still pending. API error: {e}")
+            except Exception as e:
+                logger.error(f"Failed to check status for job {job.job_id}: {e}", exc_info=True)
+                self.job_store.update_job_status(job.job_id, "failed", str(e))
+
     def handle_enhanced_user_input(self, user_input: str) -> bool:
         """
         Enhanced input handler with better command processing.
@@ -186,6 +220,9 @@ class EnhancedPromptEnhancerApp:
                 return True
             elif command in ['history', 'hist']:
                 self.ui.display_conversation_history()
+                return True
+            elif command in ['jobs', 'status']:
+                self.ui.display_jobs()
                 return True
             elif command in ['clear', 'reset', 'c']:
                 self.messages = []
@@ -261,24 +298,28 @@ class EnhancedPromptEnhancerApp:
             self.ui.display_mode_selection()
             return True
 
-        # Check for long-running Flowise agents
+        # Handle long-running Flowise agents asynchronously
         flowise_modes = ["deep_research", "aeromedical_risk", "aerospace_medicine_rag"]
         if self.current_mode in flowise_modes:
-            self.console.print("\n[bold yellow]⚠️ This request uses a powerful Flowise agent, which may take up to 5 minutes.[/bold yellow]")
+            self.console.print("\n[bold yellow]⚠️ This request will be processed in the background and may take up to 30 minutes.[/bold yellow]")
             
-            choice = Prompt.ask(
-                "What would you like to do?",
-                choices=["wait", "fast_research"],
-                default="wait"
-            )
+            chatflow_id = FlowiseConfig.CHATFLOW_IDS.get(self.current_mode)
+            if not chatflow_id:
+                self.console.print(f"[red]❌ Could not find chatflow ID for mode '{self.current_mode}'[/red]")
+                return True
+                
+            job = self.job_store.create_job(query=user_input, chatflow_id=chatflow_id)
+            submitted = self.flowise_agents.flowise_client.submit_job(chatflow_id, user_input)
 
-            if choice == "fast_research":
-                self.console.print("🔄 [cyan]Switching to fast research mode...[/cyan]")
-                self.mode_manager.switch_mode("prompt")
-                # The agent is now switched, so the rest of the function will use the new agent.
+            if submitted:
+                self.console.print(f"✅ [green]Job `{job.job_id}` submitted successfully![/green]")
+                self.console.print("You can check the status at any time by typing `/jobs`.")
             else:
-                self.console.print("\n[cyan]🚀 Your request has been sent. Please wait for the response...[/cyan]")
-        
+                self.console.print("❌ [red]Failed to submit job to Flowise. Please try again later.[/red]")
+                self.job_store.update_job_status(job.job_id, "failed")
+            
+            return True
+
         self.messages.append({"role": "user", "content": user_input})
         
         agent_name = self.current_agent.name
@@ -286,18 +327,7 @@ class EnhancedPromptEnhancerApp:
         
         try:
             # Use the official agents.Runner.run coroutine
-            if self.current_mode in flowise_modes:
-                with self.progress_handler.get_progress() as progress:
-                    task = progress.add_task("[cyan]Processing...", total=None)
-                    try:
-                        response = await asyncio.wait_for(
-                            Runner.run(self.current_agent, user_input),
-                            timeout=300.0
-                        )
-                    finally:
-                        progress.update(task, completed=True, visible=False)
-            else:
-                response = await Runner.run(self.current_agent, user_input)
+            response = await Runner.run(self.current_agent, user_input)
 
             final_output = response.final_output if response else "Agent did not produce a final output."
             
