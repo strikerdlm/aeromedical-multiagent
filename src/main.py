@@ -131,25 +131,28 @@ class EnhancedPromptEnhancerApp:
         self.console.print("[dim]Checking for completed jobs...[/dim]")
         for job in pending_jobs:
             try:
-                # Re-querying with the original question. Flowise should return the cached result instantly if done.
-                result = self.flowise_agents.flowise_client.query_chatflow(job.chatflow_id, job.query)
+                history = self.flowise_agents.flowise_client.get_chat_history(job.chatflow_id)
                 
-                if result:
-                    response_text = _extract_flowise_response_text(result)
-                    self.job_store.update_job_status(job.job_id, "completed", response_text)
-                    
-                    # Export the result to a markdown file
-                    filename = f"exports/{job.job_id}.md"
-                    self.markdown_exporter.export_to_markdown(
-                        content=response_text,
-                        filename=filename,
-                        metadata={"job_id": job.job_id, "query": job.query}
-                    )
-                    self.console.print(f"✅ [green]Job `{job.job_id}` is complete! Report saved to `{filename}`[/green]")
+                # Find the user's message and see if there's a corresponding AI response
+                user_message_found = False
+                for message in history:
+                    if message.get("role") == "user" and message.get("content") == job.query:
+                        user_message_found = True
+                    elif user_message_found and message.get("role") == "ai":
+                        # Found the AI's response to our job query
+                        response_text = _extract_flowise_response_text(message.get("content", ""))
+                        self.job_store.update_job_status(job.job_id, "completed", response_text)
+                        
+                        # Export the result to a markdown file
+                        filename = f"exports/{job.job_id}.md"
+                        self.markdown_exporter.export_to_markdown(
+                            content=response_text,
+                            filename=filename,
+                            metadata={"job_id": job.job_id, "query": job.query}
+                        )
+                        self.console.print(f"✅ [green]Job `{job.job_id}` is complete! Report saved to `{filename}`[/green]")
+                        break # Move to the next job
 
-            except FlowiseAPIError as e:
-                # This could be a timeout if the job is still running, which is expected.
-                logger.info(f"Job {job.job_id} is still pending. API error: {e}")
             except Exception as e:
                 logger.error(f"Failed to check status for job {job.job_id}: {e}", exc_info=True)
                 self.job_store.update_job_status(job.job_id, "failed", str(e))

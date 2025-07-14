@@ -8,7 +8,7 @@ using the exact same pattern as the working examples.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 import requests
 
 from .config import FlowiseConfig
@@ -122,6 +122,28 @@ class FlowiseClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to submit job to Flowise: {e}")
             return False
+
+    def get_chat_history(self, chatflow_id: str) -> List[Dict[str, Any]]:
+        """
+        Retrieve the chat history for a specific chatflow.
+
+        Args:
+            chatflow_id: The ID of the chatflow.
+
+        Returns:
+            A list of chat messages.
+        """
+        api_url = f"{self.base_url}/api/v1/chatmessage/{chatflow_id}"
+        try:
+            response = requests.get(api_url, headers=self.headers, timeout=20)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Failed to get chat history for {chatflow_id}: {response.status_code} - {response.text}")
+                return []
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed while getting chat history for {chatflow_id}: {e}")
+            return []
 
 
 class MedicalFlowiseRouter(FlowiseClient):
