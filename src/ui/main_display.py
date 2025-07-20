@@ -381,7 +381,6 @@ class UserInterface:
 
         table = Table(title="Job Archive", show_header=True, header_style="bold magenta")
         table.add_column("Index", style="dim", width=5)
-        table.add_column("Job ID", style="cyan", no_wrap=True)
         table.add_column("Created (UTC)", style="green")
         table.add_column("Query", width=60)
         table.add_column("Status", justify="right")
@@ -400,7 +399,6 @@ class UserInterface:
 
             table.add_row(
                 str(idx),
-                job.job_id,
                 job.created_at.strftime('%Y-%m-%d %H:%M'),
                 query_preview,
                 f"[{status_color}]{job.status.title()}[/{status_color}]"

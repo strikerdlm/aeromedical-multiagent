@@ -236,6 +236,7 @@ class EnhancedPromptEnhancerApp:
                 self.ui.display_jobs()
                 return True
             elif command in ['archive']:
+                self.check_job_statuses()
                 self.ui.display_job_archive()
                 return True
             elif command in ['clear', 'reset', 'c']:
