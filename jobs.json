@@ -12,5 +12,12 @@
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
         "status": "failed",
         "result": null
+    },
+    "da6db716-cbed-411d-94d7-c4519d3bee75": {
+        "job_id": "da6db716-cbed-411d-94d7-c4519d3bee75",
+        "query": "What are aerospace medicine applications?",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "status": "pending",
+        "result": null
     }
 }

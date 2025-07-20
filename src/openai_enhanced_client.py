@@ -190,16 +190,16 @@ class EnhancedOpenAIClient:
             
             config = OpenAIModelsConfig.O3_DEEP_RESEARCH
             
-            # Use the responses endpoint for deep research
-            response = self.client.responses.create(
+            # Use the correct chat completions endpoint
+            response = self.client.chat.completions.create(
                 model=config.model_name,
                 messages=[{
                     "role": "user",
                     "content": enhanced_prompt
                 }],
                 max_tokens=config.max_tokens,
-                temperature=config.temperature,
-                reasoning_effort=config.reasoning_effort
+                temperature=config.temperature
+                # Note: reasoning_effort not supported by current OpenAI API
             )
             
             # Extract the response content
@@ -250,8 +250,8 @@ class EnhancedOpenAIClient:
                     "content": enhanced_with_search
                 }],
                 max_tokens=config.max_tokens,
-                temperature=config.temperature,
-                reasoning_effort=config.reasoning_effort
+                temperature=config.temperature
+                # Note: reasoning_effort not supported by current OpenAI API
             )
             
             if response.choices and len(response.choices) > 0:

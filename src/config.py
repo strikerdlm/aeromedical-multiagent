@@ -36,16 +36,16 @@ class ModelConfig:
 class OpenAIModelsConfig:
     """Configuration for OpenAI models used in the system."""
     
-    # Enhanced OpenAI Models
+    # Enhanced OpenAI Models - Updated to use available models
     O3_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="o3-deep-research-2025-06-26",
+        model_name="gpt-4o",  # Use GPT-4o as the most advanced available model
         max_tokens=8000,
         temperature=0.4,
         reasoning_effort="high"
     )
     
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o3",
+        model_name="gpt-4o",  # Use GPT-4o for reasoning tasks
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
@@ -53,7 +53,7 @@ class OpenAIModelsConfig:
     
     # Fallback model for PRISMA
     O4_MINI_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="o4-mini-deep-research-2025-06-26",
+        model_name="gpt-4o-mini",  # Use GPT-4o-mini as fallback
         max_tokens=8000,
         temperature=0.3,
         reasoning_effort="high"
@@ -82,9 +82,9 @@ class ChatflowConfig:
 class PRISMAConfig:
     """Configuration for PRISMA systematic review feature."""
     
-    # Required models and reasoning effort
+    # Required models and reasoning effort - Updated to use available models
     O3_HIGH_REASONING = ModelConfig(
-        model_name="o3-deep-research-2025-06-26",
+        model_name="gpt-4o",  # Use GPT-4o for high reasoning tasks
         max_tokens=10000,
         temperature=0.3,
         reasoning_effort="high"
@@ -92,7 +92,7 @@ class PRISMAConfig:
     
     # Fallback model for PRISMA
     O4_MINI_FALLBACK = ModelConfig(
-        model_name="o4-mini-deep-research-2025-06-26",
+        model_name="gpt-4o-mini",  # Use GPT-4o-mini as fallback
         max_tokens=10000,
         temperature=0.3,
         reasoning_effort="high"

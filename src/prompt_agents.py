@@ -18,75 +18,67 @@ from .config import OpenAIModelsConfig, AppConfig
 logger = logging.getLogger(__name__)
 
 
-class PromptProcessingTools:
-    """Stateless tools for processing prompts with advanced OpenAI models."""
-
-    def __init__(self, openai_client: Optional[EnhancedOpenAIClient] = None):
-        """
-        Initialize the tools with an enhanced OpenAI client.
-        
-        Args:
-            openai_client: EnhancedOpenAIClient instance for API calls
-        """
-        self.openai_client = openai_client or create_enhanced_openai_client()
-
-    @function_tool
-    def process_with_advanced_routing(self, enhanced_prompt: str, original_question: str) -> str:
-        """
-        Process the enhanced prompt using advanced OpenAI model routing.
-        
-        Args:
-            enhanced_prompt: The enhanced prompt to process
-            original_question: The original user question to guide routing
-            
-        Returns:
-            Response from the appropriate OpenAI model (o3-deep-research or o3)
-        """
-        try:
-            logger.info("Processing with advanced OpenAI model routing")
-            response = self.openai_client.route_and_process(enhanced_prompt, original_question)
-            logger.info("Advanced routing processing completed successfully")
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error in advanced routing: {e}")
-            return f"Error processing with advanced routing: {str(e)}"
+# Convert class methods to standalone functions for OpenAI agents SDK compatibility
+@function_tool
+def process_with_advanced_routing(enhanced_prompt: str, original_question: str) -> str:
+    """
+    Process the enhanced prompt using advanced OpenAI model routing.
     
-    @function_tool
-    def force_deep_research_processing(self, enhanced_prompt: str) -> str:
-        """
-        Force processing with o3-deep-research model.
+    Args:
+        enhanced_prompt: The enhanced prompt to process
+        original_question: The original user question to guide routing
         
-        Args:
-            enhanced_prompt: The enhanced prompt to process
-            
-        Returns:
-            Response from o3-deep-research model
-        """
-        try:
-            logger.info("Force processing with o3-deep-research")
-            return self.openai_client.process_with_deep_research(enhanced_prompt)
-        except Exception as e:
-            logger.error(f"Error in deep research processing: {e}")
-            return f"Error processing with deep research: {str(e)}"
+    Returns:
+        Response from the appropriate OpenAI model (o3-deep-research or o3)
+    """
+    try:
+        logger.info("Processing with advanced OpenAI model routing")
+        openai_client = create_enhanced_openai_client()
+        response = openai_client.route_and_process(enhanced_prompt, original_question)
+        logger.info("Advanced routing processing completed successfully")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in advanced routing: {e}")
+        return f"Error processing with advanced routing: {str(e)}"
+
+@function_tool
+def force_deep_research_processing(enhanced_prompt: str) -> str:
+    """
+    Force processing with o3-deep-research model.
     
-    @function_tool
-    def force_o3_web_search_processing(self, enhanced_prompt: str) -> str:
-        """
-        Force processing with o3 + web search.
+    Args:
+        enhanced_prompt: The enhanced prompt to process
         
-        Args:
-            enhanced_prompt: The enhanced prompt to process
-            
-        Returns:
-            Response from o3 with web search
-        """
-        try:
-            logger.info("Force processing with o3 + web search")
-            return self.openai_client.process_with_o3_and_web_search(enhanced_prompt)
-        except Exception as e:
-            logger.error(f"Error in o3 web search processing: {e}")
-            return f"Error processing with o3 + web search: {str(e)}"
+    Returns:
+        Response from o3-deep-research model
+    """
+    try:
+        logger.info("Force processing with o3-deep-research")
+        openai_client = create_enhanced_openai_client()
+        return openai_client.process_with_deep_research(enhanced_prompt)
+    except Exception as e:
+        logger.error(f"Error in deep research processing: {e}")
+        return f"Error processing with deep research: {str(e)}"
+
+@function_tool
+def force_o3_web_search_processing(enhanced_prompt: str) -> str:
+    """
+    Force processing with o3 + web search.
+    
+    Args:
+        enhanced_prompt: The enhanced prompt to process
+        
+    Returns:
+        Response from o3 with web search
+    """
+    try:
+        logger.info("Force processing with o3 + web search")
+        openai_client = create_enhanced_openai_client()
+        return openai_client.process_with_o3_and_web_search(enhanced_prompt)
+    except Exception as e:
+        logger.error(f"Error in o3 web search processing: {e}")
+        return f"Error processing with o3 + web search: {str(e)}"
 
 
 def create_triage_agent(analyzer_agent: Agent) -> Agent:
@@ -157,15 +149,12 @@ def create_prompt_enhancement_system() -> Dict[str, Agent]:
     Returns:
         Dictionary mapping agent names to agent instances
     """
-    # Instantiate the stateless tool class
-    processing_tools = PromptProcessingTools()
-    
-    # Create agents in reverse order of handoff
+    # Create agents in reverse order of handoff using the standalone functions
     processor_agent = create_processor_agent(
         tools=[
-            processing_tools.process_with_advanced_routing,
-            processing_tools.force_deep_research_processing,
-            processing_tools.force_o3_web_search_processing,
+            process_with_advanced_routing,
+            force_deep_research_processing,
+            force_o3_web_search_processing,
         ]
     )
     analyzer_agent = create_analyzer_agent(processor_agent)
@@ -183,15 +172,12 @@ def create_prompt_enhancement_system() -> Dict[str, Agent]:
 # Example usage and testing functions
 def test_agent_handoffs() -> None:
     """Test the agent handoff functionality."""
-    # Instantiate the stateless tool class
-    processing_tools = PromptProcessingTools()
-    
-    # Create agents in reverse order of handoff
+    # Create agents in reverse order of handoff using the standalone functions
     processor_agent = create_processor_agent(
         tools=[
-            processing_tools.process_with_advanced_routing,
-            processing_tools.force_deep_research_processing,
-            processing_tools.force_o3_web_search_processing,
+            process_with_advanced_routing,
+            force_deep_research_processing,
+            force_o3_web_search_processing,
         ]
     )
     analyzer_agent = create_analyzer_agent(processor_agent)
@@ -204,13 +190,15 @@ def test_agent_handoffs() -> None:
     
     test_prompt = "Tell me about quantum computing and its applications in cryptography"
     
-    # Triage -> Analyzer -> Processor
-    enhanced_prompt = analyzer_agent.analyze_and_enhance_prompt(test_prompt)
-    logger.info(f"Enhanced prompt: {enhanced_prompt[:100]}...")
+    # For testing, we can directly call the standalone functions
+    logger.info(f"Test prompt: {test_prompt}")
     
-    # Processor will route to the appropriate model
-    response = processor_agent.process_with_advanced_routing(enhanced_prompt, test_prompt)
-    logger.info(f"Final response: {response}")
+    # Test direct function call
+    try:
+        response = process_with_advanced_routing(test_prompt, test_prompt)
+        logger.info(f"Test response: {response[:100] if response else 'No response'}...")
+    except Exception as e:
+        logger.error(f"Test failed: {e}")
 
 
 if __name__ == "__main__":
