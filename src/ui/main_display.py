@@ -4,6 +4,7 @@ This module contains the main UserInterface class for the application.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import random
+import logging
 
 from ..custom_rich.stubs import Panel, Table, Text, Markdown, Prompt
 from ..multiline_input import format_large_text_preview
@@ -12,6 +13,8 @@ from .prisma_display import PrismaDisplay
 
 if TYPE_CHECKING:
     from ..main import EnhancedPromptEnhancerApp
+
+logger = logging.getLogger(__name__)
 
 
 class UserInterface:
@@ -376,7 +379,7 @@ class UserInterface:
             self.console.print("No jobs found in the archive.")
             return
 
-        table = Table(title="Completed Jobs", show_header=True, header_style="bold magenta")
+        table = Table(title="Job Archive", show_header=True, header_style="bold magenta")
         table.add_column("Index", style="dim", width=5)
         table.add_column("Job ID", style="cyan", no_wrap=True)
         table.add_column("Created (UTC)", style="green")
@@ -422,39 +425,51 @@ class UserInterface:
             self.console.print("[red]Invalid input. Please enter a number or 'q'.[/red]")
 
     def download_job_result(self, job) -> None:
-        """Downloads the result of a specific job."""
-        self.console.print(f"\n[cyan]Downloading result for job {job.job_id}...[/cyan]")
+        """
+        Downloads the result of a specific job, always fetching the latest from the API.
+        """
+        self.console.print(f"\n[cyan]Fetching latest status for job {job.job_id}...[/cyan]")
 
-        if job.status == "completed" and job.result:
-            # If the result is already stored, use it
-            response_text = job.result
-        else:
-            # Otherwise, fetch it from Flowise
+        try:
             history = self.app.flowise_client.get_session_history(job.chatflow_id, job.session_id)
+            
+            if not history:
+                if job.status == 'pending':
+                    self.console.print("[yellow]This job is still pending and has no history to display.[/yellow]")
+                else:
+                    self.console.print("[red]Could not retrieve history for this job. It may have expired on the server.[/red]")
+                return
+
             ai_messages = [msg for msg in history if msg.get("role") == "apiMessage"]
             if not ai_messages:
-                self.console.print("[red]Could not find a response for this job in the session history.[/red]")
+                self.console.print("[yellow]Job is still processing. No response found in the session history yet.[/yellow]")
                 return
             
             latest_response = ai_messages[-1]
             response_text = self.app.flowise_agents._extract_flowise_response_text(latest_response.get("content", ""))
 
             # Update the job store with the fetched result
-            self.app.job_store.update_job_status(job.job_id, "completed", response_text)
+            if job.status != "completed":
+                self.app.job_store.update_job_status(job.job_id, "completed", response_text)
 
-        # Sanitize query for filename
-        sanitized_query = self.app.re.sub(r'[\W_]+', '_', job.query[:50])
-        timestamp = self.app.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"exports/retrieved_{sanitized_query}_{timestamp}.md"
+            # Sanitize query for filename
+            sanitized_query = self.app.re.sub(r'[\W_]+', '_', job.query[:50])
+            timestamp = self.app.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"exports/retrieved_{sanitized_query}_{timestamp}.md"
 
-        # Export to markdown
-        self.app.markdown_exporter.export_to_markdown(
-            content=response_text,
-            filename=filename,
-            metadata={"job_id": job.job_id, "session_id": job.session_id, "query": job.query, "retrieved_at": timestamp}
-        )
+            # Export to markdown
+            self.app.markdown_exporter.export_to_markdown(
+                content=response_text,
+                filename=filename,
+                metadata={"job_id": job.job_id, "session_id": job.session_id, "query": job.query, "retrieved_at": timestamp}
+            )
 
-        self.console.print(f"✅ [green]Successfully downloaded and saved result to `{filename}`[/green]")
+            self.console.print(f"✅ [green]Successfully downloaded and saved result to `{filename}`[/green]")
+
+        except Exception as e:
+            logger.error(f"Failed to download result for job {job.job_id}: {e}", exc_info=True)
+            self.console.print(f"[red]An error occurred while downloading the job result: {e}[/red]")
+
 
     # Delegate to handlers
     def export_latest_response(self) -> None:
