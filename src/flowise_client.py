@@ -56,7 +56,7 @@ class FlowiseClient:
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
     
     @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
-    def query_chatflow(self, chatflow_id: str, question: str) -> Dict[str, Any]:
+    def query_chatflow(self, chatflow_id: str, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Query a specific Flowise chatflow.
         
@@ -66,6 +66,7 @@ class FlowiseClient:
         Args:
             chatflow_id: The ID of the chatflow to query
             question: The question to ask
+            session_id: The session ID for the conversation
             
         Returns:
             Response JSON from Flowise API
@@ -75,9 +76,11 @@ class FlowiseClient:
         """
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
         payload = {"question": question}
+        if session_id:
+            payload["overrideConfig"] = {"sessionId": session_id}
         
-        logger.info(f"Querying Flowise chatflow {chatflow_id}")
-        response = requests.post(api_url, headers=self.headers, json=payload, timeout=20) # Add timeout
+        logger.info(f"Querying Flowise chatflow {chatflow_id} with session {session_id}")
+        response = requests.post(api_url, headers=self.headers, json=payload, timeout=20)
         
         if response.status_code == 200:
             result = response.json()
@@ -96,19 +99,23 @@ class FlowiseClient:
         else:
             raise FlowiseAPIError(f"API error: {response.status_code} - {response.text}")
 
-    def submit_job(self, chatflow_id: str, question: str) -> bool:
+    def submit_job(self, chatflow_id: str, question: str, session_id: str) -> bool:
         """
         Submit a job to a Flowise chatflow without waiting for completion.
         
         Args:
             chatflow_id: The ID of the chatflow to query
             question: The question to ask
+            session_id: The session ID for the job
             
         Returns:
             True if the job was submitted successfully, False otherwise
         """
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
-        payload = {"question": question}
+        payload = {
+            "question": question,
+            "overrideConfig": {"sessionId": session_id}
+        }
         
         try:
             # Use a short timeout to fire and forget
@@ -117,32 +124,35 @@ class FlowiseClient:
             return response.status_code == 200
         except requests.exceptions.Timeout:
             # A timeout is expected and indicates the job is running
-            logger.info(f"Job submitted to Flowise chatflow {chatflow_id} (timeout expected).")
+            logger.info(f"Job submitted to Flowise chatflow {chatflow_id} with session {session_id} (timeout expected).")
             return True
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to submit job to Flowise: {e}")
             return False
 
-    def get_chat_history(self, chatflow_id: str) -> List[Dict[str, Any]]:
+    def get_session_history(self, chatflow_id: str, session_id: str) -> List[Dict[str, Any]]:
         """
-        Retrieve the chat history for a specific chatflow.
+        Retrieve the chat history for a specific session.
+        Flowise organizes history by chatflow and session.
 
         Args:
             chatflow_id: The ID of the chatflow.
+            session_id: The ID of the session.
 
         Returns:
-            A list of chat messages.
+            A list of chat messages for the session.
         """
-        api_url = f"{self.base_url}/api/v1/chatmessage/{chatflow_id}"
+        api_url = f"{self.base_url}/api/v1/chatmessage/{chatflow_id}?sessionId={session_id}"
         try:
             response = requests.get(api_url, headers=self.headers, timeout=20)
             if response.status_code == 200:
+                # The API returns a list of messages directly
                 return response.json()
             else:
-                logger.error(f"Failed to get chat history for {chatflow_id}: {response.status_code} - {response.text}")
+                logger.error(f"Failed to get chat history for session {session_id}: {response.status_code} - {response.text}")
                 return []
         except requests.exceptions.RequestException as e:
-            logger.error(f"Request failed while getting chat history for {chatflow_id}: {e}")
+            logger.error(f"Request failed while getting chat history for session {session_id}: {e}")
             return []
 
 
@@ -156,22 +166,22 @@ class MedicalFlowiseRouter(FlowiseClient):
     3. Aerospace Medicine RAG - Scientific articles and textbooks in aerospace medicine
     """
     
-    def consult_deep_research(self, query: str) -> Dict[str, Any]:
+    def consult_deep_research(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query the deep research chatflow for comprehensive analysis."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["deep_research"]
-        return self.query_chatflow(chatflow_id, query)
+        return self.query_chatflow(chatflow_id, query, session_id)
     
-    def consult_aeromedical_risk(self, query: str) -> Dict[str, Any]:
+    def consult_aeromedical_risk(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query aeromedical risk assessment chatflow."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["aeromedical_risk"]
-        return self.query_chatflow(chatflow_id, query)
+        return self.query_chatflow(chatflow_id, query, session_id)
     
-    def consult_aerospace_medicine_rag(self, query: str) -> Dict[str, Any]:
+    def consult_aerospace_medicine_rag(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query aerospace medicine RAG chatflow for scientific articles and textbooks."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["aerospace_medicine_rag"]
-        return self.query_chatflow(chatflow_id, query)
+        return self.query_chatflow(chatflow_id, query, session_id)
     
-    def route_medical_query(self, query_type: str, question: str) -> Dict[str, Any]:
+    def route_medical_query(self, query_type: str, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Route medical queries to appropriate specialized chatflows.
         
@@ -196,4 +206,4 @@ class MedicalFlowiseRouter(FlowiseClient):
             available_types = ", ".join(routing_map.keys())
             raise FlowiseAPIError(f"Unknown query type '{query_type}'. Available: {available_types}")
         
-        return routing_map[query_type](question) 
+        return routing_map[query_type](question, session_id) 

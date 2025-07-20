@@ -9,10 +9,11 @@ from typing import Dict, Any, List, Optional
 class Job:
     """Represents a single long-running job."""
 
-    def __init__(self, job_id: str, query: str, chatflow_id: str, status: str = "pending", result: Optional[str] = None):
+    def __init__(self, job_id: str, query: str, chatflow_id: str, session_id: str, status: str = "pending", result: Optional[str] = None):
         self.job_id = job_id
         self.query = query
         self.chatflow_id = chatflow_id
+        self.session_id = session_id
         self.status = status
         self.result = result
 
@@ -21,6 +22,7 @@ class Job:
             "job_id": self.job_id,
             "query": self.query,
             "chatflow_id": self.chatflow_id,
+            "session_id": self.session_id,
             "status": self.status,
             "result": self.result
         }
@@ -31,6 +33,7 @@ class Job:
             job_id=data["job_id"],
             query=data["query"],
             chatflow_id=data["chatflow_id"],
+            session_id=data.get("session_id", data["job_id"]),  # Backward compatibility
             status=data["status"],
             result=data.get("result")
         )
@@ -55,7 +58,8 @@ class JobStore:
 
     def create_job(self, query: str, chatflow_id: str) -> Job:
         job_id = str(uuid.uuid4())
-        job = Job(job_id=job_id, query=query, chatflow_id=chatflow_id)
+        session_id = str(uuid.uuid4())
+        job = Job(job_id=job_id, query=query, chatflow_id=chatflow_id, session_id=session_id)
         self.jobs[job_id] = job
         self._save()
         return job

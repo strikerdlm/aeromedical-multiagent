@@ -19,5 +19,12 @@
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
         "status": "pending",
         "result": null
+    },
+    "404a11c5-f36d-46e3-b7bf-551b8139ab25": {
+        "job_id": "404a11c5-f36d-46e3-b7bf-551b8139ab25",
+        "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "status": "pending",
+        "result": null
     }
 }
