@@ -29,7 +29,7 @@ from agents import Runner
 from .config import AppConfig, FlowiseConfig
 from .prompt_agents import create_prompt_enhancement_system
 from .flowise_agents import create_flowise_enhancement_system, _extract_flowise_response_text
-from .flowise_client import FlowiseAPIError
+from .flowise_client import FlowiseAPIError, MedicalFlowiseRouter
 from .multiline_input import MultilineInputHandler, detect_paste_input
 from .markdown_exporter import MarkdownExporter
 from .prisma_agents import PRISMAAgentSystem, create_prisma_agent_system
@@ -96,6 +96,9 @@ class EnhancedPromptEnhancerApp:
         self.prompt_agents = create_prompt_enhancement_system()
         self.flowise_agents = create_flowise_enhancement_system()
         
+        # Create Flowise client for job management
+        self.flowise_client = MedicalFlowiseRouter()
+        
         # Initialize PRISMA orchestrator (optional, depends on API availability)
         self.prisma_system: Optional[PRISMAAgentSystem] = None
         try:
@@ -131,7 +134,7 @@ class EnhancedPromptEnhancerApp:
         self.console.print("[dim]Checking for completed jobs...[/dim]")
         for job in pending_jobs:
             try:
-                history = self.flowise_agents.flowise_client.get_chat_history(job.chatflow_id)
+                history = self.flowise_client.get_chat_history(job.chatflow_id)
                 
                 # Find the user's message and see if there's a corresponding AI response
                 user_message_found = False
@@ -312,7 +315,7 @@ class EnhancedPromptEnhancerApp:
                 return True
                 
             job = self.job_store.create_job(query=user_input, chatflow_id=chatflow_id)
-            submitted = self.flowise_agents.flowise_client.submit_job(chatflow_id, user_input)
+            submitted = self.flowise_client.submit_job(chatflow_id, user_input)
 
             if submitted:
                 self.console.print(f"✅ [green]Job `{job.job_id}` submitted successfully![/green]")

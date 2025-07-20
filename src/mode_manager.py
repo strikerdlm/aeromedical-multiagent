@@ -36,7 +36,7 @@ class ModeManager:
         """
         mode_agents = {
             "smart": None,
-            "prompt": self.app.prompt_agents,
+            "prompt": self.app.prompt_agents["triage"],
             "deep_research": self.app.flowise_agents["deep_research"],
             "aeromedical_risk": self.app.flowise_agents["aeromedical_risk"],
             "aerospace_medicine_rag": self.app.flowise_agents["aerospace_medicine_rag"],

@@ -1,0 +1,16 @@
+{
+    "46a40232-85a2-4a8c-97b4-b83471298bdd": {
+        "job_id": "46a40232-85a2-4a8c-97b4-b83471298bdd",
+        "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "status": "pending",
+        "result": null
+    },
+    "1b472518-60ac-44ff-be83-57749f497a49": {
+        "job_id": "1b472518-60ac-44ff-be83-57749f497a49",
+        "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "status": "failed",
+        "result": null
+    }
+}
