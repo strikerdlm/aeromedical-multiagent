@@ -119,6 +119,8 @@ class UserInterface:
             ("/save", "Export full conversation to markdown"),
             ("/report", "Export structured research report"),
             ("/exports", "List all exported files"),
+            ("/jobs", "View the status of currently running jobs"),
+            ("/archive", "View and download results from past jobs"),
             ("/clear", "Clear conversation history"),
             ("/fallback", "Toggle automatic fallback to Prompt when Flowise times out"),
             ("/quit", "Exit the application")
@@ -365,6 +367,94 @@ class UserInterface:
                 self.console.print("  [dim]This job is still processing. Check back later.[/dim]")
 
         self.console.print()
+
+    def display_job_archive(self) -> None:
+        """Displays a list of all jobs and allows the user to download results."""
+        self.console.print("\n[bold]🗂️ Job Archive[/bold]")
+        jobs = self.app.job_store.get_all_jobs()
+        if not jobs:
+            self.console.print("No jobs found in the archive.")
+            return
+
+        table = Table(title="Completed Jobs", show_header=True, header_style="bold magenta")
+        table.add_column("Index", style="dim", width=5)
+        table.add_column("Job ID", style="cyan", no_wrap=True)
+        table.add_column("Created (UTC)", style="green")
+        table.add_column("Query", width=60)
+        table.add_column("Status", justify="right")
+
+        # Sort jobs by creation date, newest first
+        sorted_jobs = sorted(jobs, key=lambda j: j.created_at, reverse=True)
+
+        for idx, job in enumerate(sorted_jobs, 1):
+            status_colors = {"completed": "green", "failed": "red", "pending": "yellow"}
+            status_color = status_colors.get(job.status, "white")
+            
+            # Format query to fit in one line
+            query_preview = job.query.replace('\n', ' ').strip()
+            if len(query_preview) > 57:
+                query_preview = query_preview[:57] + "..."
+
+            table.add_row(
+                str(idx),
+                job.job_id,
+                job.created_at.strftime('%Y-%m-%d %H:%M'),
+                query_preview,
+                f"[{status_color}]{job.status.title()}[/{status_color}]"
+            )
+        
+        self.console.print(table)
+        self.console.print("\nSelect a job to download its result.")
+        self.console.print("Enter the index number, or 'q' to quit.")
+
+        try:
+            selection = Prompt.ask("Enter index")
+            if selection.lower() == 'q':
+                return
+            
+            index = int(selection) - 1
+            if 0 <= index < len(sorted_jobs):
+                self.download_job_result(sorted_jobs[index])
+            else:
+                self.console.print("[red]Invalid index selected.[/red]")
+
+        except (ValueError, TypeError):
+            self.console.print("[red]Invalid input. Please enter a number or 'q'.[/red]")
+
+    def download_job_result(self, job) -> None:
+        """Downloads the result of a specific job."""
+        self.console.print(f"\n[cyan]Downloading result for job {job.job_id}...[/cyan]")
+
+        if job.status == "completed" and job.result:
+            # If the result is already stored, use it
+            response_text = job.result
+        else:
+            # Otherwise, fetch it from Flowise
+            history = self.app.flowise_client.get_session_history(job.chatflow_id, job.session_id)
+            ai_messages = [msg for msg in history if msg.get("role") == "apiMessage"]
+            if not ai_messages:
+                self.console.print("[red]Could not find a response for this job in the session history.[/red]")
+                return
+            
+            latest_response = ai_messages[-1]
+            response_text = self.app.flowise_agents._extract_flowise_response_text(latest_response.get("content", ""))
+
+            # Update the job store with the fetched result
+            self.app.job_store.update_job_status(job.job_id, "completed", response_text)
+
+        # Sanitize query for filename
+        sanitized_query = self.app.re.sub(r'[\W_]+', '_', job.query[:50])
+        timestamp = self.app.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"exports/retrieved_{sanitized_query}_{timestamp}.md"
+
+        # Export to markdown
+        self.app.markdown_exporter.export_to_markdown(
+            content=response_text,
+            filename=filename,
+            metadata={"job_id": job.job_id, "session_id": job.session_id, "query": job.query, "retrieved_at": timestamp}
+        )
+
+        self.console.print(f"✅ [green]Successfully downloaded and saved result to `{filename}`[/green]")
 
     # Delegate to handlers
     def export_latest_response(self) -> None:

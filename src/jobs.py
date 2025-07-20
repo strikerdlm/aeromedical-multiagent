@@ -5,17 +5,19 @@ import json
 import uuid
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
 
 class Job:
     """Represents a single long-running job."""
 
-    def __init__(self, job_id: str, query: str, chatflow_id: str, session_id: str, status: str = "pending", result: Optional[str] = None):
+    def __init__(self, job_id: str, query: str, chatflow_id: str, session_id: str, status: str = "pending", result: Optional[str] = None, created_at: Optional[datetime] = None):
         self.job_id = job_id
         self.query = query
         self.chatflow_id = chatflow_id
         self.session_id = session_id
         self.status = status
         self.result = result
+        self.created_at = created_at or datetime.now(timezone.utc)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -24,18 +26,29 @@ class Job:
             "chatflow_id": self.chatflow_id,
             "session_id": self.session_id,
             "status": self.status,
-            "result": self.result
+            "result": self.result,
+            "created_at": self.created_at.isoformat()
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Job":
+        created_at_str = data.get("created_at")
+        created_at = None
+        if created_at_str:
+            try:
+                created_at = datetime.fromisoformat(created_at_str)
+            except (ValueError, TypeError):
+                # Handle potential format errors or if it's not a string
+                pass
+
         return cls(
             job_id=data["job_id"],
             query=data["query"],
             chatflow_id=data["chatflow_id"],
             session_id=data.get("session_id", data["job_id"]),  # Backward compatibility
             status=data["status"],
-            result=data.get("result")
+            result=data.get("result"),
+            created_at=created_at
         )
 
 class JobStore:

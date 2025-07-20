@@ -235,6 +235,9 @@ class EnhancedPromptEnhancerApp:
                 self.check_job_statuses()
                 self.ui.display_jobs()
                 return True
+            elif command in ['archive']:
+                self.ui.display_job_archive()
+                return True
             elif command in ['clear', 'reset', 'c']:
                 self.messages = []
                 self.console.print("🧹 [green]Conversation history cleared.[/green]")
