@@ -33,6 +33,7 @@ from .flowise_client import FlowiseAPIError, MedicalFlowiseRouter
 from .multiline_input import MultilineInputHandler, detect_paste_input
 from .markdown_exporter import MarkdownExporter
 from .prisma_agents import PRISMAAgentSystem, create_prisma_agent_system
+from .query_optimizer_agents import create_query_optimization_system, OptimizedQuery
 from .ui import AsyncProgressHandler, UserInterface
 from .mode_manager import ModeManager
 from .jobs import JobStore
@@ -92,9 +93,10 @@ class EnhancedPromptEnhancerApp:
         self.mode_manager = ModeManager(self)
         self.job_store = JobStore()
         
-        # Create both agent systems
+        # Create all agent systems
         self.prompt_agents = create_prompt_enhancement_system()
         self.flowise_agents = create_flowise_enhancement_system()
+        self.query_optimizer_agents = create_query_optimization_system()
         
         # Create Flowise client for job management
         self.flowise_client = MedicalFlowiseRouter()
@@ -125,6 +127,30 @@ class EnhancedPromptEnhancerApp:
         
         logger.info("Enhanced Prompt Enhancer App initialized successfully")
     
+    async def _optimize_user_query(self, user_input: str) -> Optional[OptimizedQuery]:
+        """
+        Optimize the user query for scientific research standards.
+        
+        Args:
+            user_input: The original user query
+            
+        Returns:
+            OptimizedQuery object if successful, None if failed
+        """
+        try:
+            optimizer_agent = self.query_optimizer_agents["optimizer"]
+            response = await Runner.run(optimizer_agent, user_input)
+            
+            if response and response.final_output:
+                return response.final_output
+            else:
+                logger.warning("Query optimizer did not produce output")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Query optimization failed: {e}", exc_info=True)
+            return None
+
     def check_job_statuses(self) -> None:
         """Check the status of pending jobs and process completed ones."""
         pending_jobs = [job for job in self.job_store.get_all_jobs() if job.status == "pending"]
@@ -303,6 +329,23 @@ class EnhancedPromptEnhancerApp:
         Enhanced request processing with better feedback and error handling.
         This method is now async to properly use the agents.Runner.
         """
+        # STEP 1: Query Optimization - Always optimize queries for scientific research standards
+        self.console.print("\n🔬 [cyan]Optimizing your query for scientific research standards...[/cyan]")
+        
+        optimized_result = await self._optimize_user_query(user_input)
+        if not optimized_result:
+            self.console.print("⚠️ [yellow]Query optimization failed, proceeding with original query[/yellow]")
+            processed_query = user_input
+        else:
+            processed_query = optimized_result.optimized_query
+            self.console.print("✅ [green]Query optimized for scientific research and source citation[/green]")
+            
+            # Display optimization summary
+            if optimized_result.key_terms:
+                self.console.print(f"[dim]Key research terms: {', '.join(optimized_result.key_terms[:5])}[/dim]")
+            if optimized_result.expected_sources:
+                self.console.print(f"[dim]Expected sources: {', '.join(optimized_result.expected_sources[:3])}[/dim]")
+
         # If in smart mode and no agent selected, determine agent now
         if self.current_mode == "smart":
             suggested_mode, _ = self.mode_manager.detect_optimal_mode(user_input)
@@ -317,14 +360,16 @@ class EnhancedPromptEnhancerApp:
         flowise_modes = ["deep_research", "aeromedical_risk", "aerospace_medicine_rag"]
         if self.current_mode in flowise_modes:
             self.console.print("\n[bold yellow]⚠️ This request will be processed in the background and may take up to 30 minutes.[/bold yellow]")
+            self.console.print("[dim]Using optimized query for enhanced research quality...[/dim]")
             
             chatflow_id = FlowiseConfig.CHATFLOW_IDS.get(self.current_mode)
             if not chatflow_id:
                 self.console.print(f"[red]❌ Could not find chatflow ID for mode '{self.current_mode}'[/red]")
                 return True
                 
-            job = self.job_store.create_job(query=user_input, chatflow_id=chatflow_id)
-            submitted = self.flowise_client.submit_job(chatflow_id, user_input, job.session_id)
+            # Use processed_query for Flowise background jobs to get better research quality
+            job = self.job_store.create_job(query=user_input, chatflow_id=chatflow_id)  # Store original for display
+            submitted = self.flowise_client.submit_job(chatflow_id, processed_query, job.session_id)  # Send optimized
 
             if submitted:
                 self.console.print(f"✅ [green]Job `{job.job_id}` submitted successfully![/green]")
@@ -335,14 +380,17 @@ class EnhancedPromptEnhancerApp:
             
             return True
 
+        # Store both original and optimized queries in conversation history
         self.messages.append({"role": "user", "content": user_input})
+        if processed_query != user_input:
+            self.messages.append({"role": "system", "content": f"[Query optimized for scientific research standards]"})
         
         agent_name = self.current_agent.name
-        self.console.print(f"\n🤖 [cyan]Processing your request with[/cyan] [bold]{agent_name}[/bold]...")
+        self.console.print(f"\n🤖 [cyan]Processing your optimized request with[/cyan] [bold]{agent_name}[/bold]...")
         
         try:
-            # Use the official agents.Runner.run coroutine
-            response = await Runner.run(self.current_agent, user_input)
+            # Use the processed (optimized) query for better research quality
+            response = await Runner.run(self.current_agent, processed_query)
 
             final_output = response.final_output if response else "Agent did not produce a final output."
             
@@ -372,7 +420,7 @@ class EnhancedPromptEnhancerApp:
                 if self.current_agent:
                     try:
                         self.console.print(f"🔄 [cyan]Retrying your request with[/cyan] [bold]{self.current_agent.name}[/bold]...")
-                        response = await Runner.run(self.current_agent, user_input)
+                        response = await Runner.run(self.current_agent, processed_query)
                         
                         final_output = response.final_output if response else "Agent did not produce a final output."
                         assistant_message = {"role": "assistant", "content": final_output}

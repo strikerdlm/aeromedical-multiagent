@@ -40,7 +40,7 @@ class ModeManager:
             "deep_research": self.app.flowise_agents["deep_research"],
             "aeromedical_risk": self.app.flowise_agents["aeromedical_risk"],
             "aerospace_medicine_rag": self.app.flowise_agents["aerospace_medicine_rag"],
-            "prisma": self.app.prisma_system
+            "prisma": self.app.prisma_system.get_initial_agent() if self.app.prisma_system else None
         }
         
         if new_mode not in mode_agents:

@@ -39,10 +39,13 @@ class UserInterface:
         self.console.print()
 
         self.console.print("🎯 [bold]Quick Start[/bold]")
-        self.console.print("[bold]Just ask your question![/bold] The system will automatically detect the best processing method:")
-        self.console.print("• [bold]Medical/Aviation Questions[/bold] → Flowise with specialized aerospace medicine knowledge")
-        self.console.print("• [bold]Research/Analysis[/bold] → Prompt Research with web search or Flowise deep research")
-        self.console.print("• [bold]Risk Assessment[/bold] → Aeromedical risk evaluation")
+        self.console.print("[bold]Just ask your question![/bold] The system will automatically:")
+        self.console.print("• [bold]🔬 Optimize your query[/bold] for scientific research standards and proper citation")
+        self.console.print("• [bold]📚 Gather real data[/bold] from reputable sources (PubMed, Cochrane, WHO, etc.)")
+        self.console.print("• [bold]🎯 Route to best AI[/bold] based on your question type:")
+        self.console.print("  - [bold]Medical/Aviation Questions[/bold] → Flowise with specialized knowledge")
+        self.console.print("  - [bold]Research/Analysis[/bold] → Deep Research with web search")
+        self.console.print("  - [bold]Systematic Reviews[/bold] → PRISMA-compliant methodology")
         self.console.print()
 
         self.console.print("💡 [bold]Pro Tips[/bold]")
@@ -52,6 +55,7 @@ class UserInterface:
         self.console.print("• **`/clear`** to start fresh")
         self.console.print("• **`>>>`** for multiline input")
         self.console.print("• **`/transfer <mode>`** to re-run last query in a new mode")
+        self.console.print("• **All queries are automatically optimized** for scientific rigor and proper citations")
         self.console.print()
 
         self.console.print("🛠️ [bold magenta]Available Processing Modes[/bold magenta]")

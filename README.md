@@ -92,6 +92,16 @@ graph TD
 
 ## How to Use
 
+The application now features **automatic query optimization** that enhances every user query for scientific research standards, data retrieval from reputable sources, and proper citation practices.
+
+### Query Optimization Pipeline
+
+**Every query automatically goes through a 3-step optimization process:**
+
+1. **🔬 Research Analysis**: Analyzes your query to determine domain, complexity, research type, and data requirements
+2. **📚 Source Gathering**: Retrieves current research context from reputable sources (PubMed, Cochrane, WHO, etc.) using Perplexity API
+3. **⚡ Query Enhancement**: Restructures your query with scientific methodology, citation requirements, and research standards
+
 ### Running the Application
 
 The recommended way to run the application is using the `run.py` script from the project root.
