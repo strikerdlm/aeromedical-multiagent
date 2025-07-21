@@ -160,7 +160,7 @@ def gather_research_context_and_sources(query: str, analysis_domain: str, analys
         Focus on peer-reviewed sources, systematic reviews, and authoritative medical/scientific organizations.
         """
         
-        if AppConfig.PERPLEXITY_API_KEY:
+        if AppConfig.PPLX_API_KEY:
             try:
                 perplexity_client = PerplexityClient()
                 context_response = perplexity_client.query(research_query)

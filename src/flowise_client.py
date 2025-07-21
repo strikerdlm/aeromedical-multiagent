@@ -83,7 +83,7 @@ class FlowiseClient:
             payload["overrideConfig"] = {"sessionId": session_id}
         
         logger.info(f"Querying Flowise chatflow {chatflow_id} with session {session_id}")
-        response = requests.post(api_url, headers=self.headers, json=payload, timeout=20)
+        response = requests.post(api_url, headers=self.headers, json=payload, timeout=60)
         
         if response.status_code == 200:
             result = response.json()
@@ -126,7 +126,7 @@ class FlowiseClient:
         
         try:
             logger.info(f"Submitting job to Flowise chatflow {chatflow_id} with session {session_id}")
-            response = requests.post(api_url, headers=headers, json=payload, timeout=10)
+            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
             
             if response.status_code == 200:
                 logger.info("Job submitted successfully")
@@ -153,7 +153,7 @@ class FlowiseClient:
         """
         api_url = f"{self.base_url}/api/v1/chatmessage/{chatflow_id}?sessionId={session_id}"
         try:
-            response = requests.get(api_url, headers=self.headers, timeout=20)
+            response = requests.get(api_url, headers=self.headers, timeout=30)
             if response.status_code == 200:
                 # The API returns a list of messages directly
                 return response.json()

@@ -52,5 +52,23 @@
         "status": "failed",
         "result": null,
         "created_at": "2025-07-21T00:16:50.664037+00:00"
+    },
+    "3ecf5778-ef23-4375-84f4-2df15c9e1f06": {
+        "job_id": "3ecf5778-ef23-4375-84f4-2df15c9e1f06",
+        "query": "give me a short briefing on the HPA axis for a medical doctor",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "9ff131ce-04e0-4491-90e3-a63c250399d9",
+        "status": "failed",
+        "result": null,
+        "created_at": "2025-07-21T14:36:55.148795+00:00"
+    },
+    "71eb1aa1-3010-43ea-88ae-9374a85cb11a": {
+        "job_id": "71eb1aa1-3010-43ea-88ae-9374a85cb11a",
+        "query": "give me a short briefing on the HPA axis for a medical doctor",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "8221c7c5-450d-471d-8c7a-79b336f54fe8",
+        "status": "failed",
+        "result": null,
+        "created_at": "2025-07-21T14:41:18.433766+00:00"
     }
 }
