@@ -69,7 +69,8 @@ class PerplexityClient:
         query: str,
         max_results: int = 20,
         include_citations: bool = True,
-        focus_domains: Optional[List[str]] = None
+        focus_domains: Optional[List[str]] = None,
+        timeout_override: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Search literature using Perplexity's research capabilities.
@@ -111,7 +112,11 @@ class PerplexityClient:
                 "return_images": False
             }
             
-            response = self._make_api_request("/chat/completions", payload)
+            # Use fast-fail method for timeout overrides (better UX in query optimizer)
+            if timeout_override is not None:
+                response = self._make_api_request_fast_fail("/chat/completions", payload, timeout_override)
+            else:
+                response = self._make_api_request("/chat/completions", payload)
             
             return self._parse_literature_response(response)
             
@@ -297,7 +302,7 @@ class PerplexityClient:
         return prompt
     
     @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
-    def _make_api_request(self, endpoint: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _make_api_request(self, endpoint: str, payload: Dict[str, Any], timeout_override: Optional[int] = None) -> Dict[str, Any]:
         """
         Make API request with retry logic and error handling.
         
@@ -318,10 +323,13 @@ class PerplexityClient:
 
         url = f"{self.base_url}{endpoint}"
         
+        # Use timeout override for faster failures when needed
+        timeout = timeout_override if timeout_override is not None else AppConfig.TIMEOUT
+        
         response = self.session.post(
             url,
             json=payload,
-            timeout=AppConfig.TIMEOUT
+            timeout=timeout
         )
         
         self.last_request_time = time.time()
@@ -335,6 +343,49 @@ class PerplexityClient:
             response.raise_for_status()
 
         # For non-retryable client errors, raise a specific exception.
+        elif response.status_code == 401:
+            raise PerplexityAPIError("Authentication failed - check API key")
+        elif response.status_code == 400:
+            raise PerplexityAPIError(f"Bad request: {response.text}")
+        else:
+            logger.error(f"API error: {response.status_code}, {response.text}")
+            raise PerplexityAPIError(f"API error: {response.status_code}")
+    
+    def _make_api_request_fast_fail(self, endpoint: str, payload: Dict[str, Any], timeout: int = 15) -> Dict[str, Any]:
+        """
+        Make API request with fast failure for better UX (no retries).
+        Used specifically for query optimization where speed matters more than reliability.
+        
+        Args:
+            endpoint: API endpoint to call
+            payload: Request payload
+            timeout: Request timeout in seconds
+            
+        Returns:
+            API response data
+            
+        Raises:
+            PerplexityAPIError: If request fails
+        """
+        # Rate limiting
+        elapsed = time.time() - self.last_request_time
+        if elapsed < PRISMAConfig.PERPLEXITY_RATE_LIMIT_DELAY:
+            time.sleep(PRISMAConfig.PERPLEXITY_RATE_LIMIT_DELAY - elapsed)
+
+        url = f"{self.base_url}{endpoint}"
+        
+        response = self.session.post(
+            url,
+            json=payload,
+            timeout=timeout
+        )
+        
+        self.last_request_time = time.time()
+
+        if response.status_code == 200:
+            return response.json()
+
+        # Fast failure - no retries
         elif response.status_code == 401:
             raise PerplexityAPIError("Authentication failed - check API key")
         elif response.status_code == 400:

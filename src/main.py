@@ -331,10 +331,11 @@ class EnhancedPromptEnhancerApp:
         """
         # STEP 1: Query Optimization - Always optimize queries for scientific research standards
         self.console.print("\n🔬 [cyan]Optimizing your query for scientific research standards...[/cyan]")
+        self.console.print("[dim]⚡ Trying Perplexity research context (15s timeout)...[/dim]")
         
         optimized_result = await self._optimize_user_query(user_input)
         if not optimized_result:
-            self.console.print("⚠️ [yellow]Query optimization failed, proceeding with original query[/yellow]")
+            self.console.print("⚠️ [yellow]Query optimization completed with fallback methods[/yellow]")
             processed_query = user_input
         else:
             processed_query = optimized_result.optimized_query

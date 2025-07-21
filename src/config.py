@@ -201,6 +201,10 @@ class AppConfig:
     PPLX_API_KEY: str = os.getenv("PPLX_API_KEY", "")  # Perplexity API key
     XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")  # Grok API key
     
+    # Performance settings
+    ENABLE_PERPLEXITY_RESEARCH: bool = os.getenv("ENABLE_PERPLEXITY_RESEARCH", "true").lower() == "true"
+    PERPLEXITY_TIMEOUT: int = int(os.getenv("PERPLEXITY_TIMEOUT", "15"))  # Fast timeout for better UX
+    
     # Application settings
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
     RETRY_DELAY: float = float(os.getenv("RETRY_DELAY", "1.0"))

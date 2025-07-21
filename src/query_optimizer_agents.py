@@ -160,10 +160,16 @@ def gather_research_context_and_sources(query: str, analysis_domain: str, analys
         Focus on peer-reviewed sources, systematic reviews, and authoritative medical/scientific organizations.
         """
         
-        if AppConfig.PPLX_API_KEY:
+        if AppConfig.PPLX_API_KEY and AppConfig.ENABLE_PERPLEXITY_RESEARCH:
             try:
+                logger.info(f"Attempting Perplexity research context ({AppConfig.PERPLEXITY_TIMEOUT}s timeout)...")
                 perplexity_client = PerplexityClient()
-                context_response_data = perplexity_client.search_literature(research_query, max_results=10)
+                # Use shorter timeout specifically for this non-critical research context
+                context_response_data = perplexity_client.search_literature(
+                    research_query, 
+                    max_results=10,
+                    timeout_override=AppConfig.PERPLEXITY_TIMEOUT  # Fast timeout for better UX
+                )
                 context_response = context_response_data.get('content', '')
                 
                 # Extract citations and sources from Perplexity response
@@ -176,12 +182,14 @@ def gather_research_context_and_sources(query: str, analysis_domain: str, analys
                     "reputable_sources": reputable_sources,
                     "data_source": "perplexity_live"
                 }
+                logger.info("Perplexity research context retrieved successfully")
                 return json.dumps(result)
                 
             except Exception as e:
-                logger.warning(f"Perplexity query failed: {e}")
+                logger.warning(f"Perplexity query failed (expected - using fallback): {e}")
                 
-        # Fallback: Generate research context using OpenAI
+        # Fallback: Generate research context using OpenAI (faster and more reliable)
+        logger.info("Using OpenAI fallback for research context...")
         fallback_context = generate_research_context_fallback_simple(query, analysis_domain)
         return json.dumps(fallback_context)
         
