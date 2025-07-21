@@ -3,28 +3,45 @@
         "job_id": "46a40232-85a2-4a8c-97b4-b83471298bdd",
         "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "46a40232-85a2-4a8c-97b4-b83471298bdd",
         "status": "pending",
-        "result": null
+        "result": null,
+        "created_at": "2025-07-20T23:44:50.236383+00:00"
     },
     "1b472518-60ac-44ff-be83-57749f497a49": {
         "job_id": "1b472518-60ac-44ff-be83-57749f497a49",
         "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "1b472518-60ac-44ff-be83-57749f497a49",
         "status": "failed",
-        "result": null
+        "result": null,
+        "created_at": "2025-07-20T23:44:50.236398+00:00"
     },
     "da6db716-cbed-411d-94d7-c4519d3bee75": {
         "job_id": "da6db716-cbed-411d-94d7-c4519d3bee75",
         "query": "What are aerospace medicine applications?",
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "da6db716-cbed-411d-94d7-c4519d3bee75",
         "status": "pending",
-        "result": null
+        "result": null,
+        "created_at": "2025-07-20T23:44:50.236400+00:00"
     },
     "404a11c5-f36d-46e3-b7bf-551b8139ab25": {
         "job_id": "404a11c5-f36d-46e3-b7bf-551b8139ab25",
         "query": "List the main variables related to human performance based on physiology and neuropsychology related to test pilots, astronauts and military pilots?",
         "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "404a11c5-f36d-46e3-b7bf-551b8139ab25",
         "status": "pending",
-        "result": null
+        "result": null,
+        "created_at": "2025-07-20T23:44:50.236402+00:00"
+    },
+    "1c3e88df-1d0e-41ed-97cd-ec05e48dac49": {
+        "job_id": "1c3e88df-1d0e-41ed-97cd-ec05e48dac49",
+        "query": "describe what other factors define human performance, have in mind the Human System Integration concept into critical roles like military pilots",
+        "chatflow_id": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6",
+        "session_id": "e63b8061-48d0-4e38-8455-961ed4b41b50",
+        "status": "failed",
+        "result": null,
+        "created_at": "2025-07-21T00:10:32.266833+00:00"
     }
 }

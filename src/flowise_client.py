@@ -53,7 +53,10 @@ class FlowiseClient:
             raise ConfigurationError("Flowise API key is not configured. Please set the FLOWISE_API_KEY environment variable.")
 
         # Create headers exactly like the working examples
-        self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
     
     @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
     def query_chatflow(self, chatflow_id: str, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
