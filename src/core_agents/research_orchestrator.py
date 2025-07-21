@@ -44,7 +44,7 @@ async def run_research_pipeline(
 
     final_instructions = None
     async for ev in optimizer_stream.stream_events():
-        if isinstance(getattr(ev, "item", None), ClarificationRequest):
+        if getattr(ev, "item", None) and isinstance(ev.item, ClarificationRequest):
             reply = []
             for q in ev.item.questions:
                 ans = (mock_answers or {}).get(q, "No preference.")
@@ -74,15 +74,9 @@ async def run_research_pipeline(
     # --- Stage 2: Deep Research ---
     research_agent = create_deep_research_agent()
     
-    # Configure model settings for deep research
-    # Note: These settings are specific to the OpenAI Responses API.
-    # The SDK abstracts this, but we pass them via RunConfig.
-    model_settings = ModelSettings(
-        extra_args={"reasoning": {"effort": "high", "summary": "detailed"}}
-    )
+    # Configure run settings for deep research (reasoning effort handled via agent prompt)
     research_run_config = RunConfig(
         model=final_instructions.target_model,
-        model_settings=model_settings,
         tracing_disabled=True,
     )
 

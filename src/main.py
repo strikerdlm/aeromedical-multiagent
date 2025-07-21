@@ -31,6 +31,7 @@ from .markdown_exporter import MarkdownExporter
 from .ui import AsyncProgressHandler, UserInterface
 from .jobs import JobStore
 from .core_agents import run_research_pipeline
+from .core_agents.research_agents import create_deep_research_agent
 
 
 # Set up logging with proper Unicode support
@@ -88,6 +89,18 @@ class EnhancedPromptEnhancerApp:
         self.messages: List[Dict[str, Any]] = []
         self.last_user_query: Optional[str] = None
         
+        # Track current mode and agent for export functionality
+        self.current_mode: str = "deep_research"
+        self.current_agent = None  # Updated after each query
+
+        # Minimal user preferences used by UI components
+        self.user_preferences = {
+            "auto_fallback": True,
+            "show_tips": True,
+            "auto_suggest": True,
+            "confirm_mode_switch": True,
+        }
+        
         logger.info("Enhanced Research App initialized successfully")
 
     async def process_user_request(self, user_input: str) -> bool:
@@ -106,6 +119,9 @@ class EnhancedPromptEnhancerApp:
 
             assistant_message = {"role": "assistant", "content": str(final_output)}
             self.messages.append(assistant_message)
+
+            # Update export metadata
+            self.current_agent = create_deep_research_agent()
 
             self.console.print(f"\n🤖 [bold]Deep Research Agent Response:[/bold]")
             self.console.print("─" * 60)
