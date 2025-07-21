@@ -126,7 +126,7 @@ class FlowiseClient:
         
         try:
             logger.info(f"Submitting job to Flowise chatflow {chatflow_id} with session {session_id}")
-            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+            response = requests.post(api_url, headers=headers, json=payload, timeout=120)
             
             if response.status_code == 200:
                 logger.info("Job submitted successfully")

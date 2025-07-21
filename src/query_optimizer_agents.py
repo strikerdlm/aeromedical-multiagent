@@ -163,7 +163,8 @@ def gather_research_context_and_sources(query: str, analysis_domain: str, analys
         if AppConfig.PPLX_API_KEY:
             try:
                 perplexity_client = PerplexityClient()
-                context_response = perplexity_client.query(research_query)
+                context_response_data = perplexity_client.search_literature(research_query, max_results=10)
+                context_response = context_response_data.get('content', '')
                 
                 # Extract citations and sources from Perplexity response
                 citations = extract_citations_from_text(context_response)

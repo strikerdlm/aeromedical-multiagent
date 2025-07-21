@@ -124,9 +124,17 @@ class PRISMAConfig:
 class FlowiseConfig:
     """Central configuration for Flowise API integration."""
     
-    # Base configuration
-    BASE_URL: str = os.getenv("FLOWISE_API_URL", "https://cloud.flowiseai.com")
+    # Base configuration - Force cloud URL to override any localhost settings
+    BASE_URL: str = "https://cloud.flowiseai.com"  # Override any localhost environment variable
     API_KEY: str = os.getenv("FLOWISE_API_KEY", "")
+    
+    # Add debug logging
+    @classmethod
+    def _log_config_debug(cls):
+        """Log configuration debugging information."""
+        env_url = os.getenv("FLOWISE_API_URL", "NOT_SET")
+        print(f"DEBUG: Environment FLOWISE_API_URL = {env_url}")
+        print(f"DEBUG: FlowiseConfig.BASE_URL = {cls.BASE_URL}")
     
     # Chatflow IDs mapping - Only the three available chatflows
     CHATFLOW_IDS: Dict[str, str] = {
@@ -197,7 +205,7 @@ class AppConfig:
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))
     RETRY_DELAY: float = float(os.getenv("RETRY_DELAY", "1.0"))
     RETRY_BACKOFF_FACTOR: float = float(os.getenv("RETRY_BACKOFF_FACTOR", "2.0"))
-    TIMEOUT: int = int(os.getenv("TIMEOUT", "60"))  # Increased for reasoning models
+    TIMEOUT: int = int(os.getenv("TIMEOUT", "120"))  # Increased to 120 seconds for better reliability
     
     # UI settings
     PROGRESS_STAGE_DURATION: int = int(os.getenv("PROGRESS_STAGE_DURATION", "20"))
