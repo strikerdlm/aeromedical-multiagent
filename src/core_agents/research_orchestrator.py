@@ -77,13 +77,12 @@ async def run_research_pipeline(
     # Configure model settings for deep research
     # Note: These settings are specific to the OpenAI Responses API.
     # The SDK abstracts this, but we pass them via RunConfig.
+    model_settings = ModelSettings(
+        extra_args={"reasoning": {"effort": "high", "summary": "detailed"}}
+    )
     research_run_config = RunConfig(
         model=final_instructions.target_model,
-        model_settings=ModelSettings(
-            extra_args={
-                "reasoning": {"effort": "high", "summary": "detailed"}
-            }
-        ),
+        model_settings=model_settings,
         tracing_disabled=True,
     )
 
