@@ -104,7 +104,7 @@ class FlowiseClient:
 
     def submit_job(self, chatflow_id: str, question: str, session_id: str) -> bool:
         """
-        Submit a job to a Flowise chatflow without waiting for completion.
+        Submit a job to a Flowise chatflow using the exact user-specified structure.
         
         Args:
             chatflow_id: The ID of the chatflow to query
@@ -115,20 +115,26 @@ class FlowiseClient:
             True if the job was submitted successfully, False otherwise
         """
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
-        payload = {
-            "question": question,
-            "overrideConfig": {"sessionId": session_id}
-        }
+        
+        # Use headers from configuration (handles Bearer prefix correctly)
+        headers = FlowiseConfig.get_headers()
+        payload = {"question": question}
+        
+        # Add session ID if provided
+        if session_id:
+            payload["overrideConfig"] = {"sessionId": session_id}
         
         try:
-            # Use a short timeout to fire and forget
-            response = requests.post(api_url, headers=self.headers, json=payload, timeout=2)
-            # If we get a quick success, that's great
-            return response.status_code == 200
-        except requests.exceptions.Timeout:
-            # A timeout is expected and indicates the job is running
-            logger.info(f"Job submitted to Flowise chatflow {chatflow_id} with session {session_id} (timeout expected).")
-            return True
+            logger.info(f"Submitting job to Flowise chatflow {chatflow_id} with session {session_id}")
+            response = requests.post(api_url, headers=headers, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                logger.info("Job submitted successfully")
+                return True
+            else:
+                logger.error(f"Job submission failed: {response.status_code} - {response.text}")
+                return False
+                
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to submit job to Flowise: {e}")
             return False

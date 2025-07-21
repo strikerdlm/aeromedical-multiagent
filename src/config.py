@@ -160,8 +160,15 @@ class FlowiseConfig:
     @classmethod
     def get_headers(cls) -> Dict[str, str]:
         """Get HTTP headers for Flowise API requests."""
+        # Check if API key already has Bearer prefix
+        api_key = cls.API_KEY
+        if api_key.startswith("Bearer "):
+            auth_header = api_key
+        else:
+            auth_header = f"Bearer {api_key}"
+            
         return {
-            "Authorization": f"Bearer {cls.API_KEY}",
+            "Authorization": auth_header,
             "Content-Type": "application/json"
         }
     
