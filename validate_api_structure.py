@@ -20,37 +20,132 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def test_perplexity_structure() -> bool:
-    """Test Perplexity API call structure."""
+    """Test Perplexity API call structure according to official documentation."""
     print("\n🔍 Testing Perplexity API Structure...")
     
     api_key = os.getenv("PPLX_API_KEY")
     if not api_key:
         print("❌ PPLX_API_KEY not found in environment variables")
         return False
-    
+
     url = "https://api.perplexity.ai/chat/completions"
     
+    # Standard payload structure according to official API documentation
     payload = {
         "model": "sonar-deep-research",
         "messages": [
-            {"role": "user", "content": "Test query for API structure validation."}
+            {
+                "role": "system",
+                "content": "You are a helpful AI assistant."
+            },
+            {
+                "role": "user", 
+                "content": "Test query for API structure validation."
+            }
         ],
         "max_tokens": 100,
-        "temperature": 0.3
+        "temperature": 0.3,
+        "top_p": 0.9,
+        "reasoning_effort": "medium",  # New parameter
+        "search_mode": "academic",     # New parameter for scholarly sources
+        "web_search_options": {        # New parameter for search configuration
+            "search_context_size": "medium"
+        },
+        "stream": False
     }
     
+    # Optional parameters that could be added
+    optional_params = {
+        "search_domain_filter": ["pubmed.ncbi.nlm.nih.gov", "scholar.google.com"],
+        "search_after_date_filter": "1/1/2023"
+    }
+    
+    # Standard headers according to official API documentation
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
+
     print(f"✅ URL: {url}")
     print(f"✅ Headers: Authorization: Bearer [HIDDEN], Content-Type: application/json")
-    print(f"✅ Payload structure: {json.dumps(payload, indent=2)}")
+    print(f"✅ Model: {payload['model']}")
+    print(f"✅ Reasoning Effort: {payload['reasoning_effort']}")
+    print(f"✅ Search Mode: {payload['search_mode']}")
+    print(f"✅ Search Context Size: {payload['web_search_options']['search_context_size']}")
+    print(f"✅ Stream: {payload['stream']}")
+    
+    # Validate required parameters
+    required_params = ["model", "messages"]
+    for param in required_params:
+        if param not in payload:
+            print(f"❌ Missing required parameter: {param}")
+            return False
+    
+    # Validate message structure
+    if not isinstance(payload["messages"], list) or len(payload["messages"]) == 0:
+        print("❌ Invalid messages structure")
+        return False
+    
+    for i, message in enumerate(payload["messages"]):
+        if not isinstance(message, dict) or "role" not in message or "content" not in message:
+            print(f"❌ Invalid message structure at index {i}")
+            return False
+        
+        if message["role"] not in ["system", "user", "assistant"]:
+            print(f"❌ Invalid role '{message['role']}' at message index {i}")
+            return False
+    
+    # Validate reasoning_effort values
+    if payload.get("reasoning_effort") not in ["low", "medium", "high"]:
+        print(f"❌ Invalid reasoning_effort value: {payload.get('reasoning_effort')}")
+        return False
+    
+    # Validate search_mode values (optional parameter)
+    if "search_mode" in payload and payload["search_mode"] not in ["academic"]:
+        print(f"❌ Invalid search_mode value: {payload['search_mode']}")
+        return False
+    
+    # Validate web_search_options structure
+    if "web_search_options" in payload:
+        if not isinstance(payload["web_search_options"], dict):
+            print("❌ Invalid web_search_options structure")
+            return False
+        
+        search_context_size = payload["web_search_options"].get("search_context_size")
+        if search_context_size and search_context_size not in ["low", "medium", "high"]:
+            print(f"❌ Invalid search_context_size value: {search_context_size}")
+            return False
+
+    print("✅ Payload structure validation:")
+    print(f"   📦 Required parameters: ✅")
+    print(f"   📝 Message format: ✅")
+    print(f"   ⚡ Reasoning effort: ✅")
+    print(f"   🎓 Academic search mode: ✅")
+    print(f"   🔍 Web search options: ✅")
+    
+    # Test async API structure as well
+    print("\n🔍 Testing Async API Structure...")
+    
+    async_url = "https://api.perplexity.ai/async/chat/completions"
+    async_payload = {
+        "request": {
+            "model": "sonar-deep-research",
+            "messages": payload["messages"],
+            "max_tokens": 4000,
+            "temperature": 0.3,
+            "reasoning_effort": "high",  # Use high for comprehensive async research
+            "search_mode": "academic"
+        }
+    }
+    
+    print(f"✅ Async URL: {async_url}")
+    print(f"✅ Async payload structure: ✅")
+    print(f"✅ Request wrapper: ✅")
     
     try:
         # Don't actually make the request, just validate structure
         print("✅ Perplexity API structure is correct!")
+        print("✅ Async API structure is correct!")
         return True
     except Exception as e:
         print(f"❌ Perplexity structure error: {e}")

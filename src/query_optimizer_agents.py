@@ -164,23 +164,51 @@ def gather_research_context_and_sources(query: str, analysis_domain: str, analys
             try:
                 logger.info(f"Attempting Perplexity research context ({AppConfig.PERPLEXITY_TIMEOUT}s timeout)...")
                 perplexity_client = PerplexityClient()
-                # Use shorter timeout specifically for this non-critical research context
+                # Use optimized parameters for quick research context
                 context_response_data = perplexity_client.search_literature(
-                    research_query, 
-                    max_results=10,
+                    query=research_query,
+                    max_tokens=2000,  # Moderate token count for context
+                    temperature=0.3,
+                    reasoning_effort="low",  # Fast reasoning for quick context
+                    search_mode="academic",  # Academic sources for research
+                    search_context_size="low",  # Small context for speed
                     timeout_override=AppConfig.PERPLEXITY_TIMEOUT  # Fast timeout for better UX
                 )
                 context_response = context_response_data.get('content', '')
                 
-                # Extract citations and sources from Perplexity response
+                # Extract citations and sources from new Perplexity API response structure
+                api_citations = context_response_data.get('citations', [])
+                search_results = context_response_data.get('search_results', [])
+                
+                # Combine API citations with text-extracted ones
                 citations = extract_citations_from_text(context_response)
+                if api_citations:
+                    citations.extend(api_citations)
+                
+                # Use search_results for accurate source URLs
                 reputable_sources = identify_reputable_sources(context_response)
+                if search_results:
+                    for result in search_results:
+                        if result.get('url') and result.get('title'):
+                            reputable_sources.append({
+                                'url': result['url'],
+                                'title': result['title'],
+                                'source': 'perplexity_search_results'
+                            })
                 
                 result = {
                     "research_context": context_response,
                     "identified_citations": citations,
                     "reputable_sources": reputable_sources,
-                    "data_source": "perplexity_live"
+                    "api_citations": api_citations,
+                    "search_results": search_results,
+                    "data_source": "perplexity_live",
+                    "model_used": context_response_data.get('model_used', 'unknown'),
+                    "api_metadata": {
+                        "reasoning_effort": "low",
+                        "search_mode": "academic",
+                        "search_context_size": "low"
+                    }
                 }
                 logger.info("Perplexity research context retrieved successfully")
                 return json.dumps(result)

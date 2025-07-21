@@ -21,21 +21,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def test_perplexity_api() -> bool:
-    """Test actual Perplexity API call."""
+    """Test actual Perplexity API call using new API structure."""
     print("\n🔍 Testing Perplexity API (Live Call)...")
     
     try:
         url = "https://api.perplexity.ai/chat/completions"
         
+        # Updated payload structure according to new API documentation
         payload = {
             "model": "sonar-deep-research",
             "messages": [
-                {"role": "user", "content": "What is AI? Give a brief 2-sentence answer."}
+                {
+                    "role": "system", 
+                    "content": "You are a helpful AI assistant. Provide concise, factual information."
+                },
+                {
+                    "role": "user", 
+                    "content": "What is artificial intelligence? Give a brief 2-sentence answer."
+                }
             ],
-            "max_tokens": 50,  # Minimal tokens to save cost
-            "temperature": 0.3
+            "max_tokens": 100,  # Minimal tokens to save cost
+            "temperature": 0.3,
+            "top_p": 0.9,
+            "reasoning_effort": "low",  # Use low effort for quick test
+            "stream": False
         }
         
+        # Updated headers according to official API documentation
         headers = {
             "Authorization": f"Bearer {os.getenv('PPLX_API_KEY')}",
             "Content-Type": "application/json"
@@ -43,18 +55,33 @@ def test_perplexity_api() -> bool:
         
         print(f"🔗 URL: {url}")
         print(f"📦 Model: {payload['model']}")
+        print(f"⚡ Reasoning Effort: {payload['reasoning_effort']}")
         
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         
         if response.status_code == 200:
             result = response.json()
             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            citations = result.get('citations', [])
+            search_results = result.get('search_results', [])
+            
             print(f"✅ SUCCESS: Response received")
             print(f"📝 Sample content: {content[:100]}...")
+            print(f"📚 Citations found: {len(citations)}")
+            print(f"🔍 Search results: {len(search_results)}")
+            
+            # Test search_results field (new in API)
+            if search_results:
+                print(f"🌐 First source URL: {search_results[0].get('url', 'N/A')}")
+            
             return True
         else:
             print(f"❌ FAILED: Status {response.status_code}")
-            print(f"📝 Error: {response.text}")
+            try:
+                error_detail = response.json().get('detail', response.text)
+                print(f"📝 Error: {error_detail}")
+            except:
+                print(f"📝 Error: {response.text}")
             return False
             
     except Exception as e:

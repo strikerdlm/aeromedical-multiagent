@@ -148,11 +148,30 @@ class PRISMAAgentTools:
             
             logger.info("Starting systematic literature search...")
             
-            # Phase 1: Perplexity deep research
+            # Phase 1: Perplexity deep research with optimized parameters
             keywords = self.workflow.search_strategy.keywords
+            
+            # Use async API for comprehensive PRISMA reviews if enabled
+            use_async = AppConfig.PERPLEXITY_USE_ASYNC_FOR_COMPREHENSIVE
+            reasoning_effort = "high" if use_async else AppConfig.PERPLEXITY_DEFAULT_REASONING_EFFORT
+            
             perplexity_results = self.perplexity_router.search_phase(
-                self.workflow.research_question, tuple(keywords)
+                research_question=self.workflow.research_question,
+                keywords=tuple(keywords),
+                use_async=use_async,
+                reasoning_effort=reasoning_effort,
+                search_after_date=PRISMAConfig.PERPLEXITY_COMPREHENSIVE_DATE_FILTER
             )
+            
+            # Handle async response if needed
+            if use_async and isinstance(perplexity_results, dict) and "id" in perplexity_results:
+                logger.info(f"Async search submitted, polling for completion (ID: {perplexity_results.get('id')})...")
+                # For PRISMA workflows, we use comprehensive polling with longer timeout
+                perplexity_results = self.perplexity_router.async_comprehensive_review(
+                    research_question=self.workflow.research_question,
+                    keywords=tuple(keywords),
+                    max_wait_time=AppConfig.PERPLEXITY_ASYNC_TIMEOUT
+                )
             
             # Phase 2: Flowise chatflow consultation
             flowise_results = {}
@@ -225,8 +244,12 @@ class PRISMAAgentTools:
                 if isinstance(result, dict) and "text" in result:
                     abstracts.append(result["text"])
             
-            # Conduct screening using Perplexity
-            screening_results = self.perplexity_router.screening_phase(tuple(abstracts))
+            # Conduct screening using Perplexity with structured outputs
+            screening_results = self.perplexity_router.screening_phase(
+                abstracts=tuple(abstracts),
+                use_structured_output=AppConfig.PERPLEXITY_USE_STRUCTURED_OUTPUTS,
+                reasoning_effort="high"  # Use high reasoning for critical screening phase
+            )
             
             # Critical analysis using Grok
             grok_analysis = self.grok_router.review_search_strategy(

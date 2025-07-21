@@ -80,34 +80,50 @@ class ChatflowConfig:
 
 
 class PRISMAConfig:
-    """Configuration for PRISMA systematic review feature."""
+    """Configuration for PRISMA systematic review functionality."""
     
-    # Required models and reasoning effort - Updated to use available models
-    O3_HIGH_REASONING = ModelConfig(
-        model_name="gpt-4o",  # Use GPT-4o for high reasoning tasks
-        max_tokens=10000,
-        temperature=0.3,
-        reasoning_effort="high"
-    )
-    
-    # Fallback model for PRISMA
-    O4_MINI_FALLBACK = ModelConfig(
-        model_name="gpt-4o-mini",  # Use GPT-4o-mini as fallback
-        max_tokens=10000,
-        temperature=0.3,
-        reasoning_effort="high"
-    )
-    
-    # Perplexity configuration
+    # Perplexity API Configuration
     PERPLEXITY_BASE_URL: str = "https://api.perplexity.ai"
     PERPLEXITY_MODEL: str = "sonar-deep-research"
+    
+    # New Perplexity API Features
+    PERPLEXITY_DEFAULT_REASONING_EFFORT: str = "medium"  # "low" | "medium" | "high"
+    PERPLEXITY_DEFAULT_SEARCH_MODE: str = "academic"  # "academic" for scholarly sources
+    PERPLEXITY_DEFAULT_SEARCH_CONTEXT_SIZE: str = "medium"  # "low" | "medium" | "high"
+    
+    # Academic Focus Domains (for search_domain_filter)
+    PERPLEXITY_ACADEMIC_DOMAINS: List[str] = [
+        "pubmed.ncbi.nlm.nih.gov",
+        "scholar.google.com",
+        "cochranelibrary.com",
+        "ncbi.nlm.nih.gov",
+        "jamanetwork.com",
+        "nejm.org",
+        "bmj.com",
+        "thelancet.com"
+    ]
+    
+    # Async API Configuration
+    PERPLEXITY_ASYNC_MAX_WAIT_TIME: int = 300  # 5 minutes default
+    PERPLEXITY_ASYNC_POLL_INTERVAL: int = 5  # 5 seconds between polls
+    
+    # Rate Limiting and Performance
+    PERPLEXITY_RATE_LIMIT_DELAY: float = 1.0  # 1 second delay between requests
+    PERPLEXITY_MAX_TOKENS_DEFAULT: int = 4000
+    PERPLEXITY_MAX_TOKENS_COMPREHENSIVE: int = 8000
+    
+    # Search Filters
+    PERPLEXITY_DEFAULT_DATE_FILTER: str = "1/1/2020"  # Default to last 4 years
+    PERPLEXITY_COMPREHENSIVE_DATE_FILTER: str = "1/1/2010"  # 14 years for comprehensive reviews
+    
+    # Structured Output Configuration
+    PERPLEXITY_USE_STRUCTURED_OUTPUT: bool = True
+    PERPLEXITY_DEFAULT_TEMPERATURE: float = 0.3
+    PERPLEXITY_EXTRACTION_TEMPERATURE: float = 0.1  # Lower for data extraction
     
     # Grok configuration
     GROK_BASE_URL: str = "https://api.x.ai/v1"
     GROK_MODEL: str = "grok-beta"
-    
-    # Perplexity rate limiting
-    PERPLEXITY_RATE_LIMIT_DELAY: float = 1.0 # 1 second delay between requests
 
     # PRISMA-specific settings
     TARGET_WORD_COUNT: int = 8000  # Minimum target word count
@@ -204,6 +220,12 @@ class AppConfig:
     # Performance settings
     ENABLE_PERPLEXITY_RESEARCH: bool = os.getenv("ENABLE_PERPLEXITY_RESEARCH", "true").lower() == "true"
     PERPLEXITY_TIMEOUT: int = int(os.getenv("PERPLEXITY_TIMEOUT", "15"))  # Fast timeout for better UX
+    
+    # New Perplexity API Features
+    PERPLEXITY_DEFAULT_REASONING_EFFORT: str = os.getenv("PERPLEXITY_REASONING_EFFORT", "medium")
+    PERPLEXITY_USE_ASYNC_FOR_COMPREHENSIVE: bool = os.getenv("PERPLEXITY_USE_ASYNC", "false").lower() == "true"
+    PERPLEXITY_ASYNC_TIMEOUT: int = int(os.getenv("PERPLEXITY_ASYNC_TIMEOUT", "300"))  # 5 minutes
+    PERPLEXITY_USE_STRUCTURED_OUTPUTS: bool = os.getenv("PERPLEXITY_STRUCTURED_OUTPUTS", "true").lower() == "true"
     
     # Application settings
     MAX_RETRIES: int = int(os.getenv("MAX_RETRIES", "3"))

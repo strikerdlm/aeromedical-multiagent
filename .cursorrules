@@ -1,0 +1,70 @@
+# Cursor Rules for Python Scripts TextApp v2
+
+## Perplexity API Integration Rules
+
+All API calls to Perplexity must follow the official API documentation structure:
+
+### Standard API Endpoint
+- Base URL: `https://api.perplexity.ai`
+- Endpoint: `/chat/completions`
+- Method: POST
+
+### Required Headers
+```python
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json"
+}
+```
+
+### Standard Payload Structure
+```python
+payload = {
+    "model": "sonar-pro" | "sonar-deep-research" | "sonar-reasoning-pro",
+    "messages": [
+        {"role": "system", "content": "system_prompt"},  # optional
+        {"role": "user", "content": "user_query"}
+    ],
+    "reasoning_effort": "low" | "medium" | "high",  # optional, default: "medium"
+    "search_mode": "academic",  # optional, for academic sources
+    "search_domain_filter": ["domain1.com", "domain2.com"],  # optional
+    "search_after_date_filter": "1/1/2023",  # optional
+    "web_search_options": {"search_context_size": "low" | "medium" | "high"},  # optional
+    "max_tokens": 4000,  # optional
+    "temperature": 0.3,  # optional
+    "top_p": 0.9,  # optional
+    "stream": false  # optional
+}
+```
+
+### Async API Support
+For long-running research tasks:
+- Submit endpoint: `/async/chat/completions`
+- Check status endpoint: `/async/chat/completions/{request_id}`
+- Use polling mechanism for completion
+
+### Response Handling
+- Always check `response.status_code == 200`
+- Extract content from `response.json()["choices"][0]["message"]["content"]`
+- Handle citations from `response.json().get("citations", [])`
+- Handle search results from `response.json().get("search_results", [])`
+
+### Error Handling
+- 401: Authentication failed - check API key
+- 400: Bad request - validate payload structure
+- 429: Rate limited - implement exponential backoff
+- 500+: Server error - retry with exponential backoff
+
+### Best Practices
+1. Use specific, contextual prompts rather than generic queries
+2. Include proper system prompts for role definition
+3. Use `search_mode: "academic"` for research tasks
+4. Set appropriate `reasoning_effort` based on task complexity
+5. Use built-in parameters instead of prompt instructions
+6. Never ask for URLs in prompts (use search_results field)
+7. Implement proper timeout handling for UX
+
+### Configuration
+- Store API key in `PPLX_API_KEY` environment variable
+- Use config classes for model selection and parameters
+- Implement rate limiting between requests 
