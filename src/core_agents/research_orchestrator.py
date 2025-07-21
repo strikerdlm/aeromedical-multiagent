@@ -54,9 +54,10 @@ async def run_research_pipeline(
         if verbose:
             print(ev)
     
-    optimizer_result = await optimizer_stream.final_result()
-    if isinstance(optimizer_result.final_output, ResearchInstructions):
-        final_instructions = optimizer_result.final_output
+    # The final_output is available after the stream completes.
+    final_output = optimizer_stream.final_output
+    if isinstance(final_output, ResearchInstructions):
+        final_instructions = final_output
     else:
         logger.error("Query optimization did not produce ResearchInstructions.")
         # Fallback to a simple prompt if optimization fails
@@ -79,7 +80,7 @@ async def run_research_pipeline(
     research_run_config = RunConfig(
         model=final_instructions.target_model,
         model_settings=ModelSettings(
-            custom_parameters={
+            extra_args={
                 "reasoning": {"effort": "high", "summary": "detailed"}
             }
         ),
@@ -87,10 +88,33 @@ async def run_research_pipeline(
     )
 
     logger.info(f"Starting deep research with model: {final_instructions.target_model}")
-    research_result = await Runner.run(
-        research_agent,
-        final_instructions.detailed_prompt,
-        run_config=research_run_config,
-    )
+    
+    # --- Model Fallback Logic ---
+    fallback_models = ["o3", "o4-mini-deep-research"]
+    models_to_try = [final_instructions.target_model] + fallback_models
+    
+    research_result = None
+    last_exception = None
 
-    return research_result.final_output 
+    for model in models_to_try:
+        try:
+            logger.info(f"Attempting research with model: {model}")
+            research_run_config.model = model
+            
+            result = await Runner.run(
+                research_agent,
+                final_instructions.detailed_prompt,
+                run_config=research_run_config,
+            )
+            research_result = result.final_output
+            break  # Success, exit loop
+        except Exception as e:
+            logger.warning(f"Research with model {model} failed: {e}")
+            last_exception = e
+            continue
+
+    if research_result is None:
+        logger.error("All research models failed.")
+        raise last_exception or Exception("Unknown error during research.")
+
+    return research_result 
