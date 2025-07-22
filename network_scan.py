@@ -18,7 +18,7 @@ def ping_host(ip):
         
         if result.returncode == 0:
             return str(ip)
-    except:
+    except (subprocess.SubprocessError, subprocess.TimeoutExpired, OSError):
         pass
     return None
 
@@ -30,7 +30,7 @@ def get_hostname_and_mac(ip):
     try:
         # Try to get hostname
         hostname = socket.gethostbyaddr(ip)[0]
-    except:
+    except (socket.herror, socket.gaierror, OSError):
         pass
     
     try:
@@ -45,7 +45,7 @@ def get_hostname_and_mac(ip):
                         if len(parts) >= 2:
                             mac = parts[1]
                             break
-    except:
+    except (subprocess.SubprocessError, OSError):
         pass
     
     return hostname, mac
@@ -83,7 +83,7 @@ def identify_raspberry_pi(ip, hostname, mac):
         if result == 0:
             indicators.append("SSH service detected")
         sock.close()
-    except:
+    except (socket.error, OSError):
         pass
     
     return indicators

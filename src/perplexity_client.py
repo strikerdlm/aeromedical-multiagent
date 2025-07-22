@@ -515,7 +515,7 @@ class PerplexityClient:
         elif response.status_code == 400:
             try:
                 error_detail = response.json().get('detail', response.text)
-            except:
+            except (ValueError, KeyError, TypeError):
                 error_detail = response.text
             raise PerplexityAPIError(f"Bad request - validate payload structure: {error_detail}")
         else:
@@ -563,7 +563,7 @@ class PerplexityClient:
         elif response.status_code == 400:
             try:
                 error_detail = response.json().get('detail', response.text)
-            except:
+            except (ValueError, KeyError, TypeError):
                 error_detail = response.text
             raise PerplexityAPIError(f"Bad request - validate payload structure: {error_detail}")
         elif response.status_code == 429:

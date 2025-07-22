@@ -80,7 +80,7 @@ def test_perplexity_api() -> bool:
             try:
                 error_detail = response.json().get('detail', response.text)
                 print(f"📝 Error: {error_detail}")
-            except:
+            except (ValueError, KeyError, TypeError):
                 print(f"📝 Error: {response.text}")
             return False
             
