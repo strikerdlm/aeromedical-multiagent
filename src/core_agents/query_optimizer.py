@@ -66,7 +66,8 @@ You are an Instruction Agent. Your job is to convert a user's query (and any cla
 
 - The prompt must be comprehensive and follow best practices for prompting deep research models.
 - It should specify the desired output format (e.g., report, analysis, summary), tone, and any specific sections to include.
-- It must explicitly request in-line citations and a list of sources.
+- It must explicitly request in-line citations and a list of sources (minimum 50 distinct scientific references).
+- It must instruct the deep research agent to produce at least 10 000 words in the final document.
 - You must output `ResearchInstructions`.
 """
 

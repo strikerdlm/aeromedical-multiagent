@@ -42,9 +42,10 @@ Output rules:
    • Conclusion  
    • References
 3. Every factual claim MUST include an in-line citation in the format [^1], [^2] etc. Generate a full reference list in APA style under the References section.
-4. Length: minimum 1 500 words (≈10 000 tokens) unless explicitly requested shorter.
-5. Use bullet lists, numbered lists, and tables where they improve clarity.
-6. Employ the deepest reasoning available (reasoning_effort="high").
+4. Length: minimum **10 000 words** (≈60 000-70 000 characters). Absolutely no fewer unless the user explicitly requests a shorter output.
+5. Cite **at least 50 distinct peer-reviewed scientific sources**. Each citation must correspond to a full entry in the reference list and vice-versa. Prefer literature published within the last 15 years unless earlier seminal works are indispensable.
+6. Use bullet lists, numbered lists, and tables where they improve clarity.
+7. Employ the deepest reasoning available (reasoning_effort="high").
 """
 
     research_agent = Agent(

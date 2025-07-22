@@ -129,6 +129,20 @@ class EnhancedPromptEnhancerApp:
             self.console.print("─" * 60)
 
             self.console.print(f"\n[green]✅ Research completed successfully![/green]")
+
+            # Automatically export the latest response to Markdown for convenience
+            try:
+                agent_name = self.current_agent.name if self.current_agent else "Deep Research Agent"
+                file_path = self.markdown_exporter.export_latest_response(
+                    self.messages,
+                    self.current_mode,
+                    agent_name,
+                )
+                self.console.print(f"\n💾 [bold green]Response automatically saved to[/bold green] `{file_path}`\n")
+            except Exception as export_err:
+                logger.error(f"Auto-export failed: {export_err}", exc_info=True)
+
+            # Still show manual export options for further actions
             self.ui.show_export_options()
 
         except Exception as e:
