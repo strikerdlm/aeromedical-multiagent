@@ -32,9 +32,21 @@ def configured_logging(tmp_path):
         logging.shutdown()
         reload(logging)
         
-        # Now set it up
-        with patch('logging.FileHandler', lambda path, encoding: logging.FileHandler(str(log_file), encoding=encoding)):
+        # Save the original FileHandler class
+        original_file_handler = logging.FileHandler
+        
+        # Create a custom FileHandler that uses our temp file
+        class TestFileHandler(logging.FileHandler):
+            def __init__(self, filename, mode='a', encoding=None, delay=False, errors=None):
+                super().__init__(str(log_file), mode, encoding, delay, errors)
+        
+        # Patch FileHandler with our custom class
+        logging.FileHandler = TestFileHandler
+        try:
             setup_logging()
+        finally:
+            # Restore the original FileHandler
+            logging.FileHandler = original_file_handler
     
     yield log_file
     
@@ -44,10 +56,13 @@ def configured_logging(tmp_path):
 def test_setup_logging_creates_handlers(configured_logging):
     """Test that setup_logging correctly adds handlers to the root logger."""
     logger = logging.getLogger()
-    assert len(logger.handlers) == 2
-    assert isinstance(logger.handlers[0], logging.StreamHandler)
-    assert isinstance(logger.handlers[1], logging.FileHandler)
-    assert logger.handlers[1].encoding == 'utf-8'
+    # Find our handlers (ignore pytest's handlers)
+    stream_handlers = [h for h in logger.handlers if isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)]
+    file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
+    
+    assert len(stream_handlers) >= 1, "Should have at least one StreamHandler"
+    assert len(file_handlers) >= 1, "Should have at least one FileHandler"
+    assert file_handlers[0].encoding == 'utf-8'
 
 @pytest.mark.parametrize("message", UNICODE_STRINGS)
 def test_logging_unicode_to_file(configured_logging, message):

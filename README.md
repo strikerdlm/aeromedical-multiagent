@@ -157,6 +157,13 @@ For modes that take a long time to complete (like `/deep` or `/aero`), the syste
 -   You can check the status of all jobs with the `/jobs` command.
 -   Once a job is complete, the results will be automatically saved to a Markdown file in the `exports/` directory.
 
+## 📚 Documentation
+
+- **[Quick Start Guide](QUICK_START.md)** - Get up and running in 5 minutes
+- **[Full Documentation](DOCUMENTATION.md)** - Comprehensive guide with API reference
+- **[Changelog](CHANGELOG.md)** - Track all changes and updates
+- **[Bug Fixes Summary](BUG_FIXES_SUMMARY.md)** - Recently resolved issues
+
 ## ⚠️ Disclaimer
 
 This is a research tool and is **not intended for operational use**. The information provided is not a substitute for professional medical or safety advice from qualified experts. All outputs must be independently verified. 
