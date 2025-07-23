@@ -4,7 +4,7 @@ API Structure Validation Script
 
 This script validates the API call structures for:
 1. Perplexity API (sonar-deep-research model)
-2. XAI/Grok API (grok-beta model)
+2. XAI/Grok API (grok-4 model)
 3. Flowise API (chatflow endpoints)
 
 Run this to test your API configurations and verify correct structure.
@@ -163,7 +163,7 @@ def test_grok_structure() -> bool:
     url = "https://api.x.ai/v1/chat/completions"
     
     payload = {
-        "model": "grok-beta",
+        "model": "grok-4",
         "messages": [
             {"role": "user", "content": "Test query for API structure validation."}
         ],
