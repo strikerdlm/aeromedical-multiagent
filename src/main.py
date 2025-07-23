@@ -36,6 +36,7 @@ from .ui import AsyncProgressHandler, UserInterface
 from .jobs import JobStore
 from .core_agents import run_research_pipeline
 from .core_agents.research_agents import create_deep_research_agent
+from .prisma_pipeline import run_prisma_pipeline, create_prisma_writer_agent
 from .mode_manager import ModeManager
 
 
@@ -197,16 +198,37 @@ class EnhancedPromptEnhancerApp:
         
         logger.info("Enhanced Research App initialized successfully")
 
+
     async def process_user_request(self, user_input: str) -> bool:
-        """
-        Processes the user's research query using the new core agent pipeline.
-        """
+        """Process the user's query based on the active mode."""
         self.last_user_query = user_input
         self.messages.append({"role": "user", "content": user_input})
 
+        if self.current_mode == "prisma":
+            self.console.print("\n📊 [cyan]Starting PRISMA systematic review...[/cyan]")
+            self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
+            try:
+                final_output = await run_prisma_pipeline(user_input)
+                assistant_message = {"role": "assistant", "content": str(final_output)}
+                self.messages.append(assistant_message)
+                self.current_agent = create_prisma_writer_agent()
+                self.console.print("─" * 60)
+                self.console.print(Markdown(str(final_output)))
+                self.console.print("─" * 60)
+                self.console.print("\n[green]✅ PRISMA review completed![/green]")
+                try:
+                    file_path = self.markdown_exporter.export_prisma_review(final_output, user_input)
+                    self.console.print(f"\n💾 [bold green]Review saved to[/bold green] `{file_path}`\n")
+                except Exception as export_err:  # noqa: BLE001
+                    logger.error(f"PRISMA export failed: {export_err}", exc_info=True)
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Error in PRISMA pipeline: {e}", exc_info=True)
+                self.console.print(f"❌ [red]An error occurred during PRISMA review: {e}[/red]")
+            return True
+
         self.console.print("\n🔬 [cyan]Initiating deep research pipeline...[/cyan]")
         self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
-        
+
         try:
             # The new pipeline handles everything from optimization to final report.
             final_output = await run_research_pipeline(user_input, verbose=True)
