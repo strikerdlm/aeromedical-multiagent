@@ -357,3 +357,41 @@ class MarkdownExporter:
             f.write(review_content)
         
         return str(file_path) 
+
+    def export_citation_list(self, citations: List[str], title: str = "Verified Citation List", filename: str = None) -> str:
+        """Export a list of APA formatted citations to a standalone Markdown file.
+
+        Args:
+            citations: A list of citation strings already formatted in APA style.
+            title: Optional markdown title to use at the top of the document.
+            filename: Optional filename (without path). If omitted a timestamped
+                filename is generated automatically.
+
+        Returns:
+            The absolute filesystem path to the newly created markdown file.
+        """
+        if not citations:
+            raise ValueError("The citation list is empty; nothing to export.")
+
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"citations_{timestamp}.md"
+
+        content = f"# {title}\n\n"
+        content += self._generate_metadata_section(mode="citations", agent_name="Citation Review Agent", total_messages=len(citations))
+        content += "## References (APA 7th ed.)\n\n"
+
+        for i, citation in enumerate(citations, 1):
+            # Ensure each citation is on its own line with a numerical list marker
+            if citation.lstrip().startswith(str(i)):
+                content += f"{citation}\n"
+            else:
+                content += f"{i}. {citation}\n"
+
+        # Footer
+        content += f"\n---\n\n*Exported by Aeromedical Evidence Review Framework on {self._format_timestamp()}*\n"
+
+        file_path = self.output_dir / filename
+        file_path.write_text(content, encoding="utf-8")
+
+        return str(file_path) 
