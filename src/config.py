@@ -123,7 +123,8 @@ class PRISMAConfig:
     
     # Grok configuration
     GROK_BASE_URL: str = "https://api.x.ai/v1"
-    GROK_MODEL: str = "grok-beta"
+    # Grok model configuration (default to latest `grok-4`, can be overridden via environment variable)
+    GROK_MODEL: str = os.getenv("GROK_MODEL", "grok-4")
 
     # PRISMA-specific settings
     TARGET_WORD_COUNT: int = 8000  # Minimum target word count
