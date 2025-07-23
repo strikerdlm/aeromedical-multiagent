@@ -18,8 +18,16 @@ FLOWISE_API_KEY=your_flowise_api_key_here
 # REQUIRED: Perplexity API Configuration (for PRISMA deep research)
 PPLX_API_KEY=your_perplexity_api_key_here
 
-# REQUIRED: XAI (Grok) API Configuration (for Grok 4 model)
+# Optional: Specify Perplexity model (defaults to sonar-deep-research)
+# Available models: sonar-deep-research, sonar-pro, sonar-reasoning-pro, sonar
+PERPLEXITY_MODEL=sonar-deep-research
+
+# REQUIRED: XAI (Grok) API Configuration
 XAI_API_KEY=your_xai_grok_api_key_here
+
+# Optional: Specify Grok model (defaults to grok-4)
+# Available models: grok-4, grok-3, grok-3-beta, grok-beta, grok-vision-beta
+GROK_MODEL=grok-4
 
 # REQUIRED: Flowise Chatflow IDs
 CHATFLOW_AEROMEDICAL_RISK=your_aeromedical_risk_chatflow_id_here

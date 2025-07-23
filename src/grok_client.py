@@ -53,6 +53,13 @@ class GrokClient:
         self.base_url = PRISMAConfig.GROK_BASE_URL
         self.model = PRISMAConfig.GROK_MODEL
         
+        # Validate model selection
+        if self.model not in PRISMAConfig.GROK_AVAILABLE_MODELS:
+            logger.warning(f"Model '{self.model}' not in available models. Using default 'grok-4'")
+            self.model = "grok-4"
+        
+        logger.info(f"Initialized Grok client with model: {self.model}")
+        
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",

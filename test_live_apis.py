@@ -4,7 +4,7 @@ Live API Test Script
 
 Tests actual API calls to:
 1. Perplexity API (sonar-deep-research)
-2. XAI/Grok API (grok-beta)
+2. XAI/Grok API (grok-4)
 3. Flowise API (all three chatflows)
 
 This makes real API calls with minimal tokens to test connectivity.
@@ -95,13 +95,17 @@ def test_grok_api() -> bool:
     try:
         url = "https://api.x.ai/v1/chat/completions"
         
+        # Minimal payload for testing
         payload = {
-            "model": "grok-beta",
+            "model": os.getenv("GROK_MODEL", "grok-4"),  # Use configured model or default to grok-4
             "messages": [
-                {"role": "user", "content": "What is reasoning? Give a brief 2-sentence answer."}
+                {
+                    "role": "user",
+                    "content": "What is 2+2? Reply with just the number."
+                }
             ],
-            "max_tokens": 50,  # Minimal tokens to save cost
-            "temperature": 0.3
+            "max_tokens": 10,  # Minimal tokens
+            "temperature": 0
         }
         
         headers = {

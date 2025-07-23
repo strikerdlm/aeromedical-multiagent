@@ -84,7 +84,15 @@ class PRISMAConfig:
     
     # Perplexity API Configuration
     PERPLEXITY_BASE_URL: str = "https://api.perplexity.ai"
-    PERPLEXITY_MODEL: str = "sonar-deep-research"
+    PERPLEXITY_MODEL: str = os.getenv("PERPLEXITY_MODEL", "sonar-deep-research")
+    
+    # Available Perplexity models
+    PERPLEXITY_AVAILABLE_MODELS: List[str] = [
+        "sonar-deep-research",  # Best for comprehensive research
+        "sonar-pro",            # Balanced performance
+        "sonar-reasoning-pro",  # Advanced reasoning capabilities
+        "sonar",                # Basic model
+    ]
     
     # New Perplexity API Features
     PERPLEXITY_DEFAULT_REASONING_EFFORT: str = "medium"  # "low" | "medium" | "high"
@@ -123,8 +131,17 @@ class PRISMAConfig:
     
     # Grok configuration
     GROK_BASE_URL: str = "https://api.x.ai/v1"
-    GROK_MODEL: str = "grok-beta"
-
+    GROK_MODEL: str = os.getenv("GROK_MODEL", "grok-4")  # Default to latest grok-4
+    
+    # Available Grok models
+    GROK_AVAILABLE_MODELS: List[str] = [
+        "grok-4",           # Latest and most powerful
+        "grok-3",           # Previous generation
+        "grok-3-beta",      # Beta version of grok-3
+        "grok-beta",        # Legacy model
+        "grok-vision-beta"  # Vision capabilities
+    ]
+    
     # PRISMA-specific settings
     TARGET_WORD_COUNT: int = 8000  # Minimum target word count
     MAX_WORD_COUNT: int = 10000  # Maximum target word count

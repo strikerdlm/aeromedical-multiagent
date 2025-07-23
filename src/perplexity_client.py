@@ -56,6 +56,13 @@ class PerplexityClient:
         self.base_url = PRISMAConfig.PERPLEXITY_BASE_URL
         self.model = PRISMAConfig.PERPLEXITY_MODEL
         
+        # Validate model selection
+        if self.model not in PRISMAConfig.PERPLEXITY_AVAILABLE_MODELS:
+            logger.warning(f"Model '{self.model}' not in available models. Using default 'sonar-deep-research'")
+            self.model = "sonar-deep-research"
+        
+        logger.info(f"Initialized Perplexity client with model: {self.model}")
+        
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
