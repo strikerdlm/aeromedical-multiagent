@@ -123,7 +123,8 @@ class PRISMAConfig:
     
     # Grok configuration
     GROK_BASE_URL: str = "https://api.x.ai/v1"
-    GROK_MODEL: str = "grok-beta"
+    GROK_MODEL: str = "grok-4"  # Updated to use grok-4 model
+    GROK_FALLBACK_MODEL: str = "grok-beta"  # Fallback model if grok-4 is not available
 
     # PRISMA-specific settings
     TARGET_WORD_COUNT: int = 8000  # Minimum target word count

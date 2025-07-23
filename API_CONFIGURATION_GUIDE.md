@@ -21,6 +21,11 @@ PPLX_API_KEY=your_perplexity_api_key_here
 # REQUIRED: XAI (Grok) API Configuration (for Grok 4 model)
 XAI_API_KEY=your_xai_grok_api_key_here
 
+# Enhanced Grok Model Support
+# Primary model: grok-4 (latest and most capable)
+# Fallback model: grok-beta (automatic fallback if grok-4 unavailable)
+# The system automatically handles model selection and fallback
+
 # REQUIRED: Flowise Chatflow IDs
 CHATFLOW_AEROMEDICAL_RISK=your_aeromedical_risk_chatflow_id_here
 CHATFLOW_DEEP_RESEARCH=your_deep_research_chatflow_id_here
@@ -68,7 +73,7 @@ print(response.json())
 - ✅ Headers: `Authorization: Bearer <token>`, `Content-Type: application/json`
 - ✅ Environment Variable: `PPLX_API_KEY`
 
-### 2. Grok (XAI) API
+### 2. Grok (XAI) API - Enhanced with Grok-4 Support
 
 ```python
 import requests
@@ -76,8 +81,9 @@ import os
 
 url = "https://api.x.ai/v1/chat/completions"
 
+# Try grok-4 first (primary model)
 payload = {
-    "model": "grok-beta",
+    "model": "grok-4",
     "messages": [
         {"role": "user", "content": "Your query here"}
     ],
@@ -91,14 +97,22 @@ headers = {
 }
 
 response = requests.post(url, json=payload, headers=headers)
+
+# If grok-4 fails, automatically fallback to grok-beta
+if response.status_code != 200:
+    payload["model"] = "grok-beta"
+    response = requests.post(url, json=payload, headers=headers)
+
 print(response.json())
 ```
 
 **Key Points:**
 - ✅ URL: `https://api.x.ai/v1/chat/completions`
-- ✅ Model: `grok-beta`
+- ✅ Primary Model: `grok-4` (latest and most capable)
+- ✅ Fallback Model: `grok-beta` (automatic fallback)
 - ✅ Headers: `Authorization: Bearer <token>`, `Content-Type: application/json`
 - ✅ Environment Variable: `XAI_API_KEY`
+- ✅ Smart Fallback: System handles model availability automatically
 
 ### 3. Flowise API
 

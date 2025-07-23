@@ -162,26 +162,46 @@ def test_grok_structure() -> bool:
     
     url = "https://api.x.ai/v1/chat/completions"
     
-    payload = {
-        "model": "grok-beta",
-        "messages": [
-            {"role": "user", "content": "Test query for API structure validation."}
-        ],
-        "max_tokens": 100,
-        "temperature": 0.3
-    }
+    # Try grok-4 first, then fallback to grok-beta
+    for model in ["grok-4", "grok-beta"]:
+        print(f"🔄 Testing model: {model}")
+        
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "user", "content": "Test message for API validation"}
+            ],
+            "max_tokens": 10,
+            "temperature": 0.1
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            
+            if response.status_code == 200:
+                print(f"✅ Grok API structure is correct with {model}!")
+                return True
+            else:
+                print(f"⚠️ Model {model} failed: Status {response.status_code}")
+                if model == "grok-4":
+                    print("🔄 Falling back to grok-beta...")
+                    continue
+                else:
+                    print(f"❌ Grok API structure test failed: {response.status_code}")
+                    print(f"Response: {response.text[:200]}...")
+                    return False
+                    
+        except Exception as e:
+            print(f"❌ Exception testing {model}: {e}")
+            if model == "grok-beta":  # Only fail if both models fail
+                return False
     
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
-    print(f"✅ URL: {url}")
-    print(f"✅ Headers: Authorization: Bearer [HIDDEN], Content-Type: application/json")
-    print(f"✅ Payload structure: {json.dumps(payload, indent=2)}")
-    
-    print("✅ Grok API structure is correct!")
-    return True
+    return False
 
 def test_flowise_structure() -> bool:
     """Test Flowise API call structure."""

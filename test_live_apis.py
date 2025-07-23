@@ -95,35 +95,47 @@ def test_grok_api() -> bool:
     try:
         url = "https://api.x.ai/v1/chat/completions"
         
-        payload = {
-            "model": "grok-beta",
-            "messages": [
-                {"role": "user", "content": "What is reasoning? Give a brief 2-sentence answer."}
-            ],
-            "max_tokens": 50,  # Minimal tokens to save cost
-            "temperature": 0.3
-        }
+        # Try grok-4 first, then fallback to grok-beta
+        for model in ["grok-4", "grok-beta"]:
+            print(f"🔄 Trying model: {model}")
+            
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "user", "content": "What is reasoning? Give a brief 2-sentence answer."}
+                ],
+                "max_tokens": 50,  # Minimal tokens to save cost
+                "temperature": 0.3
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {os.getenv('XAI_API_KEY')}",
+                "Content-Type": "application/json"
+            }
+            
+            print(f"🔗 URL: {url}")
+            print(f"📦 Model: {payload['model']}")
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+                print(f"✅ SUCCESS with {model}: Response received")
+                print(f"📝 Sample content: {content[:100]}...")
+                return True
+            else:
+                print(f"⚠️ Model {model} failed: Status {response.status_code}")
+                if model == "grok-4":
+                    print(f"📝 Error: {response.text}")
+                    print("🔄 Falling back to grok-beta...")
+                    continue
+                else:
+                    print(f"❌ FAILED: Status {response.status_code}")
+                    print(f"📝 Error: {response.text}")
+                    return False
         
-        headers = {
-            "Authorization": f"Bearer {os.getenv('XAI_API_KEY')}",
-            "Content-Type": "application/json"
-        }
-        
-        print(f"🔗 URL: {url}")
-        print(f"📦 Model: {payload['model']}")
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        
-        if response.status_code == 200:
-            result = response.json()
-            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-            print(f"✅ SUCCESS: Response received")
-            print(f"📝 Sample content: {content[:100]}...")
-            return True
-        else:
-            print(f"❌ FAILED: Status {response.status_code}")
-            print(f"📝 Error: {response.text}")
-            return False
+        return False
             
     except Exception as e:
         print(f"❌ EXCEPTION: {e}")

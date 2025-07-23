@@ -52,6 +52,7 @@ class GrokClient:
 
         self.base_url = PRISMAConfig.GROK_BASE_URL
         self.model = PRISMAConfig.GROK_MODEL
+        self.fallback_model = getattr(PRISMAConfig, 'GROK_FALLBACK_MODEL', 'grok-beta')
         
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -59,6 +60,7 @@ class GrokClient:
             "User-Agent": "PRISMA-Review-System/1.0"
         }
         
+        # Create session for connection pooling
         self.session = requests.Session()
         self.session.headers.update(self.headers)
     
@@ -374,26 +376,47 @@ class GrokClient:
         """
         url = f"{self.base_url}{endpoint}"
         
-        response = self.session.post(
-            url,
-            json=payload,
-            timeout=AppConfig.TIMEOUT
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-
-        if response.status_code == 429 or response.status_code >= 500:
-            logger.warning(f"Retryable error: {response.status_code}. Decorator will handle retry.")
-            response.raise_for_status()
-
-        elif response.status_code == 401:
-            raise GrokAPIError("Authentication failed - check API key")
-        elif response.status_code == 400:
-            raise GrokAPIError(f"Bad request: {response.text}")
-        else:
-            logger.error(f"API error: {response.status_code}, {response.text}")
-            raise GrokAPIError(f"API error: {response.status_code}")
+        # Try with primary model first
+        try:
+            response = self.session.post(
+                url,
+                json=payload,
+                timeout=AppConfig.TIMEOUT
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            
+            # If model not found or unavailable, try fallback
+            if response.status_code == 404 or "model" in response.text.lower():
+                logger.warning(f"Model {payload.get('model')} not available, trying fallback model {self.fallback_model}")
+                payload_fallback = payload.copy()
+                payload_fallback['model'] = self.fallback_model
+                
+                response = self.session.post(
+                    url,
+                    json=payload_fallback,
+                    timeout=AppConfig.TIMEOUT
+                )
+                
+                if response.status_code == 200:
+                    return response.json()
+            
+            # Handle other error cases
+            if response.status_code == 429 or response.status_code >= 500:
+                logger.warning(f"Retryable error: {response.status_code}. Decorator will handle retry.")
+                response.raise_for_status()
+            elif response.status_code == 401:
+                raise GrokAPIError("Authentication failed - check API key")
+            elif response.status_code == 400:
+                raise GrokAPIError(f"Bad request: {response.text}")
+            else:
+                logger.error(f"API error: {response.status_code}, {response.text}")
+                raise GrokAPIError(f"API error: {response.status_code}")
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request exception: {e}")
+            raise GrokAPIError(f"Request failed: {str(e)}")
     
     def _parse_analysis_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """Parse critical analysis response."""
