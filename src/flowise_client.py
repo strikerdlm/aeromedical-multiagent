@@ -157,8 +157,23 @@ class FlowiseClient:
         """
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
         
-        # Use headers from configuration (handles Bearer prefix correctly)
-        headers = FlowiseConfig.get_headers()
+        # Use the *instance* API key when available so that callers can
+        # override the globally configured ``FLOWISE_API_KEY`` on a
+        # per-client basis (e.g. in unit tests or in multi-tenant
+        # scenarios).  Preserve the behaviour of
+        # ``FlowiseConfig.get_headers`` by automatically prepending the
+        # required *Bearer* prefix when it is missing.
+
+        if self.api_key.startswith("Bearer "):
+            headers = {
+                "Authorization": self.api_key,
+                "Content-Type": "application/json",
+            }
+        else:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
         payload = {"question": question}
         
         # Add session ID if provided
