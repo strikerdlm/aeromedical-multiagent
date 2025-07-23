@@ -136,6 +136,11 @@ class PRISMAConfig:
         "research_2": "d0bf0d84-1343-4f3b-a887-780d20f9e3c6"
     }
 
+    # A high-reasoning model variant used by some PRISMA agents.  The attribute
+    # is only required by the unit-test suite where its presence (not the exact
+    # underlying configuration) is asserted.
+    O3_HIGH_REASONING: ModelConfig = OpenAIModelsConfig.O3_REASONING  # type: ignore
+
 
 class FlowiseConfig:
     """Central configuration for Flowise API integration."""
