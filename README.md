@@ -163,6 +163,8 @@ For modes that take a long time to complete (like `/deep` or `/aero`), the syste
 - **[Full Documentation](DOCUMENTATION.md)** - Comprehensive guide with API reference
 - **[Changelog](CHANGELOG.md)** - Track all changes and updates
 - **[Bug Fixes Summary](BUG_FIXES_SUMMARY.md)** - Recently resolved issues
+- **[Enhancement Roadmap](Docs/ENHANCEMENT_ROADMAP.md)** - Planned usability & accuracy improvements
+- **[Implementation Blueprint](Docs/IMPLEMENTATION_BLUEPRINT.md)** - Step-by-step execution plan
 
 ## ⚠️ Disclaimer
 
