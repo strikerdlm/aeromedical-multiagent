@@ -34,7 +34,7 @@ class ResearchInstructions(BaseModel):
     research agent.
     """
     detailed_prompt: str
-    target_model: str = "o3-deep-research"
+    target_model: str = "o3-deep-research-2025-06-26"
 
 
 # ----------------------------------------------------------------------------

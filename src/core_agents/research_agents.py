@@ -50,7 +50,7 @@ Output rules:
 
     research_agent = Agent(
         name="Deep Research Agent",
-        model="o3-deep-research",  # Primary model
+        model="o3-deep-research-2025-06-26",  # Primary o3-deep-research model
         # Fallback models can be handled by the runner logic if the primary fails.
         # model_fallbacks=["o3", "o4-mini-deep-research"],
         instructions=DEEP_RESEARCH_INSTRUCTIONS,

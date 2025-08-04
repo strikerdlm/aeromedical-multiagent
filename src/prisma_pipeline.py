@@ -28,7 +28,7 @@ Use formal academic language and Markdown headings (##). Include at least {PRISM
 """
     return Agent(
         name="PRISMA Writer",
-        model="o3",
+        model="o3-deep-research-2025-06-26",
         instructions=instructions,
     )
 
@@ -39,7 +39,7 @@ async def run_prisma_pipeline(research_question: str) -> str:
 
     # Stage 1: deep research to gather literature
     search_agent = create_deep_research_agent()
-    search_cfg = RunConfig(model="o3-deep-research", tracing_disabled=True)
+    search_cfg = RunConfig(model="o3-deep-research-2025-06-26", tracing_disabled=True)
     search_res = await Runner.run(search_agent, research_question, run_config=search_cfg)
     research_material = getattr(search_res, "final_output", str(search_res))
 
@@ -49,7 +49,7 @@ async def run_prisma_pipeline(research_question: str) -> str:
         f"Using the following research notes, write a PRISMA systematic review on '{research_question}'.\n\n"
         f"Research notes:\n{research_material}"
     )
-    writer_cfg = RunConfig(model="o3", tracing_disabled=True)
+    writer_cfg = RunConfig(model="o3-deep-research-2025-06-26", tracing_disabled=True)
     final_res = await Runner.run(writer_agent, writer_prompt, run_config=writer_cfg)
     final_output = getattr(final_res, "final_output", str(final_res))
     return final_output
