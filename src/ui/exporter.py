@@ -30,18 +30,18 @@ class ExportHandler:
             if not self.app.messages:
                 self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
-            
+
             has_response = any(msg.get("role") == "assistant" for msg in self.app.messages)
             if not has_response:
                 self.console.print("⚠️ [yellow]No AI response found to export.[/yellow]")
                 return
-            
+
             agent_name = self.app.current_agent.name if self.app.current_agent else "Unknown"
-            
+
             file_path = self.app.markdown_exporter.export_latest_response(
                 self.app.messages, self.app.current_mode, agent_name
             )
-            
+
             self.console.print()
             self.console.print("📄 [green]Export Complete[/green]")
             self.console.print(f"[green]✅ Latest response exported successfully![/green]")
@@ -51,7 +51,7 @@ class ExportHandler:
             self.console.print()
             self.console.print("💡 You can now share this markdown file or import it into your documentation.")
             self.console.print()
-            
+
         except Exception as e:
             self.console.print(f"❌ [red]Export failed: {e}[/red]")
 
@@ -61,13 +61,13 @@ class ExportHandler:
             if not self.app.messages:
                 self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
-            
+
             agent_name = self.app.current_agent.name if self.app.current_agent else "Unknown"
-            
+
             file_path = self.app.markdown_exporter.export_full_conversation(
                 self.app.messages, self.app.current_mode, agent_name
             )
-            
+
             self.console.print()
             self.console.print("📚 [green]Conversation Export Complete[/green]")
             self.console.print(f"[green]✅ Full conversation exported successfully![/green]")
@@ -78,7 +78,7 @@ class ExportHandler:
             self.console.print()
             self.console.print("💡 This includes all questions and responses from your current session.")
             self.console.print()
-            
+
         except Exception as e:
             self.console.print(f"❌ [red]Export failed: {e}[/red]")
 
@@ -88,20 +88,20 @@ class ExportHandler:
             if not self.app.messages:
                 self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
                 return
-            
+
             title = Prompt.ask(
                 "\n📝 [cyan]Report title (optional)[/cyan]",
                 default="",
                 show_default=False
             )
-            
+
             agent_name = self.app.current_agent.name if self.app.current_agent else "Unknown"
-            
+
             file_path = self.app.markdown_exporter.export_structured_report(
-                self.app.messages, self.app.current_mode, agent_name, 
+                self.app.messages, self.app.current_mode, agent_name,
                 title.strip() if title.strip() else None
             )
-            
+
             self.console.print()
             self.console.print("📊 [green]Research Report Export Complete[/green]")
             self.console.print(f"[green]✅ Research report exported successfully![/green]")
@@ -112,7 +112,7 @@ class ExportHandler:
             self.console.print()
             self.console.print("💡 This report includes executive summary, questions, and detailed analysis.")
             self.console.print()
-            
+
         except Exception as e:
             self.console.print(f"❌ [red]Export failed: {e}[/red]")
 
@@ -120,7 +120,7 @@ class ExportHandler:
         """List all exported markdown files."""
         try:
             exports = self.app.markdown_exporter.list_exports()
-            
+
             if not exports:
                 self.console.print()
                 self.console.print("📁 [yellow]Exported Files[/yellow]")
@@ -129,11 +129,11 @@ class ExportHandler:
                 self.console.print("Use `/export`, `/save`, or `/report` to create markdown exports.")
                 self.console.print()
                 return
-            
+
             self.console.print()
             self.console.print(f"📁 [bold]Exported Files[/bold] ({len(exports)} total)")
             self.console.print()
-            
+
             for filename, filepath, modified_time in exports:
                 if filename.startswith("response_"):
                     file_type = "📄 Response"
@@ -143,16 +143,16 @@ class ExportHandler:
                     file_type = "📊 Report"
                 else:
                     file_type = "📎 Export"
-                
+
                 modified_str = modified_time.strftime("%Y-%m-%d %H:%M")
-                
+
                 self.console.print(f"[cyan]{file_type}[/cyan] - {filename}")
                 self.console.print(f"  Modified: {modified_str}")
                 self.console.print(f"  Path: {filepath}")
                 self.console.print()
-            
+
             self.console.print(f"💡 Export directory: `{self.app.markdown_exporter.get_export_directory()}`")
             self.console.print()
-            
+
         except Exception as e:
-            self.console.print(f"❌ [red]Failed to list exports: {e}[/red]") 
+            self.console.print(f"❌ [red]Failed to list exports: {e}[/red]")

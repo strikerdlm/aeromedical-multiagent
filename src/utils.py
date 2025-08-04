@@ -16,10 +16,10 @@ from .config import AppConfig
 logger = logging.getLogger(__name__)
 
 def retry_with_exponential_backoff(
-    retries: int = AppConfig.MAX_RETRIES, 
-    initial_delay: float = AppConfig.RETRY_DELAY, 
-    backoff_factor: float = AppConfig.RETRY_BACKOFF_FACTOR, 
-    jitter: bool = True, 
+    retries: int = AppConfig.MAX_RETRIES,
+    initial_delay: float = AppConfig.RETRY_DELAY,
+    backoff_factor: float = AppConfig.RETRY_BACKOFF_FACTOR,
+    jitter: bool = True,
     allowed_exceptions: Tuple[Type[Exception], ...] = (Exception,)
 ) -> Callable:
     """
@@ -50,12 +50,12 @@ def retry_with_exponential_backoff(
                     if i == retries - 1:
                         logger.error(f"Function {func.__name__} failed after {retries} retries. Error: {e}")
                         raise
-                    
+
                     backoff_delay = delay * (backoff_factor ** i)
                     if jitter:
                         backoff_delay += random.uniform(0, backoff_delay * 0.1)
-                    
+
                     logger.warning(f"Function {func.__name__} failed with {e}. Retrying in {backoff_delay:.2f} seconds...")
                     time.sleep(backoff_delay)
         return wrapper
-    return decorator 
+    return decorator

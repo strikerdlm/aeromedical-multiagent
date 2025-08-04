@@ -4,6 +4,7 @@ Tests for Unicode logging and the logging setup.
 import pytest
 import logging
 import os
+import subprocess
 from unittest.mock import patch, MagicMock
 
 from src.main import setup_logging
@@ -115,22 +116,25 @@ def test_logging_exception_with_unicode(configured_logging):
     assert "Caught an exception with Unicode" in content
 
 @patch('sys.platform', 'win32')
-@patch('os.system')
-def test_windows_chcp_command_is_called(mock_os_system):
+@patch('subprocess.run')
+def test_windows_chcp_command_is_called(mock_subprocess_run):
     """Test that the 'chcp' command is called on Windows."""
     # We need to reload logging to clear its internal state
     logging.shutdown()
     reload(logging)
     
     setup_logging()
-    mock_os_system.assert_called_once_with('chcp 65001 >nul 2>&1')
+    mock_subprocess_run.assert_called_once_with(['chcp', '65001'],
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL,
+                                               check=False)
 
 @patch('sys.platform', 'linux')
-@patch('os.system')
-def test_windows_chcp_command_not_called_on_linux(mock_os_system):
+@patch('subprocess.run')
+def test_windows_chcp_command_not_called_on_linux(mock_subprocess_run):
     """Test that the 'chcp' command is NOT called on non-Windows systems."""
     logging.shutdown()
     reload(logging)
     
     setup_logging()
-    mock_os_system.assert_not_called() 
+    mock_subprocess_run.assert_not_called() 

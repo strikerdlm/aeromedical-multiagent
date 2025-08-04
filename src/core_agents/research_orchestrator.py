@@ -53,7 +53,7 @@ async def run_research_pipeline(
             continue
         if verbose:
             print(ev)
-    
+
     # The final_output is available after the stream completes.
     final_output = optimizer_stream.final_output
     if isinstance(final_output, ResearchInstructions):
@@ -73,7 +73,7 @@ async def run_research_pipeline(
 
     # --- Stage 2: Deep Research ---
     research_agent = create_deep_research_agent()
-    
+
     # Configure run settings for deep research (reasoning effort handled via agent prompt)
     research_run_config = RunConfig(
         model=final_instructions.target_model,
@@ -81,11 +81,11 @@ async def run_research_pipeline(
     )
 
     logger.info(f"Starting deep research with model: {final_instructions.target_model}")
-    
+
     # --- Model Fallback Logic ---
     fallback_models = ["o3", "o4-mini-deep-research"]
     models_to_try = [final_instructions.target_model] + fallback_models
-    
+
     research_result = None
     last_exception = None
 
@@ -93,7 +93,7 @@ async def run_research_pipeline(
         try:
             logger.info(f"Attempting research with model: {model}")
             research_run_config.model = model
-            
+
             result = await Runner.run(
                 research_agent,
                 final_instructions.detailed_prompt,
@@ -110,4 +110,4 @@ async def run_research_pipeline(
         logger.error("All research models failed.")
         raise last_exception or Exception("Unknown error during research.")
 
-    return research_result 
+    return research_result
