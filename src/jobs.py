@@ -88,4 +88,4 @@ class JobStore:
             self.jobs[job_id].status = status
             if result:
                 self.jobs[job_id].result = result
-            self._save() 
+            self._save()

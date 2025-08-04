@@ -2,4 +2,4 @@
 from .main_display import UserInterface
 from .progress import AsyncProgressHandler
 
-__all__ = ["UserInterface", "AsyncProgressHandler"] 
+__all__ = ["UserInterface", "AsyncProgressHandler"]

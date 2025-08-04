@@ -34,7 +34,7 @@ class UserInterface:
 
     def display_enhanced_welcome(self) -> None:
         """Display an enhanced welcome message with better onboarding."""
-        
+
         self.console.print("🚀 [bold blue]Welcome to the Advanced Aeromedical Evidence Review System[/bold blue]")
         self.console.print()
 
@@ -83,9 +83,9 @@ class UserInterface:
             "aerospace_medicine_rag": ("🚀", "Aerospace Medicine RAG", "Scientific articles and textbooks"),
             "prisma": ("📊", "PRISMA Systematic Review", "PRISMA-compliant reviews")
         }
-        
+
         emoji, mode_name, description = mode_info.get(self.app.current_mode, ("❓", "Unknown", "Unknown mode"))
-        
+
         self.console.print("📊 [bold]Current Status[/bold]")
         self.console.print(f"Current Mode: {emoji} {mode_name}")
         self.console.print(f"Description: {description}")
@@ -139,7 +139,7 @@ class UserInterface:
             ("/fallback", "Toggle automatic fallback to Prompt when Flowise times out"),
             ("/quit", "Exit the application")
         ]
-        
+
         mode_specific = {
             "smart": [
                 ("Auto-detection", "System selects best AI based on your question"),
@@ -168,20 +168,20 @@ class UserInterface:
                 ("Features", "Multi-agent workflow with Prompt, Flowise, and Perplexity")
             ]
         }
-        
+
         self.console.print("📖 [bold]Help & Commands[/bold]")
         self.console.print()
-        
+
         self.console.print("[bold yellow]Commands:[/bold yellow]")
         for cmd, desc in base_commands:
             self.console.print(f"  [bold]{cmd}[/bold] - {desc}")
-        
+
         if self.app.current_mode in mode_specific:
             self.console.print()
             self.console.print(f"[bold yellow]Current Mode ({self.app.current_mode.title()}):[/bold yellow]")
             for cmd, desc in mode_specific[self.app.current_mode]:
                 self.console.print(f"  [bold]{cmd}[/bold] - {desc}")
-        
+
         examples = {
             "smart": [
                 "What are the cardiovascular effects of microgravity?",
@@ -214,7 +214,7 @@ class UserInterface:
                 "Meta-analysis of cardiovascular effects in aerospace medicine"
             ]
         }
-        
+
         if self.app.current_mode in examples:
             self.console.print()
             self.console.print("[bold yellow]Example Questions:[/bold yellow]")
@@ -225,7 +225,7 @@ class UserInterface:
     def get_user_input_enhanced(self) -> str:
         """
         Enhanced user input with smart prompting and mode awareness.
-        
+
         Returns:
             The user's input string
         """
@@ -237,17 +237,17 @@ class UserInterface:
             "aerospace_medicine_rag": "🚀 Enter your aerospace medicine question",
             "prisma": "📊 Enter your systematic review research question"
         }
-        
+
         prompt_text = mode_prompts.get(self.app.current_mode, "💬 Enter your question")
-        
+
         if self.app.current_mode == "smart" and self.app.user_preferences["show_tips"]:
             self.console.print("[dim]💡 Tip: The system will analyze your question and select the optimal AI model[/dim]")
-        
+
         user_input = self.app.multiline_handler.get_single_or_multiline_input(
             prompt_text=prompt_text,
             mode_emoji=""
         )
-        
+
         return user_input.strip()
 
     def display_conversation_history(self) -> None:
@@ -255,14 +255,14 @@ class UserInterface:
         if not self.app.messages:
             self.console.print("💭 [yellow]No conversation history yet. Start by asking a question![/yellow]")
             return
-        
+
         self.console.print(f"📜 [bold]Conversation History[/bold] ({len(self.app.messages)} messages)")
         self.console.print()
-        
+
         for i, message in enumerate(self.app.messages):
             role = message.get("role", "unknown")
             content = message.get("content", "")
-            
+
             if role == "user":
                 if len(content) > 200:
                     preview = format_large_text_preview(content, max_lines=3, max_chars=200)
@@ -277,7 +277,7 @@ class UserInterface:
                     self.console.print(f"[bold green]🤖 Assistant:[/bold green] {content}")
             elif role == "tool":
                 self.console.print(f"[bold yellow]🔧 Tool:[/bold yellow] {content[:100]}...")
-            
+
             if i < len(self.app.messages) - 1:
                 self.console.print("[dim]" + "─" * 50 + "[/dim]")
         self.console.print()
@@ -286,27 +286,27 @@ class UserInterface:
         """Display and allow modification of user settings."""
         self.console.print("⚙️ [bold]User Settings[/bold]")
         self.console.print()
-        
+
         self.console.print("[cyan]Auto-suggest modes[/cyan]")
         self.console.print(f"  Current: {'✅ Enabled' if self.app.user_preferences['auto_suggest'] else '❌ Disabled'}")
         self.console.print("  Description: Automatically suggest optimal processing modes")
         self.console.print()
-        
+
         self.console.print("[cyan]Show tips[/cyan]")
         self.console.print(f"  Current: {'✅ Enabled' if self.app.user_preferences['show_tips'] else '❌ Disabled'}")
         self.console.print("  Description: Show helpful tips and context")
         self.console.print()
-        
+
         self.console.print("[cyan]Confirm mode switches[/cyan]")
         self.console.print(f"  Current: {'✅ Enabled' if self.app.user_preferences['confirm_mode_switch'] else '❌ Disabled'}")
         self.console.print("  Description: Ask before automatically switching modes")
         self.console.print()
-        
+
         self.console.print("[cyan]Auto fallback[/cyan]")
         self.console.print(f"  Current: {'✅ Enabled' if self.app.user_preferences['auto_fallback'] else '❌ Disabled'}")
         self.console.print("  Description: Automatically fallback to Prompt when Flowise encounters timeout errors")
         self.console.print()
-        
+
         self.console.print("Settings modification coming in future update. Type /help for available commands.")
         self.console.print()
 
@@ -320,7 +320,7 @@ class UserInterface:
             f"Try switching to another mode, like `/transfer prompt` to re-run your last query.",
             "Use `>>>` at the start of your message for multiline input."
         ]
-        
+
         tip = random.choice(tips)
         self.console.print(f"\n[dim]💡 Tip: {tip}[/dim]")
 
@@ -328,17 +328,17 @@ class UserInterface:
         """Toggle the auto-fallback setting."""
         self.app.user_preferences["auto_fallback"] = not self.app.user_preferences["auto_fallback"]
         status = "✅ Enabled" if self.app.user_preferences["auto_fallback"] else "❌ Disabled"
-        
+
         self.console.print()
         self.console.print("⚙️ [bold]Auto-Fallback Setting[/bold]")
         self.console.print(f"Auto-fallback is now: {status}")
         self.console.print()
-        
+
         if self.app.user_preferences["auto_fallback"]:
             self.console.print("🔄 [green]Auto-fallback enabled[/green] - System will automatically switch to Prompt when Flowise times out")
         else:
             self.console.print("⏸️ [yellow]Auto-fallback disabled[/yellow] - System will show error messages instead of falling back")
-        
+
         self.console.print()
         self.console.print("💡 Use /settings to view all preferences or /fallback to toggle this setting again.")
         self.console.print()
@@ -355,7 +355,7 @@ class UserInterface:
     def display_jobs(self) -> None:
         """Display the status of all submitted jobs."""
         self.console.print("\n[bold]📦 Submitted Jobs[/bold]")
-        
+
         # First, check for updated statuses
         self.app.check_job_statuses()
 
@@ -402,7 +402,7 @@ class UserInterface:
         for idx, job in enumerate(sorted_jobs, 1):
             status_colors = {"completed": "green", "failed": "red", "pending": "yellow"}
             status_color = status_colors.get(job.status, "white")
-            
+
             # Format query to fit in one line
             query_preview = job.query.replace('\n', ' ').strip()
             if len(query_preview) > 57:
@@ -414,7 +414,7 @@ class UserInterface:
                 query_preview,
                 f"[{status_color}]{job.status.title()}[/{status_color}]"
             )
-        
+
         self.console.print(table)
         self.console.print("\nSelect a job to download its result.")
         self.console.print("Enter the index number, or 'q' to quit.")
@@ -423,7 +423,7 @@ class UserInterface:
             selection = Prompt.ask("Enter index")
             if selection.lower() == 'q':
                 return
-            
+
             index = int(selection) - 1
             if 0 <= index < len(sorted_jobs):
                 self.download_job_result(sorted_jobs[index])
@@ -441,7 +441,7 @@ class UserInterface:
 
         try:
             history = self.app.flowise_client.get_session_history(job.chatflow_id, job.session_id)
-            
+
             if not history:
                 if job.status == 'pending':
                     self.console.print("[yellow]This job is still pending and has no history to display.[/yellow]")
@@ -453,7 +453,7 @@ class UserInterface:
             if not ai_messages:
                 self.console.print("[yellow]Job is still processing. No response found in the session history yet.[/yellow]")
                 return
-            
+
             latest_response = ai_messages[-1]
             response_text = self.app.flowise_agents._extract_flowise_response_text(latest_response.get("content", ""))
 
@@ -497,4 +497,4 @@ class UserInterface:
         self.prisma_display.display_prisma_status()
 
     def display_prisma_reviews(self) -> None:
-        self.prisma_display.display_prisma_reviews() 
+        self.prisma_display.display_prisma_reviews()

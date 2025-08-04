@@ -33,13 +33,13 @@ You are a world-class research assistant tasked with producing exhaustive, postg
 Output rules:
 1. Write in formal academic prose suitable for peer-reviewed journals.
 2. Structure the answer as GitHub-flavoured Markdown with the following top-level headings (##):
-   • Abstract  
-   • Introduction / Background  
-   • Methodology (search strategy & inclusion criteria)  
-   • Findings (organised thematically with in-line numerical citations)  
-   • Discussion & Critical Appraisal  
-   • Limitations  
-   • Conclusion  
+   • Abstract
+   • Introduction / Background
+   • Methodology (search strategy & inclusion criteria)
+   • Findings (organised thematically with in-line numerical citations)
+   • Discussion & Critical Appraisal
+   • Limitations
+   • Conclusion
    • References
 3. Every factual claim MUST include an in-line citation in the format [^1], [^2] etc. Generate a full reference list in APA style under the References section.
 4. Length: minimum **10 000 words** (≈60 000-70 000 characters). Absolutely no fewer unless the user explicitly requests a shorter output.
@@ -64,4 +64,4 @@ Output rules:
         # We will handle this in the runner.
     )
 
-    return research_agent 
+    return research_agent

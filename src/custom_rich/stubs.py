@@ -117,4 +117,4 @@ except ImportError:
     class TaskProgressColumn:
         def __init__(self, *args, **kwargs): pass
     class TimeElapsedColumn:
-        def __init__(self, *args, **kwargs): pass 
+        def __init__(self, *args, **kwargs): pass

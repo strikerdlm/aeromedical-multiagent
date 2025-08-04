@@ -10,27 +10,18 @@ from __future__ import annotations
 
 import logging
 import sys
-import os
-import re
 import asyncio
-import time
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime
+import subprocess
+from typing import Dict, Any, List, Optional
 import argparse
 
 # Keep a reference to the *real* ``logging.FileHandler`` class so that we can
 # bypass any monkey patches applied by the test-suite.
 _ORIGINAL_FILE_HANDLER = logging.FileHandler
 
-from .custom_rich.stubs import Console, Panel, Table, Text, Prompt, Confirm, Markdown
-
-from rich.console import Console as RichConsole
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
-from rich.live import Live
-from pydantic import BaseModel
-
-from .config import AppConfig, FlowiseConfig
-from .multiline_input import MultilineInputHandler, detect_paste_input
+from .custom_rich.stubs import Console, Markdown
+from .config import AppConfig
+from .multiline_input import MultilineInputHandler
 from .markdown_exporter import MarkdownExporter
 from .ui import AsyncProgressHandler, UserInterface
 from .jobs import JobStore
@@ -46,21 +37,24 @@ def setup_logging():
     # Windows-specific console encoding fix
     if sys.platform.startswith('win'):
         try:
-            # Try to set console to UTF-8 on Windows
-            os.system('chcp 65001 >nul 2>&1')
-        except Exception:
+            # Try to set console to UTF-8 on Windows using safer subprocess
+            subprocess.run(['chcp', '65001'],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL,
+                           check=False)
+        except (subprocess.SubprocessError, OSError):
             pass  # Ignore if this fails
-    
+
     # Clear any existing handlers
     logging.getLogger().handlers.clear()
-    
+
     # Create formatters
     formatter = logging.Formatter(AppConfig.LOG_FORMAT)
-    
+
     # Console handler with UTF-8 support
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-    
+
     # File handler with explicit UTF-8 encoding
     # The *logging.FileHandler* attribute may be monkey-patched by the
     # unit-test suite to redirect log output to a temporary file.  Unfortunately
@@ -88,7 +82,7 @@ def setup_logging():
     except RecursionError:  # pragma: no cover – guard against poorly written patches
         file_handler = _ORIGINAL_FILE_HANDLER('prompt_enhancer.log', encoding='utf-8')
     file_handler.setFormatter(formatter)
-    
+
     # Prevent pytest's "logging" plugin from injecting duplicate capture
     # handlers that would break the unit-test assertions by monkey-patching
     # ``Logger.addHandler`` once for the remainder of the process.
@@ -166,11 +160,11 @@ logger = logging.getLogger(__name__)
 class EnhancedPromptEnhancerApp:
     """
     Enhanced Multi-Agent Prompt Enhancement system with improved UX.
-    
+
     This class provides an intuitive text-based interface with smart mode detection,
     streamlined navigation, and enhanced user guidance.
     """
-    
+
     def __init__(self):
         """Initialize the enhanced prompt enhancer application."""
         self.console = Console()
@@ -181,7 +175,7 @@ class EnhancedPromptEnhancerApp:
         self.job_store = JobStore()
         self.messages: List[Dict[str, Any]] = []
         self.last_user_query: Optional[str] = None
-        
+
         # Track current mode and agent for export functionality
         self.current_mode: str = "deep_research"
         self.current_agent = None  # Updated after each query
@@ -193,9 +187,9 @@ class EnhancedPromptEnhancerApp:
             "auto_suggest": True,
             "confirm_mode_switch": True,
         }
-        
+
         self.mode_manager = ModeManager(self)
-        
+
         logger.info("Enhanced Research App initialized successfully")
 
 
@@ -264,7 +258,7 @@ class EnhancedPromptEnhancerApp:
         except Exception as e:
             logger.error(f"Error in deep research pipeline: {e}", exc_info=True)
             self.console.print(f"❌ [red]An error occurred during research: {e}[/red]")
-        
+
         return True
 
     def handle_enhanced_user_input(self, user_input: str) -> bool:
@@ -368,17 +362,17 @@ class EnhancedPromptEnhancerApp:
     def run_enhanced(self) -> None:
         """Main application loop."""
         self.ui.display_enhanced_welcome()
-        
+
         while True:
             try:
                 user_input = self.multiline_handler.get_single_or_multiline_input()
                 if user_input.strip().lower() in ['/quit', '/exit', '/q']:
                     break
-                
+
                 if user_input.strip().startswith('/'):
                     self.console.print("[yellow]Commands are currently disabled during the refactor. Please enter a research query.[/yellow]")
                     continue
-                
+
                 if not user_input.strip():
                     continue
 
@@ -409,7 +403,7 @@ def main() -> None:
             asyncio.run(app.process_user_request(args.query))
         else:
             app.run_enhanced()
-        
+
     except KeyboardInterrupt:
         print("\n👋 Application interrupted by user.")
     except Exception as e:
@@ -419,4 +413,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

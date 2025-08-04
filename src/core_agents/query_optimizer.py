@@ -107,4 +107,4 @@ def create_query_optimizer_pipeline() -> Agent:
         handoffs=[clarifying_agent, instruction_agent],
     )
 
-    return triage_agent 
+    return triage_agent

@@ -31,19 +31,19 @@ class ConfigurationError(Exception):
 class FlowiseClient:
     """
     Simple client for interacting with Flowise API.
-    
+
     Uses the exact same pattern as the working examples:
     - Direct requests.post call
     - Simple headers with Authorization Bearer token
     - JSON payload with question
     """
-    
+
     _SENTINEL = object()
 
     def __init__(self, base_url: Optional[str] = None, api_key: Optional[str] = _SENTINEL):
         """
         Initialize the Flowise client.
-        
+
         Args:
             base_url: Flowise API base URL (optional, uses config default)
             api_key: Flowise API key (optional, uses config default)
@@ -72,29 +72,29 @@ class FlowiseClient:
             raise ConfigurationError(
                 "Flowise API key is not configured. Please set the FLOWISE_API_KEY environment variable."
             )
-        
+
         # Create headers exactly like the working examples
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-    
+
     @retry_with_exponential_backoff(allowed_exceptions=(requests.exceptions.RequestException,))
     def query_chatflow(self, chatflow_id: str, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Query a specific Flowise chatflow.
-        
+
         Uses the exact same pattern as the working examples:
         requests.post(API_URL, headers=headers, json=payload)
-        
+
         Args:
             chatflow_id: The ID of the chatflow to query
             question: The question to ask
             session_id: The session ID for the conversation
-            
+
         Returns:
             Response JSON from Flowise API
-            
+
         Raises:
             FlowiseAPIError: If the API request fails
         """
@@ -102,10 +102,10 @@ class FlowiseClient:
         payload = {"question": question}
         if session_id:
             payload["overrideConfig"] = {"sessionId": session_id}
-        
+
         logger.info(f"Querying Flowise chatflow {chatflow_id} with session {session_id}")
         response = requests.post(api_url, headers=self.headers, json=payload, timeout=60)
-        
+
         if response.status_code == 200:
             result = response.json()
             logger.info("Flowise query completed successfully")
@@ -134,7 +134,7 @@ class FlowiseClient:
             raise requests.exceptions.HTTPError(
                 f"Server error: {response.status_code}"
             )
-        
+
         # For client-side errors, fail immediately
         elif response.status_code == 401:
             raise FlowiseAPIError("Authentication failed - check API key")
@@ -146,17 +146,17 @@ class FlowiseClient:
     def submit_job(self, chatflow_id: str, question: str, session_id: str) -> bool:
         """
         Submit a job to a Flowise chatflow using the exact user-specified structure.
-        
+
         Args:
             chatflow_id: The ID of the chatflow to query
             question: The question to ask
             session_id: The session ID for the job
-            
+
         Returns:
             True if the job was submitted successfully, False otherwise
         """
         api_url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
-        
+
         # Use the *instance* API key when available so that callers can
         # override the globally configured ``FLOWISE_API_KEY`` on a
         # per-client basis (e.g. in unit tests or in multi-tenant
@@ -175,22 +175,22 @@ class FlowiseClient:
                 "Content-Type": "application/json",
             }
         payload = {"question": question}
-        
+
         # Add session ID if provided
         if session_id:
             payload["overrideConfig"] = {"sessionId": session_id}
-        
+
         try:
             logger.info(f"Submitting job to Flowise chatflow {chatflow_id} with session {session_id}")
             response = requests.post(api_url, headers=headers, json=payload, timeout=120)
-            
+
             if response.status_code == 200:
                 logger.info("Job submitted successfully")
                 return True
             else:
                 logger.error(f"Job submission failed: {response.status_code} - {response.text}")
                 return False
-                
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to submit job to Flowise: {e}")
             return False
@@ -224,39 +224,39 @@ class FlowiseClient:
 class MedicalFlowiseRouter(FlowiseClient):
     """
     Specialized router for medical and research-focused chatflows.
-    
+
     Provides domain-specific methods for the three available chatflows:
     1. Aeromedical Risk - Aviation medicine risk assessment
-    2. Deep Research - Comprehensive research analysis  
+    2. Deep Research - Comprehensive research analysis
     3. Aerospace Medicine RAG - Scientific articles and textbooks in aerospace medicine
     """
-    
+
     def consult_deep_research(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query the deep research chatflow for comprehensive analysis."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["deep_research"]
         return self.query_chatflow(chatflow_id, query, session_id)
-    
+
     def consult_aeromedical_risk(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query aeromedical risk assessment chatflow."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["aeromedical_risk"]
         return self.query_chatflow(chatflow_id, query, session_id)
-    
+
     def consult_aerospace_medicine_rag(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Query aerospace medicine RAG chatflow for scientific articles and textbooks."""
         chatflow_id = FlowiseConfig.CHATFLOW_IDS["aerospace_medicine_rag"]
         return self.query_chatflow(chatflow_id, query, session_id)
-    
+
     def route_medical_query(self, query_type: str, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Route medical queries to appropriate specialized chatflows.
-        
+
         Args:
             query_type: Type of query ('research', 'aeromedical', 'aerospace_medicine')
             question: The actual question to ask
-            
+
         Returns:
             Response from the appropriate chatflow
-            
+
         Raises:
             FlowiseAPIError: If query_type is unknown
         """
@@ -266,9 +266,9 @@ class MedicalFlowiseRouter(FlowiseClient):
             "aerospace_medicine": self.consult_aerospace_medicine_rag,
             "medical": self.consult_aerospace_medicine_rag,  # Default medical queries to aerospace medicine RAG
         }
-        
+
         if query_type not in routing_map:
             available_types = ", ".join(routing_map.keys())
             raise FlowiseAPIError(f"Unknown query type '{query_type}'. Available: {available_types}")
-        
-        return routing_map[query_type](question, session_id) 
+
+        return routing_map[query_type](question, session_id)
