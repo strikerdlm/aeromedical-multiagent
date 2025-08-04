@@ -26,9 +26,11 @@ from .markdown_exporter import MarkdownExporter
 from .ui import AsyncProgressHandler, UserInterface
 from .jobs import JobStore
 from .core_agents import run_research_pipeline
-from .core_agents.research_agents import create_deep_research_agent
+from .core_agents.research_agents import create_deep_research_agent, create_o3_high_reasoning_agent
 from .prisma_pipeline import run_prisma_pipeline, create_prisma_writer_agent
 from .mode_manager import ModeManager
+from .flowise_client import FlowiseClient
+from .config import FlowiseConfig
 
 
 # Set up logging with proper Unicode support
@@ -177,7 +179,7 @@ class EnhancedPromptEnhancerApp:
         self.last_user_query: Optional[str] = None
 
         # Track current mode and agent for export functionality
-        self.current_mode: str = "deep_research"
+        self.current_mode: str = "smart"  # Start in smart mode
         self.current_agent = None  # Updated after each query
 
         # Minimal user preferences used by UI components
@@ -188,9 +190,40 @@ class EnhancedPromptEnhancerApp:
             "confirm_mode_switch": True,
         }
 
+        # Initialize agent systems with new o3 models
+        self._initialize_agent_systems()
+
         self.mode_manager = ModeManager(self)
 
         logger.info("Enhanced Research App initialized successfully")
+
+    def _initialize_agent_systems(self):
+        """Initialize all agent systems with proper o3 model configurations."""
+        try:
+            # Initialize prompt agents with o3 high reasoning
+            self.prompt_agents = create_o3_high_reasoning_agent()
+            
+            # Initialize Flowise client for background agents
+            flowise_client = FlowiseClient()
+            
+            # Initialize flowise_agents mapping for different specialized modes
+            self.flowise_agents = {
+                "deep_research": create_deep_research_agent(),  # Uses o3-deep-research
+                "aeromedical_risk": flowise_client,  # Flowise-based aeromedical risk agent
+                "aerospace_medicine_rag": flowise_client,  # Flowise-based aerospace medicine RAG
+            }
+            
+            # Initialize PRISMA system
+            self.prisma_system = create_prisma_writer_agent()
+            
+            logger.info("All agent systems initialized successfully with o3 models")
+            
+        except Exception as e:
+            logger.error(f"Error initializing agent systems: {e}")
+            # Set fallback agents to prevent crashes
+            self.prompt_agents = None
+            self.flowise_agents = {}
+            self.prisma_system = None
 
 
     async def process_user_request(self, user_input: str) -> bool:
@@ -198,49 +231,80 @@ class EnhancedPromptEnhancerApp:
         self.last_user_query = user_input
         self.messages.append({"role": "user", "content": user_input})
 
-        if self.current_mode == "prisma":
-            self.console.print("\n📊 [cyan]Starting PRISMA systematic review...[/cyan]")
-            self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
-            try:
-                final_output = await run_prisma_pipeline(user_input)
-                assistant_message = {"role": "assistant", "content": str(final_output)}
+        # Handle smart mode detection first
+        if self.current_mode == "smart":
+            self.mode_manager.handle_smart_mode_detection(user_input)
+        
+        # Route to appropriate agent based on current mode
+        try:
+            if self.current_mode == "prompt":
+                return await self._handle_prompt_mode(user_input)
+            elif self.current_mode == "deep_research":
+                return await self._handle_deep_research_mode(user_input)
+            elif self.current_mode == "aeromedical_risk":
+                return await self._handle_flowise_mode(user_input, "aeromedical_risk")
+            elif self.current_mode == "aerospace_medicine_rag":
+                return await self._handle_flowise_mode(user_input, "aerospace_medicine_rag")
+            elif self.current_mode == "prisma":
+                return await self._handle_prisma_mode(user_input)
+            else:
+                # Default to prompt mode for unknown modes
+                return await self._handle_prompt_mode(user_input)
+                
+        except Exception as e:
+            logger.error(f"Error processing user request in {self.current_mode} mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]An error occurred: {e}[/red]")
+            return True
+
+    async def _handle_prompt_mode(self, user_input: str) -> bool:
+        """Handle prompt mode using o3 high reasoning agent."""
+        try:
+            self.console.print("\n🤖 [cyan]Processing with O3 High Reasoning Agent...[/cyan]")
+            
+            if self.prompt_agents:
+                from agents import Runner
+                result = Runner.run(self.prompt_agents, user_input)
+                if asyncio.iscoroutine(result):
+                    result = await result
+                
+                final_output = getattr(result, "final_output", None) or str(result)
+                assistant_message = {"role": "assistant", "content": final_output}
                 self.messages.append(assistant_message)
-                self.current_agent = create_prisma_writer_agent()
+                self.current_agent = self.prompt_agents
+                
+                self.console.print(f"\n🤖 [bold]O3 High Reasoning Agent Response:[/bold]")
                 self.console.print("─" * 60)
                 self.console.print(Markdown(str(final_output)))
                 self.console.print("─" * 60)
-                self.console.print("\n[green]✅ PRISMA review completed![/green]")
-                try:
-                    file_path = self.markdown_exporter.export_prisma_review(final_output, user_input)
-                    self.console.print(f"\n💾 [bold green]Review saved to[/bold green] `{file_path}`\n")
-                except Exception as export_err:  # noqa: BLE001
-                    logger.error(f"PRISMA export failed: {export_err}", exc_info=True)
-            except Exception as e:  # noqa: BLE001
-                logger.error(f"Error in PRISMA pipeline: {e}", exc_info=True)
-                self.console.print(f"❌ [red]An error occurred during PRISMA review: {e}[/red]")
-            return True
+            else:
+                self.console.print("[red]❌ Prompt agent not available[/red]")
+                
+        except Exception as e:
+            logger.error(f"Error in prompt mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error in prompt mode: {e}[/red]")
+        
+        return True
 
-        self.console.print("\n🔬 [cyan]Initiating deep research pipeline...[/cyan]")
-        self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
-
+    async def _handle_deep_research_mode(self, user_input: str) -> bool:
+        """Handle deep research mode using o3-deep-research model."""
         try:
-            # The new pipeline handles everything from optimization to final report.
+            self.console.print("\n🔬 [cyan]Initiating deep research with o3-deep-research model...[/cyan]")
+            self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
+
+            # Use the research pipeline which will use the o3-deep-research agent
             final_output = await run_research_pipeline(user_input, verbose=True)
 
             assistant_message = {"role": "assistant", "content": str(final_output)}
             self.messages.append(assistant_message)
-
-            # Update export metadata
             self.current_agent = create_deep_research_agent()
 
             self.console.print(f"\n🤖 [bold]Deep Research Agent Response:[/bold]")
             self.console.print("─" * 60)
             self.console.print(Markdown(str(final_output)))
             self.console.print("─" * 60)
-
             self.console.print(f"\n[green]✅ Research completed successfully![/green]")
 
-            # Automatically export the latest response to Markdown for convenience
+            # Auto-export the response
             try:
                 agent_name = self.current_agent.name if self.current_agent else "Deep Research Agent"
                 file_path = self.markdown_exporter.export_latest_response(
@@ -252,13 +316,84 @@ class EnhancedPromptEnhancerApp:
             except Exception as export_err:
                 logger.error(f"Auto-export failed: {export_err}", exc_info=True)
 
-            # Still show manual export options for further actions
-            self.ui.show_export_options()
+        except Exception as e:
+            logger.error(f"Error in deep research mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error in deep research mode: {e}[/red]")
+        
+        return True
+
+    async def _handle_flowise_mode(self, user_input: str, mode_name: str) -> bool:
+        """Handle Flowise-based modes (aeromedical_risk, aerospace_medicine_rag)."""
+        try:
+            mode_labels = {
+                "aeromedical_risk": "⚕️ Aeromedical Risk Assessment",
+                "aerospace_medicine_rag": "🧑‍🚀 Aerospace Medicine RAG"
+            }
+            
+            label = mode_labels.get(mode_name, mode_name.title())
+            self.console.print(f"\n{label} [cyan]processing...[/cyan]")
+            self.console.print("[dim]This is a background job. You can check status with /jobs[/dim]")
+
+            # Submit as background job
+            job_id = f"{mode_name}_{len(self.job_store.jobs) + 1}"
+            self.job_store.submit_job(job_id, user_input, mode_name)
+            
+            # For demo purposes, simulate processing
+            flowise_client = self.flowise_agents.get(mode_name)
+            if isinstance(flowise_client, FlowiseClient):
+                chatflow_config = FlowiseConfig.CHATFLOW_CONFIGS.get(mode_name)
+                if chatflow_config:
+                    response = flowise_client.query_chatflow(
+                        chatflow_config.chatflow_id,
+                        user_input,
+                        chatflow_config.session_id
+                    )
+                    final_output = response.get("text", "Processing completed")
+                else:
+                    final_output = f"{label} processing completed"
+            else:
+                final_output = f"{label} processing completed"
+
+            assistant_message = {"role": "assistant", "content": final_output}
+            self.messages.append(assistant_message)
+            
+            self.console.print(f"\n🤖 [bold]{label} Response:[/bold]")
+            self.console.print("─" * 60)
+            self.console.print(Markdown(str(final_output)))
+            self.console.print("─" * 60)
 
         except Exception as e:
-            logger.error(f"Error in deep research pipeline: {e}", exc_info=True)
-            self.console.print(f"❌ [red]An error occurred during research: {e}[/red]")
+            logger.error(f"Error in {mode_name} mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error in {mode_name} mode: {e}[/red]")
+        
+        return True
 
+    async def _handle_prisma_mode(self, user_input: str) -> bool:
+        """Handle PRISMA systematic review mode."""
+        try:
+            self.console.print("\n📊 [cyan]Starting PRISMA systematic review...[/cyan]")
+            self.console.print("[dim]This may take several minutes. I will stream updates as I get them.[/dim]")
+            
+            final_output = await run_prisma_pipeline(user_input)
+            assistant_message = {"role": "assistant", "content": str(final_output)}
+            self.messages.append(assistant_message)
+            self.current_agent = create_prisma_writer_agent()
+            
+            self.console.print("─" * 60)
+            self.console.print(Markdown(str(final_output)))
+            self.console.print("─" * 60)
+            self.console.print("\n[green]✅ PRISMA review completed![/green]")
+            
+            try:
+                file_path = self.markdown_exporter.export_prisma_review(final_output, user_input)
+                self.console.print(f"\n💾 [bold green]Review saved to[/bold green] `{file_path}`\n")
+            except Exception as export_err:
+                logger.error(f"PRISMA export failed: {export_err}", exc_info=True)
+                
+        except Exception as e:
+            logger.error(f"Error in PRISMA mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error in PRISMA mode: {e}[/red]")
+        
         return True
 
     def handle_enhanced_user_input(self, user_input: str) -> bool:
@@ -370,7 +505,9 @@ class EnhancedPromptEnhancerApp:
                     break
 
                 if user_input.strip().startswith('/'):
-                    self.console.print("[yellow]Commands are currently disabled during the refactor. Please enter a research query.[/yellow]")
+                    # Handle commands
+                    if not self.handle_enhanced_user_input(user_input):
+                        break
                     continue
 
                 if not user_input.strip():

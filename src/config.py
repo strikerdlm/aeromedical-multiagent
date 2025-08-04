@@ -45,15 +45,23 @@ class OpenAIModelsConfig:
     )
 
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o3-deep-research-2025-06-26",  # Use o3-deep-research for reasoning tasks
+        model_name="o3-2025-04-16",  # Use standard o3 for reasoning tasks with high reasoning effort
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
     )
 
+    # Additional o3 model for different use cases
+    O3_STANDARD: ModelConfig = ModelConfig(
+        model_name="o3-2025-04-16",  # Standard o3 model
+        max_tokens=6000,
+        temperature=0.3,
+        reasoning_effort="medium"
+    )
+
     # Fallback model for PRISMA
     O4_MINI_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="gpt-4o-mini",  # Use GPT-4o-mini as fallback
+        model_name="o4-mini",  # Use o4-mini as fallback
         max_tokens=8000,
         temperature=0.3,
         reasoning_effort="high"

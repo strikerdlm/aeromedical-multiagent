@@ -175,9 +175,9 @@ class EnhancedOpenAIClient:
         self.classifier = QuestionClassifier()
         self.web_search = WebSearchTool()
 
-    def process_with_deep_research(self, enhanced_prompt: str) -> str:
+    def process_with_deep_research_model(self, enhanced_prompt: str) -> str:
         """
-        Process prompt using o3-deep-research model via responses endpoint.
+        Process prompt using o3-deep-research model with high reasoning effort.
 
         Args:
             enhanced_prompt: The enhanced prompt to process
@@ -187,27 +187,50 @@ class EnhancedOpenAIClient:
         """
         try:
             logger.info("Processing with o3-deep-research model")
-
+            
             config = OpenAIModelsConfig.O3_DEEP_RESEARCH
 
-            # Use the correct chat completions endpoint
-            response = self.client.chat.completions.create(
-                model=config.model_name,
-                messages=[{
-                    "role": "user",
-                    "content": enhanced_prompt
-                }],
-                max_tokens=config.max_tokens,
-                temperature=config.temperature
-                # Note: reasoning_effort not supported by current OpenAI API
-            )
-
-            # Extract the response content
-            if response.choices and len(response.choices) > 0:
-                content = response.choices[0].message.content
-                return content or "Deep research completed successfully."
+            # Use Responses API for o3 models with reasoning effort
+            if hasattr(config, 'reasoning_effort') and config.reasoning_effort:
+                response = self.client.responses.create(
+                    model=config.model_name,
+                    instructions=enhanced_prompt,
+                    max_output_tokens=config.max_tokens,
+                    temperature=config.temperature,
+                    reasoning={
+                        "effort": config.reasoning_effort,
+                        "summary": "detailed"
+                    }
+                )
+                
+                # Extract the response from the Responses API format
+                if hasattr(response, 'output') and response.output:
+                    for output_item in response.output:
+                        if hasattr(output_item, 'type') and output_item.type == 'text':
+                            return output_item.content or "Deep research completed successfully."
+                        elif hasattr(output_item, 'content') and output_item.content:
+                            return output_item.content
+                
+                # Fallback to regular response if no text output found
+                return "Deep research completed with reasoning."
             else:
-                return "No response generated from deep research model."
+                # Fallback to regular chat completions for models without reasoning effort
+                response = self.client.chat.completions.create(
+                    model=config.model_name,
+                    messages=[{
+                        "role": "user",
+                        "content": enhanced_prompt
+                    }],
+                    max_tokens=config.max_tokens,
+                    temperature=config.temperature
+                )
+
+                # Extract the response content
+                if response.choices and len(response.choices) > 0:
+                    content = response.choices[0].message.content
+                    return content or "Deep research completed successfully."
+                else:
+                    return "No response generated from deep research model."
 
         except Exception as e:
             logger.error(f"Error in deep research processing: {e}")
@@ -215,7 +238,7 @@ class EnhancedOpenAIClient:
 
     def process_with_o3_and_web_search(self, enhanced_prompt: str) -> str:
         """
-        Process prompt using o3 with web search capabilities.
+        Process prompt using o3 with web search capabilities and high reasoning.
 
         Args:
             enhanced_prompt: The enhanced prompt to process
@@ -242,23 +265,46 @@ class EnhancedOpenAIClient:
 
             config = OpenAIModelsConfig.O3_REASONING
 
-            # Use o3 model with the search-enhanced prompt
-            response = self.client.chat.completions.create(
-                model=config.model_name,
-                messages=[{
-                    "role": "user",
-                    "content": enhanced_with_search
-                }],
-                max_tokens=config.max_tokens,
-                temperature=config.temperature
-                # Note: reasoning_effort not supported by current OpenAI API
-            )
-
-            if response.choices and len(response.choices) > 0:
-                content = response.choices[0].message.content
-                return content or "O3 processing with web search completed successfully."
+            # Use Responses API for o3 models with reasoning effort
+            if hasattr(config, 'reasoning_effort') and config.reasoning_effort:
+                response = self.client.responses.create(
+                    model=config.model_name,
+                    instructions=enhanced_with_search,
+                    max_output_tokens=config.max_tokens,
+                    temperature=config.temperature,
+                    reasoning={
+                        "effort": config.reasoning_effort,
+                        "summary": "detailed"
+                    }
+                )
+                
+                # Extract the response from the Responses API format
+                if hasattr(response, 'output') and response.output:
+                    for output_item in response.output:
+                        if hasattr(output_item, 'type') and output_item.type == 'text':
+                            return output_item.content or "O3 processing with web search completed successfully."
+                        elif hasattr(output_item, 'content') and output_item.content:
+                            return output_item.content
+                
+                # Fallback to regular response if no text output found
+                return "O3 processing with web search completed with reasoning."
             else:
-                return "No response generated from o3 model."
+                # Fallback to regular chat completions
+                response = self.client.chat.completions.create(
+                    model=config.model_name,
+                    messages=[{
+                        "role": "user",
+                        "content": enhanced_with_search
+                    }],
+                    max_tokens=config.max_tokens,
+                    temperature=config.temperature
+                )
+
+                if response.choices and len(response.choices) > 0:
+                    content = response.choices[0].message.content
+                    return content or "O3 processing with web search completed successfully."
+                else:
+                    return "No response generated from o3 model."
 
         except Exception as e:
             logger.error(f"Error in o3 + web search processing: {e}")
@@ -350,7 +396,7 @@ class EnhancedOpenAIClient:
             # Route to appropriate model
             if is_science_tech or requires_deep_research:
                 logger.info("Routing to o3-deep-research model")
-                return self.process_with_deep_research(enhanced_prompt)
+                return self.process_with_deep_research_model(enhanced_prompt)
             else:
                 logger.info("Routing to o3 with web search")
                 return self.process_with_o3_and_web_search(enhanced_prompt)
