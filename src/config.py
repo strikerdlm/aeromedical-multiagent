@@ -36,16 +36,16 @@ class ModelConfig:
 class OpenAIModelsConfig:
     """Configuration for OpenAI models used in the system."""
 
-    # Enhanced OpenAI Models - Updated to use available models
+    # Enhanced OpenAI Models - Updated to use o3-deep-research model
     O3_DEEP_RESEARCH: ModelConfig = ModelConfig(
-        model_name="gpt-4o",  # Use GPT-4o as the most advanced available model
+        model_name="o3-deep-research-2025-06-26",  # Use o3-deep-research as the primary research model
         max_tokens=8000,
         temperature=0.4,
         reasoning_effort="high"
     )
 
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="gpt-4o",  # Use GPT-4o for reasoning tasks
+        model_name="o3-deep-research-2025-06-26",  # Use o3-deep-research for reasoning tasks
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
