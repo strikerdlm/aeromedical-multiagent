@@ -192,6 +192,16 @@ class EnhancedOpenAIClient:
 
             # Use Responses API for o3 models with reasoning effort
             if hasattr(config, 'reasoning_effort') and config.reasoning_effort:
+                tools: List[Dict[str, Any]] = []
+                if AppConfig.OPENAI_USE_WEB_SEARCH_PREVIEW:
+                    tool_def: Dict[str, Any] = {
+                        "type": "web_search_preview",
+                        "search_context_size": AppConfig.OPENAI_WEB_SEARCH_CONTEXT_SIZE,
+                    }
+                    if AppConfig.OPENAI_USE_APPROXIMATE_LOCATION:
+                        tool_def["user_location"] = {"type": "approximate"}
+                    tools.append(tool_def)
+
                 response = self.client.responses.create(
                     model=config.model_name,
                     instructions=enhanced_prompt,
@@ -200,14 +210,15 @@ class EnhancedOpenAIClient:
                     reasoning={
                         "effort": config.reasoning_effort,
                         "summary": "detailed"
-                    }
+                    },
+                    tools=tools or None,
                 )
                 
                 # Extract the response from the Responses API format
                 if hasattr(response, 'output') and response.output:
                     for output_item in response.output:
                         if hasattr(output_item, 'type') and output_item.type == 'text':
-                            return output_item.content or "Deep research completed successfully."
+                            return getattr(output_item, 'content', None) or "Deep research completed successfully."
                         elif hasattr(output_item, 'content') and output_item.content:
                             return output_item.content
                 
@@ -226,7 +237,7 @@ class EnhancedOpenAIClient:
                 )
 
                 # Extract the response content
-                if response.choices and len(response.choices) > 0:
+                if getattr(response, 'choices', None) and len(response.choices) > 0:
                     content = response.choices[0].message.content
                     return content or "Deep research completed successfully."
                 else:
@@ -238,16 +249,48 @@ class EnhancedOpenAIClient:
 
     def process_with_o3_and_web_search(self, enhanced_prompt: str) -> str:
         """
-        Process prompt using o3 with web search capabilities and high reasoning.
+        Process prompt using GPT-5 with optional OpenAI web search preview tool.
 
         Args:
             enhanced_prompt: The enhanced prompt to process
 
         Returns:
-            Response from o3 model enhanced with web search
+            Response from GPT-5 (optionally enhanced with web search)
         """
         try:
-            logger.info("Processing with o3 + web search")
+            logger.info("Processing with GPT-5 + web search (if enabled)")
+
+            config = OpenAIModelsConfig.O3_REASONING  # Now configured to GPT-5
+
+            if AppConfig.OPENAI_USE_WEB_SEARCH_PREVIEW:
+                tools: List[Dict[str, Any]] = [{
+                    "type": "web_search_preview",
+                    "search_context_size": AppConfig.OPENAI_WEB_SEARCH_CONTEXT_SIZE,
+                    **({"user_location": {"type": "approximate"}} if AppConfig.OPENAI_USE_APPROXIMATE_LOCATION else {}),
+                }]
+
+                response = self.client.responses.create(
+                    model=config.model_name,
+                    instructions=enhanced_prompt,
+                    max_output_tokens=config.max_tokens,
+                    temperature=config.temperature,
+                    reasoning={
+                        "effort": config.reasoning_effort,
+                        "summary": "detailed"
+                    },
+                    tools=tools,
+                )
+
+                if hasattr(response, 'output') and response.output:
+                    for output_item in response.output:
+                        if hasattr(output_item, 'type') and output_item.type == 'text':
+                            return getattr(output_item, 'content', None) or "Processing completed successfully."
+                        elif hasattr(output_item, 'content') and output_item.content:
+                            return output_item.content
+                return "Processing completed with reasoning."
+
+            # Fallback path: custom Google CSE based web search enrichment
+            logger.info("OpenAI web_search_preview disabled; using manual web search enrichment")
 
             # Extract search queries from the prompt
             search_queries = self._extract_search_queries(enhanced_prompt)
@@ -263,52 +306,29 @@ class EnhancedOpenAIClient:
                 enhanced_prompt, search_results
             )
 
-            config = OpenAIModelsConfig.O3_REASONING
-
-            # Use Responses API for o3 models with reasoning effort
-            if hasattr(config, 'reasoning_effort') and config.reasoning_effort:
-                response = self.client.responses.create(
-                    model=config.model_name,
-                    instructions=enhanced_with_search,
-                    max_output_tokens=config.max_tokens,
-                    temperature=config.temperature,
-                    reasoning={
-                        "effort": config.reasoning_effort,
-                        "summary": "detailed"
-                    }
-                )
-                
-                # Extract the response from the Responses API format
-                if hasattr(response, 'output') and response.output:
-                    for output_item in response.output:
-                        if hasattr(output_item, 'type') and output_item.type == 'text':
-                            return output_item.content or "O3 processing with web search completed successfully."
-                        elif hasattr(output_item, 'content') and output_item.content:
-                            return output_item.content
-                
-                # Fallback to regular response if no text output found
-                return "O3 processing with web search completed with reasoning."
-            else:
-                # Fallback to regular chat completions
-                response = self.client.chat.completions.create(
-                    model=config.model_name,
-                    messages=[{
-                        "role": "user",
-                        "content": enhanced_with_search
-                    }],
-                    max_tokens=config.max_tokens,
-                    temperature=config.temperature
-                )
-
-                if response.choices and len(response.choices) > 0:
-                    content = response.choices[0].message.content
-                    return content or "O3 processing with web search completed successfully."
-                else:
-                    return "No response generated from o3 model."
+            # Use Responses API for GPT-5 with reasoning effort
+            response = self.client.responses.create(
+                model=config.model_name,
+                instructions=enhanced_with_search,
+                max_output_tokens=config.max_tokens,
+                temperature=config.temperature,
+                reasoning={
+                    "effort": config.reasoning_effort,
+                    "summary": "detailed"
+                }
+            )
+            
+            if hasattr(response, 'output') and response.output:
+                for output_item in response.output:
+                    if hasattr(output_item, 'type') and output_item.type == 'text':
+                        return getattr(output_item, 'content', None) or "Processing completed successfully."
+                    elif hasattr(output_item, 'content') and output_item.content:
+                        return output_item.content
+            return "Processing completed with reasoning."
 
         except Exception as e:
-            logger.error(f"Error in o3 + web search processing: {e}")
-            return f"Error processing with o3 + web search: {str(e)}"
+            logger.error(f"Error in GPT-5 + web search processing: {e}")
+            return f"Error processing with GPT-5 + web search: {str(e)}"
 
     def _extract_search_queries(self, prompt: str) -> List[str]:
         """
@@ -390,15 +410,14 @@ class EnhancedOpenAIClient:
             is_science_tech = self.classifier.is_science_tech_question(question_to_classify)
             requires_deep_research = self.classifier.requires_deep_research(question_to_classify)
 
-            logger.info(f"Routing decision - Science/Tech: {is_science_tech}, "
-                       f"Deep Research: {requires_deep_research}")
+            logger.info(f"Routing decision - Science/Tech: {is_science_tech}, Deep Research: {requires_deep_research}")
 
             # Route to appropriate model
             if is_science_tech or requires_deep_research:
                 logger.info("Routing to o3-deep-research model")
                 return self.process_with_deep_research_model(enhanced_prompt)
             else:
-                logger.info("Routing to o3 with web search")
+                logger.info("Routing to GPT-5 with web search (if enabled)")
                 return self.process_with_o3_and_web_search(enhanced_prompt)
 
         except Exception as e:

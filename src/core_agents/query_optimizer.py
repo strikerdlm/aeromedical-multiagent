@@ -87,14 +87,14 @@ def create_query_optimizer_pipeline() -> Agent:
     # Define the agents from last to first to set up handoffs easily
     instruction_agent = Agent(
         name="Instruction Agent",
-        model="gpt-4o-mini",
+        model="gpt-5",
         instructions=INSTRUCTION_AGENT_INSTRUCTIONS,
         output_type=ResearchInstructions,
     )
 
     clarifying_agent = Agent(
         name="Clarifying Agent",
-        model="gpt-4o-mini",
+        model="gpt-5",
         instructions=CLARIFYING_AGENT_INSTRUCTIONS,
         output_type=ClarificationRequest,
         handoffs=[instruction_agent],
@@ -102,7 +102,7 @@ def create_query_optimizer_pipeline() -> Agent:
 
     triage_agent = Agent(
         name="Triage Agent",
-        model="gpt-4o-mini",
+        model="gpt-5",
         instructions=TRIAGE_AGENT_INSTRUCTIONS,
         handoffs=[clarifying_agent, instruction_agent],
     )

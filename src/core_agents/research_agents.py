@@ -106,7 +106,7 @@ Guidelines:
 
     o3_agent = Agent(
         name="O3 High Reasoning Agent",
-        model="o3-2025-04-16",  # Standard o3 model with high reasoning
+        model="gpt-5",  # Use GPT-5 for coordination/planning/reporting
         instructions=O3_HIGH_REASONING_INSTRUCTIONS,
         tools=[
             WebSearchTool(
