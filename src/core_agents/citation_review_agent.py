@@ -80,7 +80,7 @@ ALL of the following criteria:
 
     agent = Agent(
         name="Citation Review Agent",
-        model="o3-128k",  # large context capacity for full papers
+        model="gpt-5",  # use GPT-5 for reporting/validation
         instructions=CITATION_REVIEW_INSTRUCTIONS,
         output_type=CitationList,
         tools=[

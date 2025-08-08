@@ -34,7 +34,7 @@ async def run_citation_review(
     agent = create_citation_review_agent()
 
     run_config = RunConfig(
-        # The agent already specifies its preferred model (o3-128k) but this can
+        # The agent already specifies its preferred model (gpt-5) but this can
         # be overridden here if required.
         tracing_disabled=True,
     )

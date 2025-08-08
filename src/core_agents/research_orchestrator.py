@@ -83,7 +83,7 @@ async def run_research_pipeline(
     logger.info(f"Starting deep research with model: {final_instructions.target_model}")
 
     # --- Model Fallback Logic ---
-    fallback_models = ["o3", "o4-mini-deep-research"]
+    fallback_models = ["gpt-5", "o4-mini-deep-research"]
     models_to_try = [final_instructions.target_model] + fallback_models
 
     research_result = None

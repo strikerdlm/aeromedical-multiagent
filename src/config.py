@@ -45,7 +45,7 @@ class OpenAIModelsConfig:
     )
 
     O3_REASONING: ModelConfig = ModelConfig(
-        model_name="o3-2025-04-16",  # Use standard o3 for reasoning tasks with high reasoning effort
+        model_name="gpt-5",  # Agentic coordination/planning/reporting on GPT-5
         max_tokens=4000,
         temperature=0.3,
         reasoning_effort="high"
@@ -53,7 +53,7 @@ class OpenAIModelsConfig:
 
     # Additional o3 model for different use cases
     O3_STANDARD: ModelConfig = ModelConfig(
-        model_name="o3-2025-04-16",  # Standard o3 model
+        model_name="gpt-5",  # Standard non-research tasks on GPT-5
         max_tokens=6000,
         temperature=0.3,
         reasoning_effort="medium"
@@ -221,11 +221,16 @@ class AppConfig:
 
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5")
 
     # Web Search Configuration (for o3 with web search)
     SEARCH_API_KEY: str = os.getenv("SEARCH_API_KEY", "")  # For web search functionality
     SEARCH_ENGINE_ID: str = os.getenv("SEARCH_ENGINE_ID", "")  # Google Custom Search ID
+
+    # OpenAI web_search_preview tool configuration
+    OPENAI_USE_WEB_SEARCH_PREVIEW: bool = os.getenv("OPENAI_USE_WEB_SEARCH_PREVIEW", "true").lower() == "true"
+    OPENAI_WEB_SEARCH_CONTEXT_SIZE: str = os.getenv("OPENAI_WEB_SEARCH_CONTEXT_SIZE", "high")
+    OPENAI_USE_APPROXIMATE_LOCATION: bool = os.getenv("OPENAI_USE_APPROXIMATE_LOCATION", "true").lower() == "true"
 
     # PRISMA-specific API configurations
     PPLX_API_KEY: str = os.getenv("PPLX_API_KEY", "")  # Perplexity API key
