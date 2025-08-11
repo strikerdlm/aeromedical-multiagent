@@ -47,6 +47,7 @@ class ModeManager:  # pylint: disable=too-few-public-methods
     _AVAILABLE_MODES = {
         "prompt",
         "deep_research",
+        "deep_aeromedical",
         "aeromedical_risk",
         "aerospace_medicine_rag",
         "prisma",
@@ -58,6 +59,7 @@ class ModeManager:  # pylint: disable=too-few-public-methods
     _MODE_LABELS = {
         "prompt": "💬 Prompt",
         "deep_research": "🔬 Deep Research",
+        "deep_aeromedical": "🛩️ Deep Aeromedical Research",
         "aeromedical_risk": "⚕️ Aeromedical Risk",
         "aerospace_medicine_rag": "🧑‍🚀 Aerospace Medicine RAG",
         "prisma": "📚 Prisma Systematic Review",
@@ -122,6 +124,8 @@ class ModeManager:  # pylint: disable=too-few-public-methods
         query_lc = query.lower()
         confidence = 1.0  # Deterministic heuristics – always 100 %.
 
+        if any(kw in query_lc for kw in ("aeromedical", "aviation medicine", "aerospace medicine")) and ("deep" in query_lc or "systematic" in query_lc or "prisma" in query_lc):
+            return "deep_aeromedical", confidence
         if any(kw in query_lc for kw in ("literature review", "comprehensive", "deep research")):
             return "deep_research", confidence
         if "risk" in query_lc or "assessment" in query_lc:

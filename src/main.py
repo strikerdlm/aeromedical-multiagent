@@ -28,6 +28,7 @@ from .jobs import JobStore
 from .core_agents import run_research_pipeline
 from .core_agents.research_agents import create_deep_research_agent, create_o3_high_reasoning_agent
 from .prisma_pipeline import run_prisma_pipeline, create_prisma_writer_agent
+from .deep_aeromedical_pipeline import run_deep_aeromedical_pipeline  # NEW
 from .mode_manager import ModeManager
 from .flowise_client import FlowiseClient
 from .config import FlowiseConfig
@@ -245,12 +246,14 @@ class EnhancedPromptEnhancerApp:
                 return await self._handle_flowise_mode(user_input, "aeromedical_risk")
             elif self.current_mode == "aerospace_medicine_rag":
                 return await self._handle_flowise_mode(user_input, "aerospace_medicine_rag")
+            elif self.current_mode == "deep_aeromedical":
+                return await self._handle_deep_aeromedical_mode(user_input)
             elif self.current_mode == "prisma":
                 return await self._handle_prisma_mode(user_input)
             else:
                 # Default to prompt mode for unknown modes
                 return await self._handle_prompt_mode(user_input)
-                
+        
         except Exception as e:
             logger.error(f"Error processing user request in {self.current_mode} mode: {e}", exc_info=True)
             self.console.print(f"❌ [red]An error occurred: {e}[/red]")
@@ -396,6 +399,37 @@ class EnhancedPromptEnhancerApp:
         
         return True
 
+    async def _handle_deep_aeromedical_mode(self, user_input: str) -> bool:
+        """Handle Deep Aeromedical Research mode (o3-deep-research + gpt-5)."""
+        try:
+            self.console.print("\n🛩️ [cyan]Running Deep Aeromedical Research (PRISMA-style)...[/cyan]")
+            self.console.print("[dim]This may take several minutes. Sections will be generated sequentially.[/dim]")
+
+            final_output = await run_deep_aeromedical_pipeline(user_input)
+
+            assistant_message = {"role": "assistant", "content": str(final_output)}
+            self.messages.append(assistant_message)
+            self.current_agent = None
+
+            self.console.print("\n🤖 [bold]Deep Aeromedical Research Report:[/bold]")
+            self.console.print("─" * 60)
+            self.console.print(Markdown(str(final_output)))
+            self.console.print("─" * 60)
+            self.console.print("\n[green]✅ Report generation completed![/green]")
+
+            # Auto-export
+            try:
+                file_path = self.markdown_exporter.export_prisma_review(final_output, user_input)
+                self.console.print(f"\n💾 [bold green]Report saved to[/bold green] `{file_path}`\n")
+            except Exception as export_err:
+                logger.error(f"Deep aeromedical export failed: {export_err}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Error in deep aeromedical mode: {e}", exc_info=True)
+            self.console.print(f"❌ [red]Error in deep aeromedical mode: {e}[/red]")
+
+        return True
+
     def handle_enhanced_user_input(self, user_input: str) -> bool:
         """Handle commands and free-text queries received from the user.
 
@@ -427,6 +461,7 @@ class EnhancedPromptEnhancerApp:
             "/deep": "deep_research",
             "/aero": "aeromedical_risk",
             "/aerospace": "aerospace_medicine_rag",
+            "/aerodeep": "deep_aeromedical",
             "/prisma": "prisma",
         }
 
