@@ -395,3 +395,246 @@ class MarkdownExporter:
         file_path.write_text(content, encoding="utf-8")
 
         return str(file_path)
+
+    # ---------------------------------------------------------------------
+    # Convenience writer used by UI download flows
+    # ---------------------------------------------------------------------
+    def export_to_markdown(self, content: str, filename: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """Write raw markdown content to a specific filename inside exports.
+
+        Args:
+            content: Markdown content to write
+            filename: Target filename (relative name or path under exports)
+            metadata: Optional dictionary to append as a metadata section
+
+        Returns:
+            Absolute path to the written file
+        """
+        file_path = Path(filename)
+        if not file_path.is_absolute():
+            file_path = self.output_dir / filename
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        final_content = content
+        if metadata:
+            # Append a simple metadata section at the end to avoid corrupting provided content
+            meta_lines = ["\n---\n", "## Export Metadata (Appended)\n"]
+            for k, v in metadata.items():
+                meta_lines.append(f"- **{k}:** {v}\n")
+            meta_lines.append(f"\n*Exported on {self._format_timestamp()}*\n")
+            final_content = f"{content}\n{''.join(meta_lines)}"
+
+        file_path.write_text(final_content, encoding="utf-8")
+        return str(file_path.absolute())
+
+    # ---------------------------------------------------------------------
+    # Journal-style manuscript export (IMRaD)
+    # ---------------------------------------------------------------------
+    def _extract_sections_from_markdown(self, text: str) -> Dict[str, str]:
+        """Best-effort extraction of common scientific sections from markdown.
+
+        Scans for second-level headings (## Section) and collects their content.
+        Returns a mapping from normalised section name to text.
+        """
+        sections: Dict[str, str] = {}
+        if not text:
+            return sections
+
+        # Normalise newlines and ensure a trailing newline for parsing
+        text = text.replace("\r\n", "\n").replace("\r", "\n") + "\n"
+        pattern = re.compile(r"^##\s+(.+?)\n", re.MULTILINE)
+        matches = list(pattern.finditer(text))
+
+        # If no second-level headings, try first-level
+        if not matches:
+            pattern = re.compile(r"^#\s+(.+?)\n", re.MULTILINE)
+            matches = list(pattern.finditer(text))
+
+        if not matches:
+            # No headings found; treat entire text as Discussion-like narrative
+            sections["discussion"] = text.strip()
+            return sections
+
+        def norm(name: str) -> str:
+            return re.sub(r"[^a-z]", "", name.lower())
+
+        # Collect content between headings
+        for i, m in enumerate(matches):
+            title = m.group(1).strip()
+            start = m.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            content = text[start:end].strip()
+            sections[norm(title)] = content
+
+        return sections
+
+    def export_scientific_publication(self,
+                                      messages: List[Dict[str, Any]],
+                                      mode: str,
+                                      manuscript_meta: Optional[Dict[str, Any]] = None,
+                                      filename: Optional[str] = None,
+                                      verify_citations: bool = False) -> str:
+        """Export a journal-style IMRaD manuscript in Markdown.
+
+        Args:
+            messages: Conversation including assistant output with substantive content
+            mode: Current processing mode used to annotate metadata
+            manuscript_meta: Optional dict with keys such as title, authors, affiliations,
+                corresponding, keywords, acknowledgments, funding, conflicts, data_availability,
+                ethics.
+            filename: Optional custom filename
+            verify_citations: If True, runs citation verification and replaces the References section
+
+        Returns:
+            Absolute path to the exported manuscript file.
+        """
+        if not messages:
+            raise ValueError("No messages available to export")
+
+        # Get last assistant response as the source material
+        assistant_msg = next((m for m in reversed(messages) if m.get("role") == "assistant"), None)
+        if not assistant_msg:
+            raise ValueError("No assistant response found to export")
+        body_text = str(assistant_msg.get("content", "")).strip()
+
+        # Prepare metadata
+        manuscript_meta = manuscript_meta or {}
+        title = manuscript_meta.get("title") or "Untitled Scientific Manuscript"
+        authors = manuscript_meta.get("authors")  # string like "A. Author^1, B. Author^2*"
+        affiliations = manuscript_meta.get("affiliations")  # multi-line string with ^1 labels
+        corresponding = manuscript_meta.get("corresponding")
+        keywords = manuscript_meta.get("keywords")  # comma-separated string
+        acknowledgments = manuscript_meta.get("acknowledgments")
+        funding = manuscript_meta.get("funding")
+        conflicts = manuscript_meta.get("conflicts")
+        data_availability = manuscript_meta.get("data_availability")
+        ethics = manuscript_meta.get("ethics")
+
+        # Attempt to extract sections from the assistant body
+        sec_map = self._extract_sections_from_markdown(body_text)
+
+        def pick(*aliases: str) -> Optional[str]:
+            for a in aliases:
+                key = re.sub(r"[^a-z]", "", a.lower())
+                if key in sec_map and sec_map[key]:
+                    return sec_map[key]
+            return None
+
+        abstract = pick("Abstract")
+        introduction = pick("Introduction", "Background")
+        methods = pick("Methods", "Methodology", "Materials and Methods")
+        results = pick("Results", "Findings")
+        discussion = pick("Discussion", "Discussion & Critical Appraisal")
+        limitations = pick("Limitations")
+        conclusion = pick("Conclusion", "Conclusions")
+        references_raw = pick("References", "Bibliography")
+
+        # Compose manuscript
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        if not filename:
+            filename = f"manuscript_{self._sanitize_filename(title)}_{timestamp}.md"
+
+        lines: List[str] = []
+        lines.append(f"# {title}\n")
+
+        if authors:
+            lines.append(f"{authors}\n")
+        if affiliations:
+            lines.append(f"\n{affiliations.strip()}\n")
+        if corresponding:
+            lines.append(f"\n**Correspondence:** {corresponding}\n")
+        if keywords:
+            lines.append(f"**Keywords:** {keywords}\n")
+
+        # Manuscript metadata block from app
+        lines.append("\n---\n")
+        lines.append(self._generate_metadata_section(mode=mode, agent_name="Journal Exporter", total_messages=len(messages)))
+
+        # Core sections
+        lines.append("## Abstract\n\n")
+        lines.append((abstract or "[Add a concise 200–300 word abstract summarizing background, objectives, methods, results, and conclusions.]") + "\n\n")
+
+        lines.append("## Introduction\n\n")
+        if introduction:
+            lines.append(introduction + "\n\n")
+        else:
+            lines.append("[Provide background, rationale, and clearly state objectives / hypotheses.]\n\n")
+
+        lines.append("## Methods\n\n")
+        if methods:
+            lines.append(methods + "\n\n")
+        else:
+            lines.append("[Describe study design, data sources, eligibility criteria, search strategy, outcomes, and analysis.]\n\n")
+
+        lines.append("## Results\n\n")
+        if results:
+            lines.append(results + "\n\n")
+        else:
+            lines.append("[Report key findings with appropriate tables/figures references and effect estimates.]\n\n")
+
+        lines.append("## Discussion\n\n")
+        if discussion:
+            lines.append(discussion + "\n\n")
+        else:
+            lines.append("[Interpret findings in context of prior literature, clinical relevance, mechanisms, and implications.]\n\n")
+
+        lines.append("## Limitations\n\n")
+        lines.append((limitations or "[State methodological and practical limitations, risks of bias, and generalizability.]") + "\n\n")
+
+        lines.append("## Conclusion\n\n")
+        lines.append((conclusion or "[Provide a clear, concise conclusion aligned to objectives with potential future work.]") + "\n\n")
+
+        if acknowledgments:
+            lines.append("## Acknowledgments\n\n")
+            lines.append(acknowledgments.strip() + "\n\n")
+
+        if funding:
+            lines.append("## Funding\n\n")
+            lines.append(funding.strip() + "\n\n")
+
+        if conflicts:
+            lines.append("## Conflicts of Interest\n\n")
+            lines.append(conflicts.strip() + "\n\n")
+
+        if data_availability:
+            lines.append("## Data Availability\n\n")
+            lines.append(data_availability.strip() + "\n\n")
+
+        if ethics:
+            lines.append("## Ethics Statement\n\n")
+            lines.append(ethics.strip() + "\n\n")
+
+        # References handling
+        verified_references: List[str] = []
+        if verify_citations:
+            try:
+                # Lazy import to avoid hard dependency at module import time
+                from .core_agents.citation_orchestrator import run_citation_review  # type: ignore
+                # Run citation verification against the assembled manuscript so far
+                assembled_so_far = "".join(lines) + ("\n\n## References\n\n" + (references_raw or ""))
+                # Use asyncio.run to execute the async coroutine in this sync context
+                import asyncio as _asyncio
+                verified_references = _asyncio.run(run_citation_review(assembled_so_far))  # type: ignore[arg-type]
+            except Exception:
+                # Fall back silently to raw references if verification fails
+                verified_references = []
+
+        lines.append("## References\n\n")
+        if verified_references:
+            for i, ref in enumerate(verified_references, 1):
+                if ref.lstrip().startswith(str(i)):
+                    lines.append(ref + "\n")
+                else:
+                    lines.append(f"{i}. {ref}\n")
+        elif references_raw:
+            lines.append(references_raw.strip() + "\n")
+        else:
+            lines.append("[Add APA-formatted reference list. Ensure all in-text citations are present here.]\n")
+
+        # Footer
+        lines.append(f"\n---\n\n*Manuscript exported by Aeromedical Evidence Review Framework on {self._format_timestamp()}*\n")
+
+        # Write file
+        file_path = self.output_dir / filename
+        file_path.write_text("".join(lines), encoding="utf-8")
+        return str(file_path.absolute())

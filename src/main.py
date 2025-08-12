@@ -488,6 +488,25 @@ class EnhancedPromptEnhancerApp:
             return True
 
         # --------------------------------------------------
+        # Command handling for exports
+        # --------------------------------------------------
+        if stripped.lower() == "/export":
+            self.ui.export_latest_response()
+            return True
+        if stripped.lower() == "/save":
+            self.ui.export_full_conversation()
+            return True
+        if stripped.lower() == "/report":
+            self.ui.export_structured_report()
+            return True
+        if stripped.lower() == "/exports":
+            self.ui.list_exported_files()
+            return True
+        if stripped.lower() == "/publish":
+            self.ui.export_scientific_publication()
+            return True
+
+        # --------------------------------------------------
         # Primary processing path – log the user message and then try the
         # Flowise (or specialised) agent via
         # *agents.Runner*.  The external dependency is heavily mocked in the
