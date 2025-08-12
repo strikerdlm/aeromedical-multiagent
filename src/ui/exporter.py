@@ -156,3 +156,60 @@ class ExportHandler:
 
         except Exception as e:
             self.console.print(f"❌ [red]Failed to list exports: {e}[/red]")
+
+    def export_scientific_publication(self) -> None:
+        """Export a journal-style scientific manuscript (IMRaD)."""
+        try:
+            if not self.app.messages:
+                self.console.print("⚠️ [yellow]No conversation to export. Ask a question first![/yellow]")
+                return
+            has_response = any(msg.get("role") == "assistant" for msg in self.app.messages)
+            if not has_response:
+                self.console.print("⚠️ [yellow]No AI response found to export.[/yellow]")
+                return
+
+            # Collect optional metadata
+            self.console.print("\n🧾 [cyan]Enter optional manuscript metadata (press Enter to skip)[/cyan]")
+            title = Prompt.ask("Title", default="", show_default=False)
+            authors = Prompt.ask("Authors (e.g., A. Author^1, B. Author^2*)", default="", show_default=False)
+            affiliations = Prompt.ask("Affiliations (use ^1 labels; multiline allowed)", default="", show_default=False)
+            corresponding = Prompt.ask("Corresponding author (name, email)", default="", show_default=False)
+            keywords = Prompt.ask("Keywords (comma-separated)", default="", show_default=False)
+            acknowledgments = Prompt.ask("Acknowledgments", default="", show_default=False)
+            funding = Prompt.ask("Funding", default="", show_default=False)
+            conflicts = Prompt.ask("Conflicts of interest", default="", show_default=False)
+            data_availability = Prompt.ask("Data availability statement", default="", show_default=False)
+            ethics = Prompt.ask("Ethics statement", default="", show_default=False)
+
+            meta = {
+                k: v.strip() for k, v in {
+                    "title": title,
+                    "authors": authors,
+                    "affiliations": affiliations,
+                    "corresponding": corresponding,
+                    "keywords": keywords,
+                    "acknowledgments": acknowledgments,
+                    "funding": funding,
+                    "conflicts": conflicts,
+                    "data_availability": data_availability,
+                    "ethics": ethics,
+                }.items() if v and v.strip()
+            }
+
+            file_path = self.app.markdown_exporter.export_scientific_publication(
+                self.app.messages,
+                self.app.current_mode,
+                manuscript_meta=meta or None,
+                verify_citations=False,
+            )
+
+            self.console.print()
+            self.console.print("📝 [green]Scientific manuscript export complete[/green]")
+            self.console.print(f"[bold]File:[/bold] `{file_path}`")
+            self.console.print(f"[bold]Location:[/bold] `{self.app.markdown_exporter.get_export_directory()}`")
+            self.console.print()
+            self.console.print("💡 Tip: Enable citation verification in code to auto-verify references.")
+            self.console.print()
+
+        except Exception as e:
+            self.console.print(f"❌ [red]Export failed: {e}[/red]")

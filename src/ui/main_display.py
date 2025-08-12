@@ -132,6 +132,7 @@ class UserInterface:
             ("/export", "Export latest response to markdown"),
             ("/save", "Export full conversation to markdown"),
             ("/report", "Export structured research report"),
+            ("/publish", "Export journal-style scientific manuscript (IMRaD)"),
             ("/exports", "List all exported files"),
             ("/jobs", "View the status of currently running jobs"),
             ("/archive", "View and download results from past jobs"),
@@ -350,6 +351,8 @@ class UserInterface:
         self.console.print("📄 /export - Save this response to markdown")
         self.console.print("📚 /save - Save full conversation to markdown")
         self.console.print("📊 /report - Create structured research report")
+        self.console.print("📝 /publish - Create journal-style IMRaD manuscript")
+        self.console.print("🗂️ /exports - List exported files")
         self.console.print()
 
     def display_jobs(self) -> None:
@@ -489,6 +492,9 @@ class UserInterface:
 
     def export_structured_report(self) -> None:
         self.exporter.export_structured_report()
+
+    def export_scientific_publication(self) -> None:
+        self.exporter.export_scientific_publication()
 
     def list_exported_files(self) -> None:
         self.exporter.list_exported_files()
