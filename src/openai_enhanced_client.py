@@ -204,14 +204,19 @@ class EnhancedOpenAIClient:
 
                 response = self.client.responses.create(
                     model=config.model_name,
-                    instructions=enhanced_prompt,
+                    input=enhanced_prompt,
+                    text={
+                        "format": {"type": "text"},
+                        "verbosity": "high"
+                    },
                     max_output_tokens=config.max_tokens,
                     temperature=config.temperature,
                     reasoning={
                         "effort": config.reasoning_effort,
-                        "summary": "detailed"
+                        "summary": "auto"
                     },
                     tools=tools or None,
+                    store=False
                 )
                 
                 # Extract the response from the Responses API format
@@ -271,14 +276,19 @@ class EnhancedOpenAIClient:
 
                 response = self.client.responses.create(
                     model=config.model_name,
-                    instructions=enhanced_prompt,
+                    input=enhanced_prompt,
+                    text={
+                        "format": {"type": "text"},
+                        "verbosity": "high"
+                    },
                     max_output_tokens=config.max_tokens,
                     temperature=config.temperature,
                     reasoning={
                         "effort": config.reasoning_effort,
-                        "summary": "detailed"
+                        "summary": "auto"
                     },
                     tools=tools,
+                    store=False
                 )
 
                 if hasattr(response, 'output') and response.output:
@@ -309,13 +319,18 @@ class EnhancedOpenAIClient:
             # Use Responses API for GPT-5 with reasoning effort
             response = self.client.responses.create(
                 model=config.model_name,
-                instructions=enhanced_with_search,
+                input=enhanced_with_search,
+                text={
+                    "format": {"type": "text"},
+                    "verbosity": "high"
+                },
                 max_output_tokens=config.max_tokens,
                 temperature=config.temperature,
                 reasoning={
                     "effort": config.reasoning_effort,
-                    "summary": "detailed"
-                }
+                    "summary": "auto"
+                },
+                store=False
             )
             
             if hasattr(response, 'output') and response.output:
