@@ -68,3 +68,10 @@ For long-running research tasks:
 - Store API key in `PPLX_API_KEY` environment variable
 - Use config classes for model selection and parameters
 - Implement rate limiting between requests 
+
+## Documentation Centralization Rules
+
+- All project markdown files (`*.md`) must reside in the `Docs/` directory at the repository root. Do not place markdown files at the repo root or in other folders.
+- When adding or updating documentation, append a changelog-style note to `Docs/CHANGELOG.md` under the `[Unreleased]` > `Documentation` section using the Keep a Changelog format.
+- Pull requests introducing markdown outside `Docs/` must move those files into `Docs/` before merge.
+- Ignore generated or external documentation bundles such as `Docs/agents.md-main/`.

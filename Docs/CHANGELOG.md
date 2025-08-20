@@ -30,3 +30,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added API reference section
 - Included troubleshooting guide
 - Added development and contribution guidelines 
+- Centralized documentation policy: all project markdown files must live in `Docs/` and the rule is documented in `.cursorrules`.
+- Ignored `Docs/agents.md-main/` in `.gitignore` to exclude generated doc bundles.

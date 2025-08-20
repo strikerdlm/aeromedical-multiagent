@@ -196,6 +196,9 @@ Docs/Flowise/
 # OpenAI Agents documentation folder
 Docs/OpenAI\ Agents/
 
+# Ignore generated agents documentation directory
+Docs/agents.md-main/
+
 # =============================================================================
 # SECURITY REMINDER
 # =============================================================================
