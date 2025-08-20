@@ -6,6 +6,7 @@ import logging
 from agents import Agent, Runner, RunConfig
 from .core_agents.research_agents import create_deep_research_agent
 from .config import PRISMAConfig
+from .agents_md import apply_guidelines_to_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ Use formal academic language and Markdown headings (##). Include at least {PRISM
     return Agent(
         name="PRISMA Writer",
         model="gpt-5",
-        instructions=instructions,
+        instructions=apply_guidelines_to_instructions(instructions, role_label="PRISMA Writer"),
     )
 
 

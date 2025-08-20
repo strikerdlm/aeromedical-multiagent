@@ -14,6 +14,7 @@ import logging
 from typing import List
 
 from agents import Agent, Runner, RunConfig, WebSearchTool
+from .agents_md import apply_guidelines_to_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def create_aeromedical_research_agent() -> Agent:
     return Agent(
         name="Aeromedical Deep Researcher",
         model="o3-deep-research-2025-06-26",
-        instructions=instructions,
+        instructions=apply_guidelines_to_instructions(instructions, role_label="Aeromedical Deep Researcher"),
         tools=[
             WebSearchTool(
                 search_context_size="high",
@@ -52,7 +53,7 @@ def create_scientific_writer_agent() -> Agent:
     return Agent(
         name="Scientific Writer",
         model="gpt-5",
-        instructions=writer_instructions,
+        instructions=apply_guidelines_to_instructions(writer_instructions, role_label="Scientific Writer"),
         tools=[
             WebSearchTool(
                 search_context_size="high",

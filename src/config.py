@@ -308,6 +308,13 @@ class AppConfig:
         ]
     }
 
+    # Optional AGENTS.md guidelines integration
+    ENABLE_AGENTS_MD: bool = os.getenv("ENABLE_AGENTS_MD", "false").lower() == "true"
+    AGENTS_MD_PATH: str = os.getenv(
+        "AGENTS_MD_PATH",
+        os.path.join("Docs", "agents.md-main", "AGENTS.md"),
+    )
+
     @classmethod
     def validate_environment(cls) -> bool:
         """

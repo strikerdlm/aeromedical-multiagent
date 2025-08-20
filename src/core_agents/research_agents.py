@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from agents import Agent, WebSearchTool
+from ..agents_md import apply_guidelines_to_instructions
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ Output rules:
     research_agent = Agent(
         name="Deep Research Agent",
         model="o3-deep-research-2025-06-26",  # Primary o3-deep-research model
-        instructions=DEEP_RESEARCH_INSTRUCTIONS,
+        instructions=apply_guidelines_to_instructions(DEEP_RESEARCH_INSTRUCTIONS, role_label="Deep Research Agent"),
         tools=[
             WebSearchTool(
                 search_context_size="high",
@@ -107,7 +108,7 @@ Guidelines:
     o3_agent = Agent(
         name="O3 High Reasoning Agent",
         model="gpt-5",  # Use GPT-5 for coordination/planning/reporting
-        instructions=O3_HIGH_REASONING_INSTRUCTIONS,
+        instructions=apply_guidelines_to_instructions(O3_HIGH_REASONING_INSTRUCTIONS, role_label="O3 High Reasoning Agent"),
         tools=[
             WebSearchTool(
                 search_context_size="medium",

@@ -12,6 +12,7 @@ from typing import List, Dict, Optional
 
 from pydantic import BaseModel
 from agents import Agent, Runner, WebSearchTool, RunConfig
+from ..agents_md import apply_guidelines_to_instructions
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -88,14 +89,14 @@ def create_query_optimizer_pipeline() -> Agent:
     instruction_agent = Agent(
         name="Instruction Agent",
         model="gpt-5",
-        instructions=INSTRUCTION_AGENT_INSTRUCTIONS,
+        instructions=apply_guidelines_to_instructions(INSTRUCTION_AGENT_INSTRUCTIONS, role_label="Instruction Agent"),
         output_type=ResearchInstructions,
     )
 
     clarifying_agent = Agent(
         name="Clarifying Agent",
         model="gpt-5",
-        instructions=CLARIFYING_AGENT_INSTRUCTIONS,
+        instructions=apply_guidelines_to_instructions(CLARIFYING_AGENT_INSTRUCTIONS, role_label="Clarifying Agent"),
         output_type=ClarificationRequest,
         handoffs=[instruction_agent],
     )
@@ -103,7 +104,7 @@ def create_query_optimizer_pipeline() -> Agent:
     triage_agent = Agent(
         name="Triage Agent",
         model="gpt-5",
-        instructions=TRIAGE_AGENT_INSTRUCTIONS,
+        instructions=apply_guidelines_to_instructions(TRIAGE_AGENT_INSTRUCTIONS, role_label="Triage Agent"),
         handoffs=[clarifying_agent, instruction_agent],
     )
 

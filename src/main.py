@@ -32,6 +32,7 @@ from .deep_aeromedical_pipeline import run_deep_aeromedical_pipeline  # NEW
 from .mode_manager import ModeManager
 from .flowise_client import FlowiseClient
 from .config import FlowiseConfig
+from .agents_md import set_enabled as agentsmd_set_enabled, is_enabled as agentsmd_is_enabled
 
 
 # Set up logging with proper Unicode support
@@ -448,6 +449,14 @@ class EnhancedPromptEnhancerApp:
 
         if stripped.lower() == "/modes":
             self.ui.display_mode_selection()
+            return True
+
+        # Toggle AGENTS.md guidelines integration at runtime
+        if stripped.lower() == "/agentsmd":
+            new_state = not agentsmd_is_enabled()
+            agentsmd_set_enabled(new_state)
+            state_label = "enabled" if new_state else "disabled"
+            self.console.print(f"[cyan]📄 AGENTS.md guidelines {state_label}.[/cyan]")
             return True
 
         # --------------------------------------------------

@@ -32,3 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added development and contribution guidelines 
 - Centralized documentation policy: all project markdown files must live in `Docs/` and the rule is documented in `.cursorrules`.
 - Ignored `Docs/agents.md-main/` in `.gitignore` to exclude generated doc bundles.
+ - Optional AGENTS.md integration:
+   - New `src/agents_md.py` utility applies repository guidelines to agent instructions
+   - Config toggles in `src/config.py`: `ENABLE_AGENTS_MD` and `AGENTS_MD_PATH`
+   - Runtime toggle command `/agentsmd` in the main app
+   - Integration applied to core agents and pipelines without changing defaults (disabled by default)
